@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<title>シフト希望</title>
+<style>
+:root {
+  --primary: #2563eb; --primary-light: #dbeafe;
+  --accent: #f59e0b; --bg: #f8fafc; --card: #fff;
+  --border: #e2e8f0; --text: #1e293b; --sub: #64748b;
+  --danger: #ef4444; --green: #16a34a;
+  --radius: 12px; --shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Noto Sans JP", sans-serif; font-size: 17px; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 20px; }
+.header { background: var(--primary); color: #fff; padding: 14px 10px 12px; text-align: center; }
+.header h1 { font-size: 19px; font-weight: 700; }
+.header p { font-size: 13px; opacity: .85; margin-top: 3px; }
+.container { width: 100%; padding: 8px 4px; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px 8px; margin-bottom: 6px; }
+.card-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--primary-light); display: flex; align-items: center; gap: 7px; }
+select.name-select { width: 100%; font-size: 18px; padding: 10px 8px; border: 2px solid var(--border); border-radius: 8px; background: #fff; appearance: none; }
+select.name-select:focus { outline: none; border-color: var(--primary); }
+.date-group { margin-bottom: 12px; }
+.date-label { font-size: 14px; font-weight: 700; color: var(--sub); margin-bottom: 6px; padding: 4px 8px; background: var(--primary-light); border-radius: 7px; display: flex; align-items: center; gap: 5px; }
+.week-badge { font-size: 11px; background: var(--primary); color: #fff; padding: 2px 6px; border-radius: 20px; }
+.slot-row { border: 2px solid var(--border); border-radius: 10px; margin-bottom: 6px; overflow: hidden; transition: border-color 0.15s; }
+.slot-row.checked { border-color: var(--primary); }
+.slot-main { display: flex; align-items: center; padding: 10px 8px; gap: 8px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.slot-checkbox { width: 28px; height: 28px; min-width: 28px; border: 2.5px solid var(--border); border-radius: 7px; display: flex; align-items: center; justify-content: center; background: #fff; transition: all 0.15s; }
+.slot-row.checked .slot-checkbox { background: var(--primary); border-color: var(--primary); }
+.slot-checkbox::after { content: ''; display: none; width: 10px; height: 6px; border-left: 2.5px solid #fff; border-bottom: 2.5px solid #fff; transform: rotate(-45deg) translate(1px,-1px); }
+.slot-row.checked .slot-checkbox::after { display: block; }
+.slot-time { font-size: 17px; font-weight: 600; flex: 1; }
+.last-badge { font-size: 11px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 20px; padding: 2px 7px; white-space: nowrap; }
+.slot-extra { display: none; padding: 0 8px 10px; border-top: 1px solid var(--border); background: #fafafa; flex-direction: column; gap: 8px; }
+.slot-row.checked .slot-extra { display: flex; }
+.cart-row { display: none; align-items: center; gap: 10px; padding-top: 10px; cursor: pointer; user-select: none; }
+.cart-row.visible { display: flex; }
+.cart-check { width: 24px; height: 24px; min-width: 24px; border: 2px solid var(--danger); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #fff; transition: all 0.15s; }
+.cart-check.on { background: var(--danger); }
+.cart-check.on::after { content: ''; display: block; width: 8px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px,-1px); }
+.cart-label { font-size: 15px; color: var(--danger); font-weight: 600; }
+.note-area { padding-top: 8px; }
+.note-area label { font-size: 13px; color: var(--sub); display: block; margin-bottom: 4px; }
+.note-area textarea { width: 100%; font-size: 15px; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px; resize: vertical; min-height: 56px; font-family: inherit; }
+.note-area textarea:focus { outline: none; border-color: var(--primary); }
+.submit-section { margin-top: 6px; }
+.btn-submit { width: 100%; padding: 16px; font-size: 19px; font-weight: 700; background: var(--primary); color: #fff; border: none; border-radius: 12px; cursor: pointer; letter-spacing: .05em; transition: opacity 0.2s; -webkit-tap-highlight-color: transparent; }
+.btn-submit:active { opacity: .8; }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+.msg { padding: 14px; border-radius: 10px; font-size: 15px; text-align: center; display: none; }
+.msg.success { background: #dcfce7; color: var(--green); display: block; }
+.msg.error { background: #fee2e2; color: var(--danger); display: block; }
+#form-body { display: none; }
+.empty-note { text-align: center; color: var(--sub); font-size: 15px; padding: 20px 0; }
+#last-month-card { background: #fffbeb; border: 2px solid #fde68a; display: none; }
+.toggle-wrap { cursor: pointer; flex-shrink: 0; }
+.toggle-track { width: 56px; height: 30px; background: #d1d5db; border-radius: 15px; position: relative; transition: background 0.2s; }
+.toggle-track.on { background: var(--accent); }
+.toggle-thumb { width: 24px; height: 24px; background: #fff; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.toggle-track.on .toggle-thumb { left: 29px; }
+#loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; font-size: 16px; color: var(--sub); }
+</style>
+</head>
+<body>
+
+<div id="loading">読み込み中...</div>
+
+<div id="app" style="display:none;">
+  <div class="header">
+    <h1 id="app-title">📋 シフト希望</h1>
+    <p>参加できる時間帯にチェックを入れてください</p>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="card-title">👤 お名前を選択してください</div>
+      <select class="name-select" id="sel-name">
+        <option value="">-- 選択してください --</option>
+      </select>
+    </div>
+    <div id="last-month-card" class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#92400e;">📋 先月と同じにする</div>
+          <div style="font-size:13px;color:#78350f;margin-top:3px;">ONにすると先月の回答を自動で反映します</div>
+        </div>
+        <div class="toggle-wrap" onclick="toggleLastMonth()">
+          <div class="toggle-track" id="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="form-body">
+      <div class="card">
+        <div class="card-title">📅 参加希望の時間帯</div>
+        <div id="slots-container"></div>
+      </div>
+      <div class="submit-section card">
+        <div id="msg-area"></div>
+        <button class="btn-submit" id="btn-submit">送信する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxKmHgbQbHXXOhMFPbf09IWbf1pqx5RzOjeZ6HehS4a2pf6rXGSxV6EyhwGlbbbIt1cVQ/exec";
+let SLOTS=[], STAFF_DATA=[], LAST_MONTH={}, THIS_MONTH={}, YEAR=0, MONTH=0;
+let currentName='', isCart=false, lastMonthOn=false;
+const state = { checkedMap:{}, cartNgMap:{}, noteMap:{} };
+
+function groupSlots(slots) {
+  const g=[], seen={};
+  slots.forEach(s => {
+    const k = s.week+'_'+s.dateLabel;
+    if(!seen[k]){ seen[k]={week:s.week,dateLabel:s.dateLabel,times:[]}; g.push(seen[k]); }
+    seen[k].times.push(s.time);
+  });
+  return g;
+}
+
+function initState(name) {
+  state.checkedMap={}; state.cartNgMap={}; state.noteMap={};
+  if(THIS_MONTH[name]) {
+    const d=THIS_MONTH[name];
+    Object.entries(d.checkedMap||{}).forEach(([k,arr])=>{ state.checkedMap[k]=new Set(arr); });
+    Object.entries(d.cartNgMap||{}).forEach(([k,arr])=>{ state.cartNgMap[k]=new Set(arr); });
+    Object.entries(d.noteMap||{}).forEach(([k,v])=>{ state.noteMap[k]=v; });
+    return;
+  }
+  if(LAST_MONTH[name]) {
+    const keys = Object.keys(LAST_MONTH[name]).filter(k=>LAST_MONTH[name][k]);
+    SLOTS.forEach(slot => {
+      const sk = slot.week+' '+slot.dateLabel+' '+slot.time;
+      if(keys.indexOf(sk)>=0) {
+        const gk = slot.week+' '+slot.dateLabel;
+        if(!state.checkedMap[gk]) state.checkedMap[gk]=new Set();
+        state.checkedMap[gk].add(slot.time);
+      }
+    });
+  }
+}
+
+function renderSlots(name) {
+  const container = document.getElementById('slots-container');
+  const grouped = groupSlots(SLOTS);
+  if(grouped.length===0){ container.innerHTML='<p class="empty-note">スロットがありません</p>'; return; }
+  container.innerHTML='';
+  grouped.forEach(g => {
+    const groupKey = g.week+' '+g.dateLabel;
+    const dateDiv = document.createElement('div');
+    dateDiv.className='date-group';
+    dateDiv.innerHTML='<div class="date-label"><span class="week-badge">'+g.week+'</span>'+g.dateLabel+'</div>';
+    g.times.forEach(time => {
+      const slotKey = groupKey+' '+time;
+      const isChecked = !!(state.checkedMap[groupKey]&&state.checkedMap[groupKey].has(time));
+      const isLast = !!(LAST_MONTH[name]&&LAST_MONTH[name][slotKey]);
+      const cartNgChecked = !!(state.cartNgMap[groupKey]&&state.cartNgMap[groupKey].has(time));
+      const noteVal = state.noteMap[slotKey]||'';
+      const row = document.createElement('div');
+      row.className='slot-row'+(isChecked?' checked':'');
+      row.dataset.group=groupKey; row.dataset.time=time;
+      const badge = isLast ? '<span class="last-badge">先月も参加</span>' : '';
+      row.innerHTML=
+        '<div class="slot-main" onclick="toggleSlot(this)">'
+        +'<div class="slot-checkbox"></div>'
+        +'<div class="slot-time">'+time+'</div>'
+        +badge+'</div>'
+        +'<div class="slot-extra">'
+        +'<div class="cart-row'+(isCart?' visible':'')+'" onclick="toggleCart(this)">'
+        +'<div class="cart-check'+(cartNgChecked?' on':'')+'"></div>'
+        +'<span class="cart-label">この時間はカート担当不可</span></div>'
+        +'<div class="note-area"><label>備考（途中参加・早退など）</label>'
+        +'<textarea placeholder="例: 10:00から / 14:00まで" oninput="saveNote(this)">'+noteVal+'</textarea></div>'
+        +'</div>';
+      dateDiv.appendChild(row);
+    });
+    container.appendChild(dateDiv);
+  });
+}
+
+function toggleSlot(el) {
+  const row=el.closest('.slot-row'), gk=row.dataset.group, time=row.dataset.time;
+  if(row.classList.contains('checked')){
+    row.classList.remove('checked');
+    if(state.checkedMap[gk]) state.checkedMap[gk].delete(time);
+    if(state.cartNgMap[gk])  state.cartNgMap[gk].delete(time);
+    delete state.noteMap[gk+' '+time];
+  } else {
+    row.classList.add('checked');
+    if(!state.checkedMap[gk]) state.checkedMap[gk]=new Set();
+    state.checkedMap[gk].add(time);
+  }
+}
+function toggleCart(el) {
+  const row=el.closest('.slot-row'), gk=row.dataset.group, time=row.dataset.time;
+  const ch=el.querySelector('.cart-check');
+  if(ch.classList.contains('on')){ ch.classList.remove('on'); if(state.cartNgMap[gk]) state.cartNgMap[gk].delete(time); }
+  else { ch.classList.add('on'); if(!state.cartNgMap[gk]) state.cartNgMap[gk]=new Set(); state.cartNgMap[gk].add(time); }
+}
+function saveNote(el) {
+  const row=el.closest('.slot-row');
+  state.noteMap[row.dataset.group+' '+row.dataset.time]=el.value.trim();
+}
+function buildPostData() {
+  const cm={}, ng={};
+  Object.entries(state.checkedMap).forEach(([k,s])=>{ cm[k]=[...s]; });
+  Object.entries(state.cartNgMap).forEach(([k,s])=>{ ng[k]=[...s]; });
+  return { name:currentName, checkedMap:cm, cartNgMap:ng, noteMap:Object.assign({},state.noteMap) };
+}
+function toggleLastMonth() {
+  lastMonthOn=!lastMonthOn;
+  const track=document.getElementById('toggle-track');
+  if(lastMonthOn){
+    track.classList.add('on');
+    if(LAST_MONTH[currentName]){
+      SLOTS.forEach(slot=>{
+        const sk=slot.week+' '+slot.dateLabel+' '+slot.time;
+        if(LAST_MONTH[currentName][sk]){
+          const gk=slot.week+' '+slot.dateLabel;
+          if(!state.checkedMap[gk]) state.checkedMap[gk]=new Set();
+          state.checkedMap[gk].add(slot.time);
+        }
+      });
+    }
+  } else {
+    track.classList.remove('on');
+    state.checkedMap={}; state.cartNgMap={}; state.noteMap={};
+  }
+  renderSlots(currentName);
+}
+
+document.getElementById('sel-name').addEventListener('change', function(){
+  currentName=this.value; lastMonthOn=false;
+  const track=document.getElementById('toggle-track');
+  if(track) track.classList.remove('on');
+  if(!currentName){
+    document.getElementById('form-body').style.display='none';
+    document.getElementById('last-month-card').style.display='none';
+    return;
+  }
+  const opt=this.options[this.selectedIndex];
+  isCart=opt.dataset.cart==='1';
+  initState(currentName); renderSlots(currentName);
+  document.getElementById('form-body').style.display='block';
+  document.getElementById('msg-area').innerHTML='';
+  document.getElementById('last-month-card').style.display=
+    (LAST_MONTH[currentName]&&Object.keys(LAST_MONTH[currentName]).length>0)?'block':'none';
+});
+
+document.getElementById('btn-submit').addEventListener('click', function(){
+  if(!currentName) return;
+  const btn=this; btn.disabled=true; btn.textContent='送信中...';
+  fetch(GAS_URL, {
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(buildPostData())
+  })
+  .then(()=>{
+    document.body.innerHTML=
+      '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0fdf4;">'
+      +'<div style="text-align:center;padding:40px 20px;background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.1);max-width:320px;margin:20px;">'
+      +'<div style="font-size:56px;margin-bottom:16px;">✅</div>'
+      +'<div style="font-size:20px;font-weight:700;color:#16a34a;margin-bottom:10px;">送信が完了しました</div>'
+      +'<div style="font-size:15px;color:#4b5563;line-height:1.7;">ご回答ありがとうございました。</div>'
+      +'<div style="font-size:13px;color:#9ca3af;margin-top:12px;">このタブは閉じてください。</div>'
+      +'</div></div>';
+  })
+  .catch(()=>{
+    document.getElementById('msg-area').innerHTML='<div class="msg error">⚠️ 通信エラーが発生しました。もう一度お試しください。</div>';
+    btn.disabled=false; btn.textContent='送信する';
+  });
+});
+
+// 起動時にGASからデータ取得
+fetch(GAS_URL+'?action=data')
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.status!=='受付中'){
+      document.getElementById('loading').innerHTML=
+        '<div style="text-align:center;padding:40px 20px;">'
+        +'<div style="font-size:48px;margin-bottom:16px;">🗓️</div>'
+        +'<h2 style="font-size:20px;color:#1e293b;margin-bottom:12px;">受付期間外</h2>'
+        +'<p style="color:#64748b;font-size:15px;line-height:1.7;">'
+        +(d.status==='準備中'?'現在、受付準備中です。':'現在、受付は終了しています。')
+        +'</p></div>';
+      return;
+    }
+    SLOTS=d.slots; STAFF_DATA=d.staffJSON; LAST_MONTH=d.lastMonthData; THIS_MONTH=d.thisMonthData;
+    YEAR=d.year; MONTH=d.month;
+    document.getElementById('app-title').textContent='📋 '+YEAR+'年'+MONTH+'月 シフト希望';
+    document.title=YEAR+'年'+MONTH+'月 シフト希望';
+    const sel=document.getElementById('sel-name');
+    STAFF_DATA.forEach(s=>{
+      const opt=document.createElement('option');
+      opt.value=s.name; opt.textContent=s.name; opt.dataset.cart=s.isCart?'1':'0';
+      sel.appendChild(opt);
+    });
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+  })
+  .catch(()=>{
+    document.getElementById('loading').textContent='読み込みに失敗しました。ページを再読み込みしてください。';
+  });
+</script>
+</body>
+</html>

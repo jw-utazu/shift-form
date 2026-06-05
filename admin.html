@@ -1,2 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>シフト管理 | 管理画面</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #222534;
+  --border: #2e3347;
+  --primary: #4f8ef7;
+  --primary-dim: #1e3a6e;
+  --accent: #34d399;
+  --accent-dim: #0d3325;
+  --warn: #f59e0b;
+  --danger: #f87171;
+  --text: #e2e8f0;
+  --sub: #64748b;
+  --mono: 'DM Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
 
-<h1>hello!</h1>
+/* ヘッダー */
+.header {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+}
+.header-icon { font-size: 20px; }
+.header h1 { font-size: 15px; font-weight: 700; letter-spacing: .04em; color: var(--text); }
+.header-sub { font-size: 12px; color: var(--sub); margin-left: auto; font-family: var(--mono); }
+
+.container { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+
+/* セクション */
+.section { margin-bottom: 24px; }
+.section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  color: var(--sub); text-transform: uppercase;
+  margin-bottom: 10px; padding-left: 2px;
+}
+
+/* カード */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* 年月表示 */
+.ym-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+}
+.ym-label { font-size: 13px; color: var(--sub); }
+.ym-value { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--primary); }
+
+/* ステップリスト */
+.steps { padding: 8px 0; }
+.step-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.step-item:last-child { border-bottom: none; }
+.step-icon {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  font-family: var(--mono);
+  transition: all .3s;
+}
+.step-icon.pending { background: var(--surface2); color: var(--sub); border: 1.5px solid var(--border); }
+.step-icon.active  { background: var(--primary-dim); color: var(--primary); border: 1.5px solid var(--primary); }
+.step-icon.done    { background: var(--accent-dim); color: var(--accent); border: 1.5px solid var(--accent); }
+.step-icon.active .spin {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid var(--primary-dim);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.step-body { flex: 1; padding-top: 3px; }
+.step-name { font-size: 14px; font-weight: 500; }
+.step-name.pending { color: var(--sub); }
+.step-name.active  { color: var(--text); font-weight: 700; }
+.step-name.done    { color: var(--accent); }
+.step-msg { font-size: 11px; color: var(--primary); margin-top: 3px; font-family: var(--mono); }
+
+/* 紐付けUI */
+.mapping-panel {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.mapping-panel.open { display: block; }
+.mapping-inner { padding: 16px 20px; }
+.mapping-title { font-size: 12px; color: var(--sub); margin-bottom: 12px; }
+.mapping-group { margin-bottom: 16px; }
+.mapping-group-label {
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  letter-spacing: .06em; margin-bottom: 8px;
+  padding: 4px 8px; background: var(--primary-dim);
+  border-radius: 4px; display: inline-block;
+}
+.mapping-row {
+  display: grid; grid-template-columns: 1fr 24px 1fr;
+  align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.mapping-cur {
+  font-size: 13px; font-family: var(--mono); color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px;
+}
+.mapping-arrow { text-align: center; color: var(--sub); font-size: 14px; }
+.mapping-select {
+  font-size: 12px; font-family: var(--mono);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 8px; width: 100%; cursor: pointer;
+}
+.mapping-select:focus { outline: none; border-color: var(--primary); }
+.mapping-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 20px; border-top: 1px solid var(--border);
+}
+
+/* シート配置UI */
+.placement-panel {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.placement-panel.open { display: block; }
+.placement-inner { padding: 16px 20px; }
+.placement-title { font-size: 12px; color: var(--sub); margin-bottom: 12px; }
+.sheet-list { list-style: none; margin-bottom: 12px; }
+.sheet-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; margin-bottom: 6px;
+  border: 1.5px solid var(--border); border-radius: 7px;
+  background: var(--surface); font-size: 13px;
+  transition: border-color .15s;
+}
+.sheet-item.new-sheet {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  font-weight: 700; color: var(--primary);
+}
+.sheet-num { font-size: 11px; color: var(--sub); width: 36px; text-align: right; font-family: var(--mono); }
+.sheet-item.new-sheet .sheet-num { color: var(--primary); }
+.sheet-name { flex: 1; }
+.sheet-badge {
+  font-size: 10px; background: var(--primary); color: #fff;
+  padding: 1px 7px; border-radius: 10px;
+}
+.sheet-btns { display: flex; flex-direction: column; gap: 3px; }
+.sheet-btn {
+  width: 24px; height: 20px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--surface2);
+  color: var(--text); cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-btn:hover { background: var(--border); }
+.sheet-btn:disabled { opacity: .3; cursor: default; }
+.ellipsis { text-align: center; color: var(--sub); font-size: 11px; margin: 4px 0; }
+
+/* ボタン */
+.btn {
+  padding: 9px 20px; border: none; border-radius: 7px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  transition: opacity .15s, transform .1s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { opacity: .88; }
+.btn-ghost { background: var(--surface2); color: var(--sub); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--sub); }
+.btn-accent { background: var(--accent); color: #0a1a12; }
+.btn-accent:hover { opacity: .88; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* 実行ボタンエリア */
+.run-area { padding: 20px; border-top: 1px solid var(--border); }
+.btn-run {
+  width: 100%; padding: 15px;
+  font-size: 16px; font-weight: 700;
+  background: var(--primary); color: #fff;
+  border: none; border-radius: 9px; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: .04em;
+  transition: opacity .15s, transform .1s;
+}
+.btn-run:hover { opacity: .88; }
+.btn-run:active { transform: scale(.98); }
+.btn-run:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* 完了 */
+.complete-card {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 32px 20px;
+  text-align: center;
+}
+.complete-card.show { display: block; }
+.complete-icon { font-size: 48px; margin-bottom: 12px; }
+.complete-title { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+.complete-sub { font-size: 13px; color: var(--sub); }
+
+/* エラー */
+.error-msg {
+  display: none;
+  background: #2a1010; border: 1px solid var(--danger);
+  border-radius: 8px; padding: 12px 16px;
+  font-size: 13px; color: var(--danger); margin-top: 12px;
+}
+.error-msg.show { display: block; }
+
+/* ローディング */
+#loading {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 60vh; color: var(--sub); font-size: 14px; gap: 10px;
+}
+.loading-spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border); border-top: 2px solid var(--primary);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">⚙️</span>
+  <h1>シフト管理</h1>
+  <span class="header-sub" id="header-ym">読み込み中...</span>
+</div>
+
+<div id="loading"><div class="loading-spin"></div>データを読み込んでいます...</div>
+
+<div id="app" style="display:none;">
+  <div class="container">
+
+    <!-- 年月確認 -->
+    <div class="section">
+      <div class="section-title">対象月</div>
+      <div class="card">
+        <div class="ym-row">
+          <span class="ym-label">フォーム作成対象</span>
+          <span class="ym-value" id="ym-display">----</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- メイン処理カード -->
+    <div class="section" id="main-card-section">
+      <div class="section-title">フォーム作成</div>
+      <div class="card" id="main-card">
+
+        <!-- ステップリスト -->
+        <div class="steps" id="steps-list"></div>
+
+        <!-- 紐付けパネル（step3） -->
+        <div class="mapping-panel" id="mapping-panel">
+          <div class="mapping-inner">
+            <div class="mapping-title">今月の各スロットに対応する前月スロットを選択してください</div>
+            <div id="mapping-rows"></div>
+          </div>
+          <div class="mapping-actions">
+            <button class="btn btn-ghost" onclick="cancelCreate()">キャンセル</button>
+            <button class="btn btn-primary" onclick="saveMapping()">保存して続行</button>
+          </div>
+        </div>
+
+        <!-- シート配置パネル（step5） -->
+        <div class="placement-panel" id="placement-panel">
+          <div class="placement-inner">
+            <div class="placement-title">▲▼ でシートの配置順を変更できます</div>
+            <ul class="sheet-list" id="sheet-list"></ul>
+          </div>
+          <div class="mapping-actions">
+            <button class="btn btn-ghost" onclick="cancelCreate()">キャンセル</button>
+            <button class="btn btn-accent" onclick="savePlacement()">この位置で確定して実行</button>
+          </div>
+        </div>
+
+        <!-- 実行ボタン -->
+        <div class="run-area" id="run-area">
+          <button class="btn-run" id="btn-run" onclick="startCreate()">
+            フォームを作成する
+          </button>
+        </div>
+
+      </div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <!-- 完了カード -->
+    <div class="complete-card" id="complete-card">
+      <div class="complete-icon">✅</div>
+      <div class="complete-title">フォームを作成しました</div>
+      <div class="complete-sub" id="complete-sub"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKmHgbQbHXXOhMFPbf09IWbf1pqx5RzOjeZ6HehS4a2pf6rXGSxV6EyhwGlbbbIt1cVQ/exec';
+
+const STEP_DEFS = [
+  { id: 1, name: 'シートを作成' },
+  { id: 2, name: '受付情報を更新' },
+  { id: 3, name: '日付の紐付け設定' },
+  { id: 4, name: '設定を保存中' },
+  { id: 5, name: 'シート配置の確認' },
+  { id: 6, name: '最終調整中' },
+];
+
+let adminData = null;   // GASから取得したデータ
+let mappingResult = {}; // 紐付け結果
+let sheetNames = [];    // ファイルBのシート一覧
+let currentStep = 0;    // 0=未開始
+
+// ============================================================
+// 初期データ取得
+// ============================================================
+fetch(GAS_URL + '?action=adminData')
+  .then(r => r.json())
+  .then(d => {
+    adminData = d;
+    document.getElementById('header-ym').textContent = d.year + '年' + d.month + '月';
+    document.getElementById('ym-display').textContent = d.year + '年' + d.month + '月';
+    sheetNames = d.sheetNames || [];
+    renderSteps(0);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  })
+  .catch(() => {
+    document.getElementById('loading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+  });
+
+// ============================================================
+// ステップ描画
+// ============================================================
+function renderSteps(activeStep) {
+  currentStep = activeStep;
+  const container = document.getElementById('steps-list');
+  container.innerHTML = '';
+  STEP_DEFS.forEach(s => {
+    const isDone   = s.id < activeStep;
+    const isActive = s.id === activeStep;
+    const state    = isDone ? 'done' : isActive ? 'active' : 'pending';
+
+    let iconHtml;
+    if (isDone)        iconHtml = '✓';
+    else if (isActive) iconHtml = '<span class="spin"></span>';
+    else               iconHtml = String(s.id);
+
+    container.innerHTML +=
+      '<div class="step-item">'
+      + '<div class="step-icon ' + state + '">' + iconHtml + '</div>'
+      + '<div class="step-body">'
+      + '<div class="step-name ' + state + '">' + s.name + '</div>'
+      + '</div></div>';
+  });
+}
+
+// ============================================================
+// 作成開始
+// ============================================================
+function startCreate() {
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('error-msg').classList.remove('show');
+  renderSteps(0);
+  showMappingPanel();
+}
+
+// ============================================================
+// Step3: 紐付けパネル表示
+// ============================================================
+function showMappingPanel() {
+  renderSteps(3);
+  document.getElementById('run-area').style.display = 'none';
+
+  const panel = document.getElementById('mapping-panel');
+  const rows  = document.getElementById('mapping-rows');
+  rows.innerHTML = '';
+
+  const currentSlots = adminData.currentSlots || [];
+  const prevSlots    = adminData.prevSlots    || [];
+
+  // 今月スロットをグループ化
+  const grouped = groupSlots(currentSlots);
+  const prevGrouped = groupSlots(prevSlots);
+
+  // デフォルトマッピング（同じ時間帯を自動候補）
+  mappingResult = {};
+  currentSlots.forEach(cs => {
+    const key = cs.week + ' ' + cs.dateLabel + ' ' + cs.time;
+    const matched = prevSlots.find(ps => ps.time === cs.time);
+    mappingResult[key] = matched ? matched.week + ' ' + matched.dateLabel + ' ' + matched.time : '';
+  });
+
+  grouped.forEach(g => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'mapping-group';
+    groupDiv.innerHTML = '<div class="mapping-group-label">' + g.week + '　' + g.dateLabel + '</div>';
+
+    g.times.forEach(time => {
+      const key = g.week + ' ' + g.dateLabel + ' ' + time;
+      const defaultVal = mappingResult[key] || '';
+
+      let options = '<option value="">（なし）</option>';
+      prevGrouped.forEach(pg => {
+        options += '<optgroup label="' + pg.week + '　' + pg.dateLabel + '">';
+        pg.times.forEach(pt => {
+          const pkey = pg.week + ' ' + pg.dateLabel + ' ' + pt;
+          const sel  = pkey === defaultVal ? ' selected' : '';
+          options += '<option value="' + pkey + '"' + sel + '>' + pg.dateLabel + '　' + pt + '</option>';
+        });
+        options += '</optgroup>';
+      });
+
+      const row = document.createElement('div');
+      row.className = 'mapping-row';
+      row.innerHTML =
+        '<div class="mapping-cur">' + time + '</div>'
+        + '<div class="mapping-arrow">→</div>'
+        + '<select class="mapping-select" data-key="' + key + '">' + options + '</select>';
+      groupDiv.appendChild(row);
+    });
+
+    rows.appendChild(groupDiv);
+  });
+
+  panel.classList.add('open');
+}
+
+function saveMapping() {
+  document.querySelectorAll('.mapping-select').forEach(sel => {
+    mappingResult[sel.dataset.key] = sel.value;
+  });
+  document.getElementById('mapping-panel').classList.remove('open');
+  showPlacementPanel();
+}
+
+// ============================================================
+// Step5: シート配置パネル表示
+// ============================================================
+function showPlacementPanel() {
+  renderSteps(5);
+
+  const sheetNameB = adminData.year + '.' + String(adminData.month).padStart(2, '0') + 'シフト希望';
+  // 新規シートを除いた既存リストに挿入（デフォルト3番目）
+  const existing = sheetNames.filter(n => n !== sheetNameB);
+  const defaultPos = Math.min(3, existing.length + 1);
+  const allNames = existing.slice();
+  allNames.splice(defaultPos - 1, 0, sheetNameB);
+
+  renderSheetList(allNames, sheetNameB);
+  document.getElementById('placement-panel').classList.add('open');
+}
+
+function renderSheetList(allNames, newSheet) {
+  const ul  = document.getElementById('sheet-list');
+  const pos = allNames.indexOf(newSheet);
+  const from = Math.max(0, pos - 2);
+  const to   = Math.min(allNames.length - 1, pos + 2);
+
+  ul.innerHTML = '';
+  ul._names   = allNames;
+  ul._newSheet = newSheet;
+
+  if (from > 0) {
+    const d = document.createElement('div');
+    d.className = 'ellipsis'; d.textContent = '… 上に' + from + 'シート'; ul.appendChild(d);
+  }
+  for (let i = from; i <= to; i++) {
+    const name  = allNames[i];
+    const isNew = name === newSheet;
+    const li    = document.createElement('li');
+    li.className = 'sheet-item' + (isNew ? ' new-sheet' : '');
+    const upDis = i === 0 ? ' disabled' : '';
+    const dnDis = i === allNames.length - 1 ? ' disabled' : '';
+    li.innerHTML =
+      '<span class="sheet-num">' + (i + 1) + '番目</span>'
+      + '<span class="sheet-name">' + name + '</span>'
+      + (isNew ? '<span class="sheet-badge">新規</span>' : '')
+      + (isNew
+        ? '<div class="sheet-btns">'
+          + '<button class="sheet-btn"' + upDis + ' onclick="moveSheet(-1)">▲</button>'
+          + '<button class="sheet-btn"' + dnDis + ' onclick="moveSheet(1)">▼</button>'
+          + '</div>'
+        : '');
+    ul.appendChild(li);
+  }
+  if (to < allNames.length - 1) {
+    const d = document.createElement('div');
+    d.className = 'ellipsis'; d.textContent = '… 下に' + (allNames.length - 1 - to) + 'シート'; ul.appendChild(d);
+  }
+}
+
+function moveSheet(dir) {
+  const ul   = document.getElementById('sheet-list');
+  const names = ul._names;
+  const newSheet = ul._newSheet;
+  const idx  = names.indexOf(newSheet);
+  const t    = idx + dir;
+  if (t < 0 || t >= names.length) return;
+  names.splice(idx, 1);
+  names.splice(t, 0, newSheet);
+  renderSheetList(names, newSheet);
+}
+
+function savePlacement() {
+  const ul       = document.getElementById('sheet-list');
+  const names    = ul._names;
+  const newSheet = ul._newSheet;
+  const finalPos = names.indexOf(newSheet) + 1;
+
+  document.getElementById('placement-panel').classList.remove('open');
+  executeCreate(finalPos);
+}
+
+// ============================================================
+// Step4,6: GASに全データを投げて実行
+// ============================================================
+function executeCreate(sheetPosition) {
+  renderSteps(4);
+
+  const payload = {
+    action:        'createForm',
+    mapping:       mappingResult,
+    sheetPosition: sheetPosition,
+  };
+
+  fetch(GAS_URL, {
+    method:  'POST',
+    mode:    'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
+  });
+
+  // no-corsなのでレスポンスが読めないため、処理時間を見越して疑似進捗
+  let step = 4;
+  const stepTimings = [3000, 3000, 2000]; // step4→5→6 の待機時間
+  function advanceStep() {
+    step++;
+    if (step <= 6) {
+      renderSteps(step);
+      setTimeout(advanceStep, stepTimings[step - 5] || 2000);
+    } else {
+      showComplete();
+    }
+  }
+  setTimeout(advanceStep, stepTimings[0]);
+}
+
+function showComplete() {
+  document.getElementById('main-card-section').style.display = 'none';
+  const card = document.getElementById('complete-card');
+  card.classList.add('show');
+  document.getElementById('complete-sub').textContent =
+    adminData.year + '年' + adminData.month + '月のフォームを作成しました。';
+}
+
+function cancelCreate() {
+  document.getElementById('mapping-panel').classList.remove('open');
+  document.getElementById('placement-panel').classList.remove('open');
+  document.getElementById('run-area').style.display = 'block';
+  document.getElementById('btn-run').disabled = false;
+  renderSteps(0);
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function groupSlots(slots) {
+  const grouped = [], seen = {};
+  slots.forEach(s => {
+    const key = s.week + '_' + s.dateLabel;
+    if (!seen[key]) { seen[key] = { week: s.week, dateLabel: s.dateLabel, times: [] }; grouped.push(seen[key]); }
+    seen[key].times.push(s.time);
+  });
+  return grouped;
+}
+</script>
+</body>
+</html>

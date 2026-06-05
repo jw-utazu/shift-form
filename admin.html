@@ -3,376 +3,2005 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <title>シフト管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
-  --primary: #2563eb; --primary-light: #dbeafe;
-  --bg: #f8fafc; --card: #fff;
-  --border: #e2e8f0; --text: #1e293b; --sub: #64748b;
-  --green: #16a34a; --danger: #ef4444;
-  --radius: 12px; --shadow: 0 2px 10px rgba(0,0,0,0.07);
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface2: #f9f8f5;
+  --border: #e5e3dc;
+  --border2: #d0cec5;
+  --text: #1a1916;
+  --text2: #6b6860;
+  --text3: #9b9890;
+  --accent: #2a5caa;
+  --accent-light: #e8eef8;
+  --accent-dark: #1e4280;
+  --green: #2d7a4f;
+  --green-light: #e6f4ec;
+  --amber: #b06a00;
+  --amber-light: #fef3e2;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Noto Sans JP', sans-serif;
+  --radius: 10px;
+  --radius-lg: 16px;
 }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: "Noto Sans JP", sans-serif; font-size: 15px; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-.header { background: var(--primary); color: #fff; padding: 14px 20px; }
-.header h1 { font-size: 17px; font-weight: 700; }
-
-.container { max-width: 680px; margin: 0 auto; padding: 24px 16px; }
-
-.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
-.card-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-light); }
-
-/* 初期画面 */
-#screen-top { display: block; }
-#screen-form { display: none; }
-#screen-done { display: none; }
-
-.ym-text { font-size: 24px; font-weight: 700; color: var(--primary); text-align: center; padding: 8px 0 20px; }
-
-.btn-start {
-  display: block; width: 100%; padding: 16px;
-  font-size: 17px; font-weight: 700; font-family: inherit;
-  background: var(--primary); color: #fff;
-  border: none; border-radius: 10px; cursor: pointer;
-  transition: opacity .2s;
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
 }
-.btn-start:hover { opacity: .88; }
 
-/* 紐付けテーブル */
-.map-group { margin-bottom: 18px; }
-.map-group-label {
-  font-size: 12px; font-weight: 700; color: var(--primary);
-  background: var(--primary-light); padding: 4px 10px;
-  border-radius: 6px; display: inline-block; margin-bottom: 8px;
+/* ===== AUTH SCREEN ===== */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 32px;
+  padding: 24px;
 }
-.map-row { display: grid; grid-template-columns: 1fr 20px 1fr; align-items: center; gap: 8px; margin-bottom: 8px; }
-.map-cur { font-size: 13px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; }
-.map-arrow { text-align: center; color: var(--sub); }
-.map-select { font-size: 12px; background: #fff; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px 8px; width: 100%; cursor: pointer; }
-.map-select:focus { outline: none; border-color: var(--primary); }
 
-/* シート配置 */
-.sheet-list { list-style: none; margin-bottom: 4px; }
-.sheet-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 6px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; font-size: 13px; }
-.sheet-item.new-sheet { border-color: var(--primary); background: var(--primary-light); font-weight: 700; color: var(--primary); }
-.sheet-num { font-size: 11px; color: var(--sub); width: 42px; text-align: right; }
-.sheet-item.new-sheet .sheet-num { color: var(--primary); }
-.sheet-name { flex: 1; }
-.sheet-badge { font-size: 10px; background: var(--primary); color: #fff; padding: 1px 7px; border-radius: 10px; }
-.sheet-btns { display: flex; flex-direction: column; gap: 3px; }
-.sheet-btn { width: 26px; height: 22px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); cursor: pointer; font-size: 11px; }
-.sheet-btn:hover { background: var(--border); }
-.sheet-btn:disabled { opacity: .3; cursor: default; }
-.ellipsis { text-align: center; color: var(--sub); font-size: 11px; margin: 2px 0; }
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+}
 
-/* ボタン類 */
-.btn-row { display: flex; gap: 10px; margin-top: 4px; }
-.btn { padding: 11px 22px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity .15s; }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-primary { background: var(--primary); color: #fff; flex: 1; }
-.btn-primary:hover:not(:disabled) { opacity: .88; }
-.btn-ghost { background: var(--bg); color: var(--sub); border: 1px solid var(--border); }
-.btn-ghost:hover { color: var(--text); }
+.auth-logo {
+  width: 56px;
+  height: 56px;
+  background: var(--accent);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 26px;
+  color: #fff;
+}
+
+.auth-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.auth-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 32px;
+  line-height: 1.8;
+}
+
+#g_id_onload { display: none; }
+
+.g-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 13px 24px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  width: 100%;
+  justify-content: center;
+}
+.g-signin-btn:hover { background: var(--accent-dark); }
+.g-signin-btn:active { transform: scale(0.98); }
+.g-signin-btn svg { flex-shrink: 0; }
+
+.auth-error {
+  display: none;
+  background: var(--red-light);
+  color: var(--red);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-top: 16px;
+  text-align: left;
+}
+.auth-error.show { display: block; }
+
+/* ===== MAIN APP ===== */
+#app-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.btn-signout {
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.btn-signout:hover { border-color: var(--text3); color: var(--text); }
+
+/* ── Layout ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar { border-left: none; border-top: 1px solid var(--border); }
+}
+
+/* ── Calendar Panel ── */
+.calendar-panel {
+  padding: 24px 20px;
+  overflow-y: auto;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* カレンダーヘッダー */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.cal-ym {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.cal-ym span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text2);
+  margin-left: 6px;
+}
+
+/* 日程サマリーカード */
+.dates-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 600px) {
+  .dates-row { grid-template-columns: 1fr; }
+}
+
+.date-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.date-card-label {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.date-card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.date-card-value.today { color: var(--red); }
+.date-card-value.past { color: var(--text3); }
+.date-card-value.future { color: var(--accent); }
+
+.date-card-sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+/* 受付ステータスバー */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.active { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
+.status-dot.ended  { background: var(--red); }
+.status-dot.prep   { background: var(--text3); }
+
+.status-text {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.status-period {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* スロット表 */
+.slots-section { margin-bottom: 24px; }
+
+.week-block { margin-bottom: 16px; }
+
+.week-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.slot-list { display: flex; flex-direction: column; gap: 6px; }
+
+.slot-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.slot-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.slot-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.slot-time-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.slot-count {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* カレンダーグリッド */
+.mini-calendar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.mini-cal-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.mini-cal-dow {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+}
+.mini-cal-dow.sat { color: var(--accent); }
+.mini-cal-dow.sun { color: var(--red); }
+
+.mini-cal-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-cell {
+  min-height: 42px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+.cal-cell:nth-child(7n) { border-right: none; }
+
+.cal-cell-num {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+}
+.cal-cell.other-month .cal-cell-num { color: var(--text3); }
+.cal-cell.sat .cal-cell-num { color: var(--accent); }
+.cal-cell.sun .cal-cell-num { color: var(--red); }
+.cal-cell.today-cell { background: var(--accent-light); }
+.cal-cell.today-cell .cal-cell-num {
+  background: var(--accent);
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.cal-event-dot {
+  width: 100%;
+  font-size: 9px;
+  text-align: center;
+  border-radius: 3px;
+  padding: 1px 2px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-event-dot.apply-start { background: var(--green-light); color: var(--green); }
+.cal-event-dot.deadline    { background: var(--amber-light); color: var(--amber); }
+.cal-event-dot.shift-open  { background: var(--accent-light); color: var(--accent); }
+.cal-event-dot.has-slot    { background: #f0edfb; color: #6c3ebf; }
 
 /* ローディング */
-.loading-row { display: flex; align-items: center; gap: 10px; color: var(--sub); font-size: 14px; padding: 8px 0; }
-.spin { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top: 2px solid var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+.loading-shimmer {
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 6px;
+  height: 20px;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ── Sidebar ── */
+.sidebar {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  padding: 20px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 操作ボタン群 */
+.action-group { display: flex; flex-direction: column; gap: 8px; }
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  text-align: left;
+  width: 100%;
+  font-family: var(--sans);
+  position: relative;
+  overflow: hidden;
+}
+.action-btn:hover { border-color: var(--border2); background: #fafaf7; }
+.action-btn:active { transform: scale(0.99); }
+.action-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.action-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.icon-blue   { background: var(--accent-light); }
+.icon-green  { background: var(--green-light); }
+.icon-amber  { background: var(--amber-light); }
+.icon-purple { background: #f0edfb; }
+
+.action-btn-text { flex: 1; }
+.action-btn-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+.action-btn-desc {
+  font-size: 11px;
+  color: var(--text2);
+  display: block;
+  margin-top: 1px;
+}
+
+.action-btn-arrow {
+  color: var(--text3);
+  font-size: 16px;
+  transition: transform .15s;
+}
+.action-btn:hover .action-btn-arrow { transform: translateX(2px); }
+
+/* ステップ系モーダル */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close {
+  background: none; border: none; font-size: 20px;
+  cursor: pointer; color: var(--text2); padding: 4px;
+  border-radius: 6px; transition: background .12s;
+}
+.modal-close:hover { background: var(--surface2); }
+
+.modal-body { padding: 20px 24px; }
+
+/* ステップインジケーター */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.step-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text3);
+  transition: all .2s;
+}
+.step-circle.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+.step-circle.done   { border-color: var(--green); background: var(--green); color: #fff; }
+.step-label { font-size: 10px; color: var(--text3); font-weight: 500; }
+.step-label.active { color: var(--accent); font-weight: 700; }
+.step-line { flex: 1; height: 1px; background: var(--border); margin: 0 4px; }
+.step-line.done { background: var(--green); }
+
+/* フォームUI */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .15s;
+  appearance: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
+
+/* 紐付けUI */
+.map-group { margin-bottom: 16px; }
+.map-week-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.map-row {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.map-cur {
+  font-size: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+}
+.map-arrow { text-align: center; color: var(--text3); font-size: 14px; }
+
+/* シートリスト */
+.sheet-list { display: flex; flex-direction: column; gap: 6px; }
+.sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.sheet-item.new-sheet {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  font-weight: 700;
+  color: var(--accent);
+}
+.sheet-num { font-size: 10px; color: var(--text3); width: 40px; text-align: right; }
+.sheet-item.new-sheet .sheet-num { color: var(--accent); }
+.sheet-name { flex: 1; }
+.new-badge { font-size: 10px; background: var(--accent); color: #fff; padding: 1px 7px; border-radius: 10px; }
+.sheet-move-btns { display: flex; flex-direction: column; gap: 2px; }
+.sheet-move-btn {
+  width: 24px; height: 20px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--surface2); cursor: pointer;
+  font-size: 10px; display: flex; align-items: center; justify-content: center;
+}
+.sheet-move-btn:hover { background: var(--border); }
+.sheet-move-btn:disabled { opacity: .3; cursor: not-allowed; }
+.ellipsis-row { text-align: center; color: var(--text3); font-size: 11px; padding: 2px 0; }
+
+/* モーダルフッター */
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+}
+
+.btn { padding: 10px 20px; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: all .15s; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+.btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); }
+.btn-danger { background: var(--red); color: #fff; }
+
+/* トースト通知 */
+.toast-area {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--text);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  animation: slide-up .25s ease;
+  max-width: 320px;
+}
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+@keyframes slide-up { from { opacity:0; transform: translateY(16px); } }
+
+/* スピナー */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* エラー */
-.err { background: #fee2e2; color: var(--danger); border-radius: 8px; padding: 12px 14px; font-size: 13px; margin-top: 12px; display: none; }
-.err.show { display: block; }
+.exec-status {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text2);
+  padding: 10px 0;
+}
+.exec-status.show { display: flex; }
+.exec-status .spinner {
+  border-color: var(--border2);
+  border-top-color: var(--accent);
+}
 
-/* 完了 */
-.done-inner { text-align: center; padding: 20px 0; }
-.done-inner .icon { font-size: 52px; margin-bottom: 12px; }
-.done-inner .title { font-size: 18px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
-.done-inner .sub { font-size: 14px; color: var(--sub); }
+/* 確認ダイアログ */
+.confirm-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.confirm-dialog.open { display: flex; }
+.confirm-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+}
+.confirm-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.confirm-body  { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.7; }
+.confirm-btns  { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* シフト公開オプション */
+.radio-group { display: flex; flex-direction: column; gap: 8px; }
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.radio-item:has(input:checked) { border-color: var(--accent); background: var(--accent-light); }
+.radio-item input { accent-color: var(--accent); }
+.radio-item-text { font-size: 13px; font-weight: 500; }
+.radio-item-sub  { font-size: 11px; color: var(--text2); }
+
+/* 完了画面 */
+.done-screen { text-align: center; padding: 32px 0 16px; }
+.done-icon { font-size: 48px; margin-bottom: 12px; }
+.done-title { font-size: 18px; font-weight: 700; color: var(--green); margin-bottom: 6px; }
+.done-sub { font-size: 13px; color: var(--text2); }
+
+/* フォームURL */
+.form-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+.form-url-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all .12s;
+  flex-shrink: 0;
+}
+.copy-btn:hover { background: var(--border); }
 </style>
 </head>
 <body>
 
-<div class="header"><h1>⚙️ シフト管理</h1></div>
-
-<div class="container">
-
-  <!-- 初期画面 -->
-  <div id="screen-top">
-    <div class="card">
-      <div id="ym-loading" class="loading-row"><div class="spin"></div>読み込み中...</div>
-      <div id="ym-ready" style="display:none;">
-        <div class="ym-text" id="ym-text"></div>
-        <button class="btn-start" onclick="goForm()">フォームを作成する</button>
-      </div>
-      <div class="err" id="err-top">読み込みに失敗しました。再読み込みしてください。</div>
+<!-- ===== 認証画面 ===== -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">⚙️</div>
+    <div class="auth-title">シフト管理</div>
+    <div class="auth-sub">
+      管理者アカウントでログインしてください。<br>
+      許可されたGoogleアカウントのみアクセスできます。
     </div>
+    <button class="g-signin-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Googleでログイン
+    </button>
+    <div class="auth-error" id="auth-error"></div>
   </div>
-
-  <!-- フォーム画面 -->
-  <div id="screen-form">
-
-    <!-- 紐付け -->
-    <div class="card" id="card-mapping">
-      <div class="card-title">① 日付の紐付け設定</div>
-      <div id="mapping-rows"></div>
-    </div>
-
-    <!-- シート配置 -->
-    <div class="card" id="card-placement">
-      <div class="card-title">② シートの配置順</div>
-      <ul class="sheet-list" id="sheet-list"></ul>
-    </div>
-
-    <!-- 実行 -->
-    <div class="card">
-      <div id="exec-status" style="display:none;" class="loading-row"><div class="spin"></div><span id="exec-msg">作成中...</span></div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" id="btn-cancel" onclick="goTop()">キャンセル</button>
-        <button class="btn btn-primary" id="btn-exec" onclick="execCreate()">作成する</button>
-      </div>
-      <div class="err" id="err-exec"></div>
-    </div>
-
-  </div>
-
-  <!-- 完了画面 -->
-  <div id="screen-done">
-    <div class="card">
-      <div class="done-inner">
-        <div class="icon">✅</div>
-        <div class="title">作成完了</div>
-        <div class="sub" id="done-sub"></div>
-      </div>
-      <div class="btn-row" style="margin-top:12px;">
-        <button class="btn btn-primary" onclick="goTop()">トップへ戻る</button>
-      </div>
-    </div>
-  </div>
-
 </div>
 
+<!-- ===== メインアプリ ===== -->
+<div id="app-screen">
+
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">⚙️</div>
+      <span class="header-title">シフト管理</span>
+    </div>
+    <div class="header-right">
+      <div class="user-badge">
+        <div class="user-avatar" id="user-avatar"></div>
+        <span id="user-name" style="display:none;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      </div>
+      <button class="btn-signout" onclick="signOut()">ログアウト</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- ── カレンダーパネル ── -->
+    <div class="calendar-panel">
+      <div class="section-label">カレンダー情報</div>
+
+      <!-- 年月 -->
+      <div class="cal-header">
+        <div class="cal-ym" id="cal-ym">読み込み中...</div>
+      </div>
+
+      <!-- 受付ステータス -->
+      <div class="status-bar" id="status-bar" style="display:none;">
+        <div class="status-dot" id="status-dot"></div>
+        <span class="status-text" id="status-text"></span>
+        <span class="status-period" id="status-period"></span>
+      </div>
+
+      <!-- 日程カード -->
+      <div class="dates-row" id="dates-row" style="display:none;">
+        <div class="date-card">
+          <div class="date-card-label">📋 申込開始</div>
+          <div class="date-card-value" id="dc-apply"></div>
+          <div class="date-card-sub" id="dc-apply-sub"></div>
+        </div>
+        <div class="date-card">
+          <div class="date-card-label">⏰ 締切</div>
+          <div class="date-card-value" id="dc-deadline"></div>
+          <div class="date-card-sub" id="dc-deadline-sub"></div>
+        </div>
+        <div class="date-card">
+          <div class="date-card-label">📢 シフト公開</div>
+          <div class="date-card-value" id="dc-open"></div>
+          <div class="date-card-sub" id="dc-open-sub"></div>
+        </div>
+      </div>
+
+      <!-- ミニカレンダー -->
+      <div class="section-label">カレンダー</div>
+      <div class="mini-calendar" id="mini-calendar">
+        <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">読み込み中...</div>
+      </div>
+
+      <!-- スロット一覧 -->
+      <div class="section-label">シフト実施スロット</div>
+      <div class="slots-section" id="slots-section">
+        <div style="color:var(--text3);font-size:13px;">読み込み中...</div>
+      </div>
+
+      <!-- フォームURL -->
+      <div class="section-label">フォームURL</div>
+      <div class="form-url-row">
+        <a href="https://jw-utazu.github.io/shift-form/" target="_blank" class="form-url-text">https://jw-utazu.github.io/shift-form/</a>
+        <button class="copy-btn" onclick="copyUrl()">コピー</button>
+      </div>
+    </div>
+
+    <!-- ── サイドバー（操作ボタン） ── -->
+    <div class="sidebar">
+      <div>
+        <div class="section-label">処理メニュー</div>
+        <div class="action-group">
+
+          <button class="action-btn" onclick="openModal('modal-calendar')">
+            <div class="action-btn-icon icon-blue">📅</div>
+            <div class="action-btn-text">
+              <span class="action-btn-name">カレンダー生成</span>
+              <span class="action-btn-desc">翌月カレンダーを作成する</span>
+            </div>
+            <span class="action-btn-arrow">›</span>
+          </button>
+
+          <button class="action-btn" onclick="openModal('modal-form')">
+            <div class="action-btn-icon icon-purple">📝</div>
+            <div class="action-btn-text">
+              <span class="action-btn-name">シフトフォーム作成</span>
+              <span class="action-btn-desc">スロット紐付け・シート配置設定</span>
+            </div>
+            <span class="action-btn-arrow">›</span>
+          </button>
+
+          <button class="action-btn" onclick="openModal('modal-shift-publish')">
+            <div class="action-btn-icon icon-green">📤</div>
+            <div class="action-btn-text">
+              <span class="action-btn-name">シフト公開</span>
+              <span class="action-btn-desc">シートを公開用ファイルへコピー</span>
+            </div>
+            <span class="action-btn-arrow">›</span>
+          </button>
+
+          <button class="action-btn" onclick="openModal('modal-cal-publish')">
+            <div class="action-btn-icon icon-amber">🗓️</div>
+            <div class="action-btn-text">
+              <span class="action-btn-name">予定表公開</span>
+              <span class="action-btn-desc">予定表を外部ファイルへコピー</span>
+            </div>
+            <span class="action-btn-arrow">›</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- スタッフ回答状況（データ取得後に表示） -->
+      <div id="staff-status-block" style="display:none;">
+        <div class="section-label">回答状況</div>
+        <div id="staff-status-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル群 ===== -->
+
+<!-- ① カレンダー生成 -->
+<div class="modal-overlay" id="modal-calendar">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📅 カレンダー生成</span>
+      <button class="modal-close" onclick="closeModal('modal-calendar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cal-gen-content">
+        <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;">
+          翌月のカレンダーをカレンダーシートに生成します。<br>
+          現在の年月を翌月に更新し、<code style="font-family:var(--mono);background:var(--surface2);padding:1px 6px;border-radius:4px;">setCalendarDates()</code> を実行します。
+        </p>
+        <div style="background:var(--amber-light);border:1px solid var(--amber);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--amber);">
+          ⚠️ 実行するとスプレッドシートのB18以降のデータが上書きされます。
+        </div>
+      </div>
+      <div class="exec-status" id="cal-gen-status">
+        <div class="spinner"></div>
+        <span id="cal-gen-msg">カレンダー生成中...</span>
+      </div>
+      <div class="done-screen" id="cal-gen-done" style="display:none;">
+        <div class="done-icon">✅</div>
+        <div class="done-title">生成完了</div>
+        <div class="done-sub" id="cal-gen-done-sub"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-calendar')">キャンセル</button>
+      <button class="btn btn-primary" id="btn-cal-gen" onclick="execCalendarGen()">生成する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ② シフトフォーム作成（ステップ） -->
+<div class="modal-overlay" id="modal-form">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📝 シフトフォーム作成</span>
+      <button class="modal-close" onclick="closeModal('modal-form')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- ステップインジケーター -->
+      <div class="step-indicator" id="step-indicator">
+        <div class="step-item">
+          <div class="step-circle active" id="s1">1</div>
+          <div class="step-label active" id="sl1">年月確認</div>
+        </div>
+        <div class="step-line" id="line1"></div>
+        <div class="step-item">
+          <div class="step-circle" id="s2">2</div>
+          <div class="step-label" id="sl2">紐付け</div>
+        </div>
+        <div class="step-line" id="line2"></div>
+        <div class="step-item">
+          <div class="step-circle" id="s3">3</div>
+          <div class="step-label" id="sl3">シート配置</div>
+        </div>
+        <div class="step-line" id="line3"></div>
+        <div class="step-item">
+          <div class="step-circle" id="s4">4</div>
+          <div class="step-label" id="sl4">実行</div>
+        </div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div id="step-panel-1">
+        <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:12px;">以下の月のシフト希望フォームを作成します。</p>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--accent);" id="form-ym-display">読み込み中...</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px;">フォームの対象月</div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step-panel-2" style="display:none;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">今月の各時間帯と前月の対応スロットを紐付けてください。</p>
+        <div id="mapping-rows"></div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step-panel-3" style="display:none;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">新規シートの配置順を▲▼で調整してください。</p>
+        <div class="sheet-list" id="sheet-list-modal"></div>
+      </div>
+
+      <!-- STEP 4（実行） -->
+      <div id="step-panel-4" style="display:none;">
+        <div id="form-exec-ready">
+          <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:12px;">設定を確認して「作成する」を押してください。</p>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:12px;line-height:2;">
+            <div>📌 対象月：<b id="exec-ym"></b></div>
+            <div>🔗 紐付け：<b id="exec-mapping-count"></b> 件</div>
+            <div>📋 シート位置：<b id="exec-pos"></b> 番目</div>
+          </div>
+        </div>
+        <div class="exec-status" id="form-exec-status">
+          <div class="spinner"></div>
+          <span id="form-exec-msg">処理中...</span>
+        </div>
+        <div class="done-screen" id="form-exec-done" style="display:none;">
+          <div class="done-icon">✅</div>
+          <div class="done-title">作成完了</div>
+          <div class="done-sub" id="form-exec-done-sub"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="form-modal-footer">
+      <button class="btn btn-ghost" id="btn-form-back" onclick="formStep(-1)" style="display:none;">戻る</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-form')">キャンセル</button>
+      <button class="btn btn-primary" id="btn-form-next" onclick="formStep(1)">次へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ③ シフト公開 -->
+<div class="modal-overlay" id="modal-shift-publish">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📤 シフト公開</span>
+      <button class="modal-close" onclick="closeModal('modal-shift-publish')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="shift-pub-content">
+        <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;">
+          シフト作成シートを公開用ファイルへコピーします。
+        </p>
+        <div class="form-group">
+          <label class="form-label">コピー対象</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="shift-pub-mode" value="next" checked>
+              <div>
+                <div class="radio-item-text">来月分（自動）</div>
+                <div class="radio-item-sub" id="shift-pub-next-label">来月のシート名を自動検出</div>
+              </div>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="shift-pub-mode" value="manual">
+              <div>
+                <div class="radio-item-text">手動で指定</div>
+                <div class="radio-item-sub">シート名を直接入力</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="form-group" id="shift-pub-manual" style="display:none;">
+          <label class="form-label">シート名</label>
+          <input type="text" class="form-input" id="shift-pub-sheet-name" placeholder="例: 2025.8シフト作成シート">
+        </div>
+      </div>
+      <div class="exec-status" id="shift-pub-status">
+        <div class="spinner"></div>
+        <span>シフト公開処理中...</span>
+      </div>
+      <div class="done-screen" id="shift-pub-done" style="display:none;">
+        <div class="done-icon">✅</div>
+        <div class="done-title">公開完了</div>
+        <div class="done-sub" id="shift-pub-done-sub"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-shift-publish')">キャンセル</button>
+      <button class="btn btn-primary" id="btn-shift-pub" onclick="execShiftPublish()">公開する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 予定表公開 -->
+<div class="modal-overlay" id="modal-cal-publish">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🗓️ 予定表公開</span>
+      <button class="modal-close" onclick="closeModal('modal-cal-publish')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cal-pub-content">
+        <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;">
+          カレンダーシートの予定表を外部ファイルへコピーします。
+        </p>
+        <div class="form-group">
+          <label class="form-label">対象年月</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <select class="form-select" id="cal-pub-year"></select>
+            <select class="form-select" id="cal-pub-month"></select>
+          </div>
+        </div>
+      </div>
+      <div class="exec-status" id="cal-pub-status">
+        <div class="spinner"></div>
+        <span>予定表公開処理中...</span>
+      </div>
+      <div class="done-screen" id="cal-pub-done" style="display:none;">
+        <div class="done-icon">✅</div>
+        <div class="done-title">公開完了</div>
+        <div class="done-sub" id="cal-pub-done-sub"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cal-publish')">キャンセル</button>
+      <button class="btn btn-primary" id="btn-cal-pub" onclick="execCalPublish()">公開する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認ダイアログ -->
+<div class="confirm-dialog" id="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-body" id="confirm-body"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" id="confirm-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="confirm-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast-area" id="toast-area"></div>
+
 <script>
+// ============================================================
+// 設定
+// ============================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1SnmwmKJrrzcVyuJIFiZrCwmRErBKxgxKpmvPrLuKLIvTGVp9aa4p4hrrgknjpPgetw/exec';
-
-let adminData    = null;
-let mappingResult = {};
-let sheetNames   = [];
+const CLIENT_ID = '538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com';
+const ALLOWED_EMAILS = [
+  'simamodehu@gmail.com',
+  'hiroshirie1994@gmail.com',
+  'r.trk11021022@gmail.com',
+  'maitaki.teppei@gmail.com',
+  'jw.utazu@gmail.com'
+];
 
 // ============================================================
-// 初期データ取得
+// Google OAuth
 // ============================================================
-// GASはCORSヘッダーを返せないのでJSONPで取得
+let googleUser = null;
+
+function signIn() {
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: handleCredential,
+    auto_select: false,
+  });
+  google.accounts.id.prompt(notification => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      google.accounts.id.renderButton(
+        document.createElement('div'),
+        { theme: 'filled_blue', size: 'large' }
+      );
+      google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'email profile',
+        callback: () => {},
+      });
+      // FedCM非対応環境ではポップアップ
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'email profile openid',
+        callback: tokenResp => {
+          if (tokenResp.error) { showAuthError('ログインに失敗しました。'); return; }
+          fetchUserInfo(tokenResp.access_token);
+        },
+      });
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    }
+  });
+}
+
+function handleCredential(response) {
+  const payload = parseJwt(response.credential);
+  if (!payload) { showAuthError('認証情報の解析に失敗しました。'); return; }
+  processUser({ email: payload.email, name: payload.name, picture: payload.picture });
+}
+
+function fetchUserInfo(token) {
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + token }
+  })
+  .then(r => r.json())
+  .then(u => processUser({ email: u.email, name: u.name, picture: u.picture }))
+  .catch(() => showAuthError('ユーザー情報の取得に失敗しました。'));
+}
+
+function processUser(user) {
+  if (!ALLOWED_EMAILS.includes(user.email)) {
+    showAuthError('このアカウントはアクセスが許可されていません。\n(' + user.email + ')');
+    return;
+  }
+  googleUser = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+
+  // ユーザー表示
+  const av = document.getElementById('user-avatar');
+  if (user.picture) {
+    av.innerHTML = '<img src="' + user.picture + '" alt="">';
+  } else {
+    av.textContent = (user.name || user.email).charAt(0).toUpperCase();
+  }
+  const nm = document.getElementById('user-name');
+  nm.textContent = user.name || user.email;
+  nm.style.display = 'inline';
+
+  loadCalendarData();
+}
+
+function signOut() {
+  google.accounts.id.disableAutoSelect();
+  googleUser = null;
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+  } catch { return null; }
+}
+
+// ページ読み込み時にGSIを初期化（自動ログイン試行）
+window.onload = () => {
+  if (window.google) {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: handleCredential,
+      auto_select: true,
+    });
+    google.accounts.id.prompt();
+  }
+};
+
+// ============================================================
+// JSONP通信
+// ============================================================
 function jsonp(url, callback) {
-  const cbName = '_cb_' + Date.now();
-  window[cbName] = function(data) {
+  const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  window[cbName] = (data) => {
     delete window[cbName];
     document.head.removeChild(script);
     callback(null, data);
   };
   const script = document.createElement('script');
-  script.onerror = function() { callback(new Error('failed')); };
+  script.onerror = () => { delete window[cbName]; callback(new Error('通信エラー')); };
   script.src = url + '&callback=' + cbName;
   document.head.appendChild(script);
 }
 
-jsonp(GAS_URL + '?action=adminData', function(err, d) {
-  if (err) {
-    document.getElementById('ym-loading').style.display = 'none';
-    document.getElementById('err-top').classList.add('show');
+// ============================================================
+// データ読み込み
+// ============================================================
+let adminData = null;
+
+function loadCalendarData() {
+  document.getElementById('cal-ym').textContent = '読み込み中...';
+  jsonp(GAS_URL + '?action=adminData', (err, d) => {
+    if (err || !d) { toast('データの読み込みに失敗しました', 'error'); return; }
+    adminData = d;
+    renderCalendarPanel(d);
+    initShiftPublishLabels(d);
+    initCalPublishSelects(d);
+  });
+}
+
+// ============================================================
+// カレンダーパネル描画
+// ============================================================
+const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+function renderCalendarPanel(d) {
+  const year = d.year, month = d.month;
+
+  // 年月
+  document.getElementById('cal-ym').innerHTML =
+    year + '年' + month + '月 <span>シフト対象月</span>';
+
+  // 申込開始・締切・公開日
+  const applyDate  = findEventDate(d, '申込開始');
+  const deadline   = findEventDate(d, '締切');
+  const shiftOpen  = findEventDate(d, 'シフト公開');
+  const today      = new Date(); today.setHours(0,0,0,0);
+
+  document.getElementById('dates-row').style.display = 'grid';
+  setDateCard('dc-apply', applyDate, today, '申込開始');
+  setDateCard('dc-deadline', deadline, today, '締切');
+  setDateCard('dc-open', shiftOpen, today, 'シフト公開');
+
+  // 受付ステータス
+  const status = calcStatus(applyDate, deadline, year, month);
+  const dot  = document.getElementById('status-dot');
+  const txt  = document.getElementById('status-text');
+  const per  = document.getElementById('status-period');
+  dot.className = 'status-dot ' + (status === '受付中' ? 'active' : status === '受付終了' ? 'ended' : 'prep');
+  txt.textContent = status;
+  if (applyDate && deadline) {
+    per.textContent = fmtDate(applyDate) + ' 〜 ' + fmtDate(deadline);
+  }
+  document.getElementById('status-bar').style.display = 'flex';
+
+  // ミニカレンダー
+  renderMiniCalendar(year, month, applyDate, deadline, shiftOpen, d.currentSlots || []);
+
+  // スロット一覧
+  renderSlots(d.currentSlots || []);
+
+  // スタッフ回答状況
+  renderStaffStatus(d);
+}
+
+function setDateCard(id, date, today, label) {
+  const el  = document.getElementById(id);
+  const sub = document.getElementById(id + '-sub');
+  if (!date) { el.textContent = '未設定'; return; }
+  el.textContent = fmtDate(date);
+  const diff = Math.round((date - today) / 86400000);
+  let cls = 'future';
+  if (diff === 0) { sub.textContent = '今日'; cls = 'today'; }
+  else if (diff > 0) { sub.textContent = diff + '日後'; }
+  else { sub.textContent = Math.abs(diff) + '日前'; cls = 'past'; }
+  el.className = 'date-card-value ' + cls;
+}
+
+function findEventDate(d, label) {
+  // GASから返ってくるcurrentSlotsに日付情報が含まれていないため、
+  // 別途 data APIから取得したイベント日付を使う
+  // ここではadminDataに含まれるeventDatesを参照
+  if (d.eventDates && d.eventDates[label]) {
+    const s = d.eventDates[label];
+    const p = s.split('/');
+    if (p.length === 2) return new Date(d.year, parseInt(p[0]) - 1, parseInt(p[1]));
+  }
+  return null;
+}
+
+function calcStatus(applyDate, deadline, year, month) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const nextM = new Date(month === 12 ? year+1 : year, month === 12 ? 0 : month, 1);
+  if (!applyDate || today < applyDate) return '準備中';
+  if (today >= nextM) return '準備中';
+  if (deadline && today >= applyDate && today <= deadline) return '受付中';
+  if (deadline && today > deadline) return '受付終了';
+  return '準備中';
+}
+
+function renderMiniCalendar(year, month, applyDate, deadline, shiftOpen, slots) {
+  const container = document.getElementById('mini-calendar');
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // スロット日付セット
+  const slotDays = new Set();
+  (slots || []).forEach(s => {
+    const m = String(s.dateLabel || '').match(/^(\d+)\/(\d+)/);
+    if (m) slotDays.add(parseInt(m[1]) + '_' + parseInt(m[2]));
+  });
+
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay  = new Date(year, month, 0);
+  const startDow = firstDay.getDay(); // 0=日
+
+  let html = '<div class="mini-cal-head">';
+  ['日','月','火','水','木','金','土'].forEach((d, i) => {
+    html += '<div class="mini-cal-dow' + (i===6?' sat':i===0?' sun':'') + '">' + d + '</div>';
+  });
+  html += '</div><div class="mini-cal-body">';
+
+  // 前月の空白
+  for (let i = 0; i < startDow; i++) {
+    html += '<div class="cal-cell other-month"><span class="cal-cell-num"></span></div>';
+  }
+
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(year, month - 1, d);
+    const dow  = date.getDay();
+    const isToday = date.getTime() === today.getTime();
+    const isSat = dow === 6, isSun = dow === 0;
+    let cls = 'cal-cell';
+    if (isSat) cls += ' sat';
+    if (isSun) cls += ' sun';
+    if (isToday) cls += ' today-cell';
+
+    let inner = '<span class="cal-cell-num">' + d + '</span>';
+
+    if (applyDate && date.getTime() === applyDate.getTime())
+      inner += '<span class="cal-event-dot apply-start">申込</span>';
+    else if (deadline && date.getTime() === deadline.getTime())
+      inner += '<span class="cal-event-dot deadline">締切</span>';
+    else if (shiftOpen && date.getTime() === shiftOpen.getTime())
+      inner += '<span class="cal-event-dot shift-open">公開</span>';
+
+    if (slotDays.has(month + '_' + d))
+      inner += '<span class="cal-event-dot has-slot">●</span>';
+
+    html += '<div class="' + cls + '">' + inner + '</div>';
+  }
+
+  // 後月の空白（6行固定）
+  const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
+  for (let i = startDow + lastDay.getDate(); i < totalCells; i++) {
+    html += '<div class="cal-cell other-month"></div>';
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderSlots(slots) {
+  const container = document.getElementById('slots-section');
+  if (!slots || slots.length === 0) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:13px;">スロットが見つかりません</div>';
     return;
   }
-  adminData  = d;
-  sheetNames = d.sheetNames || [];
-  document.getElementById('ym-loading').style.display = 'none';
-  document.getElementById('ym-text').textContent = d.year + '年' + d.month + '月';
-  document.getElementById('ym-ready').style.display = 'block';
+
+  // 週ごとにグループ化
+  const weekMap = {};
+  slots.forEach(s => {
+    if (!weekMap[s.week]) weekMap[s.week] = {};
+    if (!weekMap[s.week][s.dateLabel]) weekMap[s.week][s.dateLabel] = [];
+    weekMap[s.week][s.dateLabel].push(s.time);
+  });
+
+  let html = '';
+  Object.entries(weekMap).forEach(([week, dates]) => {
+    html += '<div class="week-block"><span class="week-badge">' + week + '</span><div class="slot-list">';
+    Object.entries(dates).forEach(([date, times]) => {
+      html += '<div class="slot-row">';
+      html += '<div class="slot-date">' + date + '</div>';
+      html += '<div class="slot-times">' + times.map(t => '<span class="slot-time-chip">' + t + '</span>').join('') + '</div>';
+      html += '<div class="slot-count">' + times.length + '枠</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function renderStaffStatus(d) {
+  const staffList = d.staffJSON || [];
+  const thisMonth = d.thisMonthData || {};
+  if (!staffList.length) return;
+
+  const answered = staffList.filter(s => thisMonth[s.name] && Object.keys(thisMonth[s.name].checkedMap || {}).length > 0).length;
+  const total    = staffList.length;
+
+  document.getElementById('staff-status-block').style.display = 'block';
+  document.getElementById('staff-status-content').innerHTML =
+    '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">' +
+    '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">' +
+    '<span style="font-size:28px;font-weight:700;color:var(--accent);">' + answered + '</span>' +
+    '<span style="font-size:13px;color:var(--text2);">/ ' + total + ' 人回答済み</span>' +
+    '</div>' +
+    '<div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">' +
+    '<div style="background:var(--accent);height:100%;width:' + Math.round(answered/total*100) + '%;border-radius:4px;transition:width .4s;"></div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-top:6px;">' + Math.round(answered/total*100) + '% 完了</div>' +
+    '</div>';
+}
+
+// ============================================================
+// シフト公開 初期化
+// ============================================================
+function initShiftPublishLabels(d) {
+  const year = d.year, month = d.month;
+  const ny = month === 12 ? year + 1 : year;
+  const nm = month === 12 ? 1 : month + 1;
+  document.getElementById('shift-pub-next-label').textContent =
+    ny + '.' + String(nm).padStart(2,'0') + 'シフト作成シート';
+
+  document.querySelectorAll('input[name="shift-pub-mode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('shift-pub-manual').style.display =
+        r.value === 'manual' && r.checked ? 'block' : 'none';
+    });
+  });
+}
+
+// ============================================================
+// 予定表公開 セレクト初期化
+// ============================================================
+function initCalPublishSelects(d) {
+  const yr = document.getElementById('cal-pub-year');
+  const mo = document.getElementById('cal-pub-month');
+  yr.innerHTML = '';
+  for (let y = d.year - 1; y <= d.year + 1; y++) {
+    yr.innerHTML += '<option value="' + y + '"' + (y === d.year ? ' selected' : '') + '>' + y + '年</option>';
+  }
+  mo.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    mo.innerHTML += '<option value="' + m + '"' + (m === d.month ? ' selected' : '') + '>' + m + '月</option>';
+  }
+}
+
+// ============================================================
+// モーダル制御
+// ============================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-form') initFormModal();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-form') resetFormModal();
+  if (id === 'modal-calendar') resetCalGenModal();
+  if (id === 'modal-shift-publish') resetShiftPubModal();
+  if (id === 'modal-cal-publish') resetCalPubModal();
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
 });
 
 // ============================================================
-// 画面切替
+// ① カレンダー生成
 // ============================================================
-function show(id) {
-  ['screen-top','screen-form','screen-done'].forEach(s => {
-    document.getElementById(s).style.display = s === id ? 'block' : 'none';
-  });
+function resetCalGenModal() {
+  document.getElementById('cal-gen-content').style.display = 'block';
+  document.getElementById('cal-gen-status').classList.remove('show');
+  document.getElementById('cal-gen-done').style.display = 'none';
+  document.getElementById('btn-cal-gen').disabled = false;
 }
 
-function goTop() { show('screen-top'); }
-
-function goForm() {
-  buildMapping();
-  buildSheetList();
-  show('screen-form');
-}
-
-// ============================================================
-// 紐付けUI
-// ============================================================
-function buildMapping() {
-  const currentSlots = adminData.currentSlots || [];
-  const prevSlots    = adminData.prevSlots    || [];
-  const grouped      = groupSlots(currentSlots);
-  const prevGrouped  = groupSlots(prevSlots);
-
-  mappingResult = {};
-  currentSlots.forEach(cs => {
-    const key = cs.week + ' ' + cs.dateLabel + ' ' + cs.time;
-    const matched = prevSlots.find(ps => ps.time === cs.time);
-    mappingResult[key] = matched ? matched.week + ' ' + matched.dateLabel + ' ' + matched.time : '';
-  });
-
-  const container = document.getElementById('mapping-rows');
-  container.innerHTML = '';
-
-  if (prevSlots.length === 0) {
-    container.innerHTML = '<div style="color:var(--sub);font-size:13px;">前月のシートが見つかりません（初回作成時は紐付け不要です）</div>';
-    return;
-  }
-
-  grouped.forEach(g => {
-    const gDiv = document.createElement('div');
-    gDiv.className = 'map-group';
-    gDiv.innerHTML = '<div class="map-group-label">' + g.week + '　' + g.dateLabel + '</div>';
-
-    g.times.forEach(time => {
-      const key = g.week + ' ' + g.dateLabel + ' ' + time;
-      const defaultVal = mappingResult[key] || '';
-
-      let options = '<option value="">（なし）</option>';
-      prevGrouped.forEach(pg => {
-        options += '<optgroup label="' + pg.week + '　' + pg.dateLabel + '">';
-        pg.times.forEach(pt => {
-          const pkey = pg.week + ' ' + pg.dateLabel + ' ' + pt;
-          options += '<option value="' + pkey + '"' + (pkey === defaultVal ? ' selected' : '') + '>'
-            + pg.dateLabel + '　' + pt + '</option>';
-        });
-        options += '</optgroup>';
-      });
-
-      const row = document.createElement('div');
-      row.className = 'map-row';
-      row.innerHTML =
-        '<div class="map-cur">' + time + '</div>'
-        + '<div class="map-arrow">→</div>'
-        + '<select class="map-select" data-key="' + key + '">' + options + '</select>';
-      gDiv.appendChild(row);
-    });
-
-    container.appendChild(gDiv);
-  });
-}
-
-// ============================================================
-// シート配置UI
-// ============================================================
-function buildSheetList() {
-  const sheetNameB = adminData.year + '.' + String(adminData.month).padStart(2, '0') + 'シフト希望';
-  const existing   = sheetNames.filter(n => n !== sheetNameB);
-  const pos        = Math.min(3, existing.length + 1);
-  const allNames   = existing.slice();
-  allNames.splice(pos - 1, 0, sheetNameB);
-  renderSheetList(allNames, sheetNameB);
-}
-
-function renderSheetList(allNames, newSheet) {
-  const ul  = document.getElementById('sheet-list');
-  ul._names    = allNames;
-  ul._newSheet = newSheet;
-
-  const pos  = allNames.indexOf(newSheet);
-  const from = Math.max(0, pos - 2);
-  const to   = Math.min(allNames.length - 1, pos + 2);
-
-  ul.innerHTML = '';
-
-  if (from > 0) {
-    const d = document.createElement('div');
-    d.className = 'ellipsis'; d.textContent = '… 上に' + from + 'シート'; ul.appendChild(d);
-  }
-  for (let i = from; i <= to; i++) {
-    const name  = allNames[i];
-    const isNew = name === newSheet;
-    const li    = document.createElement('li');
-    li.className = 'sheet-item' + (isNew ? ' new-sheet' : '');
-    li.innerHTML =
-      '<span class="sheet-num">' + (i + 1) + '番目</span>'
-      + '<span class="sheet-name">' + name + '</span>'
-      + (isNew ? '<span class="sheet-badge">新規</span>' : '')
-      + (isNew
-        ? '<div class="sheet-btns">'
-          + '<button class="sheet-btn" onclick="moveSheet(-1)"' + (i === 0 ? ' disabled' : '') + '>▲</button>'
-          + '<button class="sheet-btn" onclick="moveSheet(1)"' + (i === allNames.length - 1 ? ' disabled' : '') + '>▼</button>'
-          + '</div>'
-        : '');
-    ul.appendChild(li);
-  }
-  if (to < allNames.length - 1) {
-    const d = document.createElement('div');
-    d.className = 'ellipsis'; d.textContent = '… 下に' + (allNames.length - 1 - to) + 'シート'; ul.appendChild(d);
-  }
-}
-
-function moveSheet(dir) {
-  const ul      = document.getElementById('sheet-list');
-  const names   = ul._names;
-  const newSheet = ul._newSheet;
-  const idx     = names.indexOf(newSheet);
-  const t       = idx + dir;
-  if (t < 0 || t >= names.length) return;
-  names.splice(idx, 1);
-  names.splice(t, 0, newSheet);
-  renderSheetList(names, newSheet);
-}
-
-// ============================================================
-// 作成実行
-// ============================================================
-async function execCreate() {
-  // 紐付け結果を収集
-  document.querySelectorAll('.map-select').forEach(sel => {
-    mappingResult[sel.dataset.key] = sel.value;
-  });
-
-  // シート配置
-  const ul       = document.getElementById('sheet-list');
-  const finalPos = ul._names.indexOf(ul._newSheet) + 1;
-
-  // UI無効化
-  document.getElementById('btn-exec').disabled   = true;
-  document.getElementById('btn-cancel').disabled = true;
-  document.getElementById('exec-status').style.display = 'flex';
-  document.getElementById('err-exec').classList.remove('show');
+async function execCalendarGen() {
+  document.getElementById('cal-gen-content').style.display = 'none';
+  document.getElementById('cal-gen-status').classList.add('show');
+  document.getElementById('btn-cal-gen').disabled = true;
 
   try {
-    // POSTはno-corsで送信（レスポンスは読めないがGASは処理する）
-    // 代わりにパラメータをGETでJSONPとして送る
-    const params = encodeURIComponent(JSON.stringify({
-      action:        'createForm',
-      mapping:       mappingResult,
-      sheetPosition: finalPos,
-    }));
-
     await new Promise((resolve, reject) => {
-      jsonp(GAS_URL + '?action=createForm&params=' + params, function(err, data) {
+      jsonp(GAS_URL + '?action=runCalendar', (err, data) => {
         if (err) return reject(new Error('通信エラー'));
         if (!data.ok) return reject(new Error(data.error || '処理に失敗しました'));
         resolve(data);
       });
     });
 
-    document.getElementById('done-sub').textContent =
-      adminData.year + '年' + adminData.month + '月のフォームを作成しました。';
-    show('screen-done');
+    document.getElementById('cal-gen-status').classList.remove('show');
+    const d = adminData;
+    const ny = d.month === 12 ? d.year + 1 : d.year;
+    const nm = d.month === 12 ? 1 : d.month + 1;
+    document.getElementById('cal-gen-done-sub').textContent = ny + '年' + nm + '月のカレンダーを生成しました。';
+    document.getElementById('cal-gen-done').style.display = 'block';
+    document.querySelector('#modal-calendar .modal-footer').innerHTML =
+      '<button class="btn btn-primary" onclick="closeModal(\'modal-calendar\');loadCalendarData()">閉じて更新</button>';
+    toast('カレンダーを生成しました', 'success');
 
   } catch (err) {
-    document.getElementById('btn-exec').disabled   = false;
-    document.getElementById('btn-cancel').disabled = false;
-    document.getElementById('exec-status').style.display = 'none';
-    const errEl = document.getElementById('err-exec');
-    errEl.textContent = '⚠️ ' + err.message;
-    errEl.classList.add('show');
+    document.getElementById('cal-gen-status').classList.remove('show');
+    document.getElementById('cal-gen-content').style.display = 'block';
+    document.getElementById('btn-cal-gen').disabled = false;
+    toast('⚠️ ' + err.message, 'error');
+  }
+}
+
+// ============================================================
+// ② シフトフォーム作成（ステップ）
+// ============================================================
+let formCurrentStep = 1;
+let formMappingResult = {};
+let sheetListData = [];
+
+function initFormModal() {
+  if (!adminData) { toast('データを読み込み中です', ''); return; }
+  formCurrentStep = 1;
+  formMappingResult = {};
+  const d = adminData;
+  document.getElementById('form-ym-display').textContent = d.year + '年' + d.month + '月';
+  buildMappingUI(d);
+  buildSheetListUI(d);
+  updateFormStep();
+}
+
+function resetFormModal() {
+  formCurrentStep = 1;
+  ['step-panel-1','step-panel-2','step-panel-3','step-panel-4'].forEach(id => {
+    document.getElementById(id).style.display = id === 'step-panel-1' ? 'block' : 'none';
+  });
+  document.getElementById('form-exec-done').style.display = 'none';
+  document.getElementById('form-exec-status').classList.remove('show');
+  document.getElementById('form-exec-ready').style.display = 'block';
+  document.getElementById('btn-form-next').textContent = '次へ';
+  document.getElementById('btn-form-next').disabled = false;
+  document.getElementById('btn-form-back').style.display = 'none';
+  const footer = document.getElementById('form-modal-footer');
+  if (!footer.querySelector('.btn-ghost[onclick="closeModal(\'modal-form\')"]')) {
+    footer.innerHTML = '<button class="btn btn-ghost" id="btn-form-back" onclick="formStep(-1)" style="display:none;">戻る</button><button class="btn btn-ghost" onclick="closeModal(\'modal-form\')">キャンセル</button><button class="btn btn-primary" id="btn-form-next" onclick="formStep(1)">次へ</button>';
+  }
+}
+
+function formStep(dir) {
+  if (dir === 1 && formCurrentStep === 4) { execFormCreate(); return; }
+  if (dir === 1 && formCurrentStep === 3) {
+    // STEP4の確認内容を更新
+    const ul = document.getElementById('sheet-list-modal');
+    document.getElementById('exec-ym').textContent = adminData.year + '年' + adminData.month + '月';
+    const mapped = Object.values(formMappingResult).filter(v => v).length;
+    document.getElementById('exec-mapping-count').textContent = mapped;
+    document.getElementById('exec-pos').textContent = (sheetListData.indexOf(sheetListData.find(n => n.__new)) + 1) || '?';
+  }
+  // 紐付け収集
+  if (dir === 1 && formCurrentStep === 2) {
+    document.querySelectorAll('.mapping-select').forEach(sel => {
+      formMappingResult[sel.dataset.key] = sel.value;
+    });
+  }
+  formCurrentStep = Math.min(4, Math.max(1, formCurrentStep + dir));
+  updateFormStep();
+}
+
+function updateFormStep() {
+  for (let i = 1; i <= 4; i++) {
+    const panel = document.getElementById('step-panel-' + i);
+    if (panel) panel.style.display = i === formCurrentStep ? 'block' : 'none';
+    const circle = document.getElementById('s' + i);
+    const label  = document.getElementById('sl' + i);
+    if (circle) {
+      circle.className = 'step-circle' + (i < formCurrentStep ? ' done' : i === formCurrentStep ? ' active' : '');
+      circle.textContent = i < formCurrentStep ? '✓' : i;
+    }
+    if (label) {
+      label.className = 'step-label' + (i === formCurrentStep ? ' active' : '');
+    }
+    if (i < 4) {
+      const line = document.getElementById('line' + i);
+      if (line) line.className = 'step-line' + (i < formCurrentStep ? ' done' : '');
+    }
+  }
+
+  const btnNext = document.getElementById('btn-form-next');
+  const btnBack = document.getElementById('btn-form-back');
+  if (btnNext) {
+    btnNext.textContent = formCurrentStep === 4 ? '作成する' : '次へ';
+    btnNext.className = 'btn ' + (formCurrentStep === 4 ? 'btn-danger' : 'btn-primary');
+  }
+  if (btnBack) btnBack.style.display = formCurrentStep > 1 ? 'inline-flex' : 'none';
+}
+
+function buildMappingUI(d) {
+  const currentSlots = d.currentSlots || [];
+  const prevSlots    = d.prevSlots    || [];
+  const container = document.getElementById('mapping-rows');
+  container.innerHTML = '';
+
+  if (prevSlots.length === 0) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:12px;background:var(--surface2);border-radius:8px;">前月のシートが見つかりません（初回は紐付け不要です）</div>';
+    return;
+  }
+
+  const grouped     = groupSlots(currentSlots);
+  const prevGrouped = groupSlots(prevSlots);
+
+  // デフォルトマッピング（同じ時間帯を自動対応）
+  const defaultMap = {};
+  currentSlots.forEach(cs => {
+    const key = cs.week + ' ' + cs.dateLabel + ' ' + cs.time;
+    const matched = prevSlots.find(ps => ps.time === cs.time);
+    defaultMap[key] = matched ? matched.week + ' ' + matched.dateLabel + ' ' + matched.time : '';
+  });
+  formMappingResult = { ...defaultMap };
+
+  grouped.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'map-group';
+    div.innerHTML = '<div class="map-week-label">' + g.week + '　' + g.dateLabel + '</div>';
+
+    g.times.forEach(time => {
+      const key = g.week + ' ' + g.dateLabel + ' ' + time;
+      const defaultVal = defaultMap[key] || '';
+
+      let opts = '<option value="">（なし）</option>';
+      prevGrouped.forEach(pg => {
+        opts += '<optgroup label="' + pg.week + '　' + pg.dateLabel + '">';
+        pg.times.forEach(pt => {
+          const pkey = pg.week + ' ' + pg.dateLabel + ' ' + pt;
+          opts += '<option value="' + pkey + '"' + (pkey === defaultVal ? ' selected' : '') + '>' + pg.dateLabel + '　' + pt + '</option>';
+        });
+        opts += '</optgroup>';
+      });
+
+      const row = document.createElement('div');
+      row.className = 'map-row';
+      row.innerHTML =
+        '<div class="map-cur">' + time + '</div>' +
+        '<div class="map-arrow">→</div>' +
+        '<select class="form-select mapping-select" data-key="' + key + '">' + opts + '</select>';
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+}
+
+function buildSheetListUI(d) {
+  const newSheet = d.year + '.' + String(d.month).padStart(2,'0') + 'シフト希望';
+  const existing = (d.sheetNames || []).filter(n => n !== newSheet);
+  const defaultPos = Math.min(3, existing.length + 1);
+  const allNames = [...existing];
+  allNames.splice(defaultPos - 1, 0, newSheet);
+
+  // オブジェクトにマーク
+  sheetListData = allNames.map(n => (n === newSheet ? { name: n, __new: true } : { name: n }));
+  renderSheetListModal();
+}
+
+function renderSheetListModal() {
+  const ul = document.getElementById('sheet-list-modal');
+  const names = sheetListData.map(o => o.name);
+  const newIdx = sheetListData.findIndex(o => o.__new);
+  const from = Math.max(0, newIdx - 2);
+  const to   = Math.min(names.length - 1, newIdx + 2);
+
+  ul.innerHTML = '';
+  if (from > 0) {
+    ul.innerHTML += '<div class="ellipsis-row">… 上に' + from + 'シート</div>';
+  }
+  for (let i = from; i <= to; i++) {
+    const o = sheetListData[i];
+    const isNew = !!o.__new;
+    const li = document.createElement('div');
+    li.className = 'sheet-item' + (isNew ? ' new-sheet' : '');
+    li.innerHTML =
+      '<span class="sheet-num">' + (i + 1) + '番目</span>' +
+      '<span class="sheet-name">' + o.name + '</span>' +
+      (isNew ? '<span class="new-badge">新規</span>' : '') +
+      (isNew ?
+        '<div class="sheet-move-btns">' +
+        '<button class="sheet-move-btn" onclick="moveSheetModal(-1)"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+        '<button class="sheet-move-btn" onclick="moveSheetModal(1)"' + (i === names.length - 1 ? ' disabled' : '') + '>▼</button>' +
+        '</div>' : '');
+    ul.appendChild(li);
+  }
+  if (to < names.length - 1) {
+    ul.innerHTML += '<div class="ellipsis-row">… 下に' + (names.length - 1 - to) + 'シート</div>';
+  }
+}
+
+function moveSheetModal(dir) {
+  const newIdx = sheetListData.findIndex(o => o.__new);
+  const t = newIdx + dir;
+  if (t < 0 || t >= sheetListData.length) return;
+  const tmp = sheetListData[newIdx];
+  sheetListData[newIdx] = sheetListData[t];
+  sheetListData[t] = tmp;
+  renderSheetListModal();
+}
+
+async function execFormCreate() {
+  document.getElementById('form-exec-ready').style.display = 'none';
+  document.getElementById('form-exec-status').classList.add('show');
+  document.getElementById('btn-form-next').disabled = true;
+  document.getElementById('btn-form-back').style.display = 'none';
+
+  const finalPos = sheetListData.findIndex(o => o.__new) + 1;
+  const params = encodeURIComponent(JSON.stringify({
+    action: 'createForm',
+    mapping: formMappingResult,
+    sheetPosition: finalPos,
+  }));
+
+  try {
+    await new Promise((resolve, reject) => {
+      jsonp(GAS_URL + '?action=createForm&params=' + params, (err, data) => {
+        if (err) return reject(new Error('通信エラー'));
+        if (!data.ok) return reject(new Error(data.error || '処理に失敗しました'));
+        resolve(data);
+      });
+    });
+
+    document.getElementById('form-exec-status').classList.remove('show');
+    document.getElementById('form-exec-done-sub').textContent =
+      adminData.year + '年' + adminData.month + '月のフォームを作成しました。';
+    document.getElementById('form-exec-done').style.display = 'block';
+
+    const footer = document.getElementById('form-modal-footer');
+    footer.innerHTML = '<button class="btn btn-primary" onclick="closeModal(\'modal-form\');loadCalendarData()">閉じて更新</button>';
+    toast('フォームを作成しました', 'success');
+
+  } catch (err) {
+    document.getElementById('form-exec-status').classList.remove('show');
+    document.getElementById('form-exec-ready').style.display = 'block';
+    document.getElementById('btn-form-next').disabled = false;
+    document.getElementById('btn-form-back').style.display = 'inline-flex';
+    toast('⚠️ ' + err.message, 'error');
+  }
+}
+
+// ============================================================
+// ③ シフト公開
+// ============================================================
+function resetShiftPubModal() {
+  document.getElementById('shift-pub-content').style.display = 'block';
+  document.getElementById('shift-pub-status').classList.remove('show');
+  document.getElementById('shift-pub-done').style.display = 'none';
+  document.getElementById('btn-shift-pub').disabled = false;
+}
+
+async function execShiftPublish() {
+  const mode = document.querySelector('input[name="shift-pub-mode"]:checked').value;
+  let sheetName = '';
+  if (mode === 'manual') {
+    sheetName = document.getElementById('shift-pub-sheet-name').value.trim();
+    if (!sheetName) { toast('シート名を入力してください', 'error'); return; }
+  }
+
+  document.getElementById('shift-pub-content').style.display = 'none';
+  document.getElementById('shift-pub-status').classList.add('show');
+  document.getElementById('btn-shift-pub').disabled = true;
+
+  const params = encodeURIComponent(JSON.stringify({ action: 'publishShift', mode, sheetName }));
+  try {
+    await new Promise((resolve, reject) => {
+      jsonp(GAS_URL + '?action=publishShift&params=' + params, (err, data) => {
+        if (err) return reject(new Error('通信エラー'));
+        if (!data.ok) return reject(new Error(data.error || '処理に失敗しました'));
+        resolve(data);
+      });
+    });
+
+    document.getElementById('shift-pub-status').classList.remove('show');
+    document.getElementById('shift-pub-done-sub').textContent = data.destName + ' として公開しました。';
+    document.getElementById('shift-pub-done').style.display = 'block';
+    document.querySelector('#modal-shift-publish .modal-footer').innerHTML =
+      '<button class="btn btn-primary" onclick="closeModal(\'modal-shift-publish\')">閉じる</button>';
+    toast('シフトを公開しました', 'success');
+
+  } catch (err) {
+    document.getElementById('shift-pub-status').classList.remove('show');
+    document.getElementById('shift-pub-content').style.display = 'block';
+    document.getElementById('btn-shift-pub').disabled = false;
+    toast('⚠️ ' + err.message, 'error');
+  }
+}
+
+// ============================================================
+// ④ 予定表公開
+// ============================================================
+function resetCalPubModal() {
+  document.getElementById('cal-pub-content').style.display = 'block';
+  document.getElementById('cal-pub-status').classList.remove('show');
+  document.getElementById('cal-pub-done').style.display = 'none';
+  document.getElementById('btn-cal-pub').disabled = false;
+}
+
+async function execCalPublish() {
+  const year  = parseInt(document.getElementById('cal-pub-year').value);
+  const month = parseInt(document.getElementById('cal-pub-month').value);
+
+  document.getElementById('cal-pub-content').style.display = 'none';
+  document.getElementById('cal-pub-status').classList.add('show');
+  document.getElementById('btn-cal-pub').disabled = true;
+
+  const params = encodeURIComponent(JSON.stringify({ action: 'publishCalendar', year, month }));
+  try {
+    const result = await new Promise((resolve, reject) => {
+      jsonp(GAS_URL + '?action=publishCalendar&params=' + params, (err, data) => {
+        if (err) return reject(new Error('通信エラー'));
+        if (!data.ok) return reject(new Error(data.error || '処理に失敗しました'));
+        resolve(data);
+      });
+    });
+
+    document.getElementById('cal-pub-status').classList.remove('show');
+    document.getElementById('cal-pub-done-sub').textContent =
+      year + '年' + month + '月の予定表を公開しました。';
+    document.getElementById('cal-pub-done').style.display = 'block';
+    document.querySelector('#modal-cal-publish .modal-footer').innerHTML =
+      '<button class="btn btn-primary" onclick="closeModal(\'modal-cal-publish\')">閉じる</button>';
+    toast('予定表を公開しました', 'success');
+
+  } catch (err) {
+    document.getElementById('cal-pub-status').classList.remove('show');
+    document.getElementById('cal-pub-content').style.display = 'block';
+    document.getElementById('btn-cal-pub').disabled = false;
+    toast('⚠️ ' + err.message, 'error');
   }
 }
 
@@ -381,13 +2010,40 @@ async function execCreate() {
 // ============================================================
 function groupSlots(slots) {
   const grouped = [], seen = {};
-  slots.forEach(s => {
+  (slots || []).forEach(s => {
     const key = s.week + '_' + s.dateLabel;
     if (!seen[key]) { seen[key] = { week: s.week, dateLabel: s.dateLabel, times: [] }; grouped.push(seen[key]); }
     seen[key].times.push(s.time);
   });
   return grouped;
 }
+
+function fmtDate(d) {
+  if (!d) return '未設定';
+  const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+  return (d.getMonth()+1) + '/' + d.getDate() + '（' + dow + '）';
+}
+
+function copyUrl() {
+  navigator.clipboard.writeText('https://jw-utazu.github.io/shift-form/').then(() => toast('URLをコピーしました'));
+}
+
+// トースト
+function toast(msg, type) {
+  const area = document.getElementById('toast-area');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.innerHTML = (type === 'success' ? '✅ ' : type === 'error' ? '⚠️ ' : 'ℹ️ ') + msg;
+  area.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ページ初期化（認証済みの場合のためのフォールバック）
+google.accounts && google.accounts.id && google.accounts.id.initialize({
+  client_id: CLIENT_ID,
+  callback: handleCredential,
+  auto_select: true,
+});
 </script>
 </body>
 </html>

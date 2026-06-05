@@ -546,7 +546,7 @@ function savePlacement() {
 // ============================================================
 // Step4,6: GASに全データを投げて実行
 // ============================================================
-function executeCreate(sheetPosition) {
+async function executeCreate(sheetPosition) {
   renderSteps(4);
 
   const payload = {
@@ -555,26 +555,36 @@ function executeCreate(sheetPosition) {
     sheetPosition: sheetPosition,
   };
 
-  fetch(GAS_URL, {
-    method:  'POST',
-    mode:    'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
+  try {
+    // step4（設定を保存中）表示のまま実行
+    const res = await fetch(GAS_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
 
-  // no-corsなのでレスポンスが読めないため、処理時間を見越して疑似進捗
-  let step = 4;
-  const stepTimings = [3000, 3000, 2000]; // step4→5→6 の待機時間
-  function advanceStep() {
-    step++;
-    if (step <= 6) {
-      renderSteps(step);
-      setTimeout(advanceStep, stepTimings[step - 5] || 2000);
-    } else {
-      showComplete();
-    }
+    if (!data.ok) throw new Error(data.error || '処理に失敗しました');
+
+    // 完了したらstep5→6を素早く表示してから完了画面へ
+    renderSteps(5);
+    await sleep(600);
+    renderSteps(6);
+    await sleep(600);
+    showComplete();
+
+  } catch (err) {
+    renderSteps(0);
+    document.getElementById('btn-run').disabled = false;
+    document.getElementById('run-area').style.display = 'block';
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = '⚠️ ' + err.message;
+    errEl.classList.add('show');
   }
-  setTimeout(advanceStep, stepTimings[0]);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function showComplete() {

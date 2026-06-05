@@ -846,7 +846,15 @@ async function saveDates() {
   try {
     await gasCall('updateEventDates', { apply: dates.apply, deadline: dates.deadline, open: dates.open });
     toast('日程を保存しました', 's');
-    buildCal('cg-main', curY, curM, 'main');
+    // カレンダータブ・設定タブ両方を再描画
+    buildCal('cg-main',  curY,  curM,  'main');
+    buildCal('cg-sched', scY,   scM,   'sched');
+    buildCal('cg-slot',  slotY, slotM, 'slot');
+    // 種別ボタンの表示値を更新
+    updKindValues();
+    // ヒントをリセット
+    document.getElementById('dsp-hint').textContent = '申込開始日を選択中';
+    setKind('apply', document.querySelectorAll('.kind-btn')[0]);
   } catch(e) { toast('保存に失敗しました: ' + e.message, 'e'); }
 }
 

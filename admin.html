@@ -637,16 +637,15 @@ let mappingResult = {};
 // Google OAuth
 // ============================================================
 function signIn() {
-  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: handleCred });
-  google.accounts.id.prompt(n => {
-    if (n.isNotDisplayed() || n.isSkippedMoment()) {
-      const tc = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, scope: 'email profile openid',
-        callback: r => { if (!r.error) fetchUser(r.access_token); else showAuthErr('ログインに失敗しました。'); }
-      });
-      tc.requestAccessToken({ prompt: 'select_account' });
+  const tc = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'email profile openid',
+    callback: r => {
+      if (r.error) { showAuthErr('ログインに失敗しました。'); return; }
+      fetchUser(r.access_token);
     }
   });
+  tc.requestAccessToken({ prompt: 'select_account' });
 }
 function handleCred(r) {
   const p = parseJwt(r.credential);

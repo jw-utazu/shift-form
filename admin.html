@@ -163,19 +163,32 @@ let sheetNames   = [];
 // ============================================================
 // 初期データ取得
 // ============================================================
-fetch(GAS_URL + '?action=adminData')
-  .then(r => r.json())
-  .then(d => {
-    adminData  = d;
-    sheetNames = d.sheetNames || [];
-    document.getElementById('ym-loading').style.display = 'none';
-    document.getElementById('ym-text').textContent = d.year + '年' + d.month + '月';
-    document.getElementById('ym-ready').style.display = 'block';
-  })
-  .catch(() => {
+// GASはCORSヘッダーを返せないのでJSONPで取得
+function jsonp(url, callback) {
+  const cbName = '_cb_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    document.head.removeChild(script);
+    callback(null, data);
+  };
+  const script = document.createElement('script');
+  script.onerror = function() { callback(new Error('failed')); };
+  script.src = url + '&callback=' + cbName;
+  document.head.appendChild(script);
+}
+
+jsonp(GAS_URL + '?action=adminData', function(err, d) {
+  if (err) {
     document.getElementById('ym-loading').style.display = 'none';
     document.getElementById('err-top').classList.add('show');
-  });
+    return;
+  }
+  adminData  = d;
+  sheetNames = d.sheetNames || [];
+  document.getElementById('ym-loading').style.display = 'none';
+  document.getElementById('ym-text').textContent = d.year + '年' + d.month + '月';
+  document.getElementById('ym-ready').style.display = 'block';
+});
 
 // ============================================================
 // 画面切替
@@ -333,17 +346,21 @@ async function execCreate() {
   document.getElementById('err-exec').classList.remove('show');
 
   try {
-    const res  = await fetch(GAS_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action:        'createForm',
-        mapping:       mappingResult,
-        sheetPosition: finalPos,
-      }),
+    // POSTはno-corsで送信（レスポンスは読めないがGASは処理する）
+    // 代わりにパラメータをGETでJSONPとして送る
+    const params = encodeURIComponent(JSON.stringify({
+      action:        'createForm',
+      mapping:       mappingResult,
+      sheetPosition: finalPos,
+    }));
+
+    await new Promise((resolve, reject) => {
+      jsonp(GAS_URL + '?action=createForm&params=' + params, function(err, data) {
+        if (err) return reject(new Error('通信エラー'));
+        if (!data.ok) return reject(new Error(data.error || '処理に失敗しました'));
+        resolve(data);
+      });
     });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || '処理に失敗しました');
 
     document.getElementById('done-sub').textContent =
       adminData.year + '年' + adminData.month + '月のフォームを作成しました。';

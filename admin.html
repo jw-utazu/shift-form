@@ -605,8 +605,21 @@ function signIn() {
   tc.requestAccessToken({ prompt: '' });
 }
 
-// 自動ログイン（One Tap）
+// 自動ログイン（One Tap → localStorageフォールバック）
 function tryAutoLogin() {
+  // まずlocalStorageに保存済みユーザーがあれば即復元
+  try {
+    const saved = localStorage.getItem('adminUser');
+    if (saved) {
+      const u = JSON.parse(saved);
+      if (u && u.email && ALLOWED.includes(u.email)) {
+        processUser(u, false); // 保存しなおさない
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // One Tap（PCブラウザ向け）
   if (!window.google || !google.accounts) return;
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
@@ -627,8 +640,12 @@ function fetchUser(token) {
     .then(r => r.json()).then(u => processUser({ email: u.email, name: u.name, picture: u.picture }))
     .catch(() => showAuthErr('ユーザー情報の取得に失敗しました。'));
 }
-function processUser(u) {
+function processUser(u, save = true) {
   if (!ALLOWED.includes(u.email)) { showAuthErr('このアカウントはアクセスが許可されていません。'); return; }
+  // ログイン情報をlocalStorageに保存（次回自動ログイン用）
+  if (save) {
+    try { localStorage.setItem('adminUser', JSON.stringify({ email: u.email, name: u.name, picture: u.picture })); } catch(e) {}
+  }
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display  = 'flex';
   const av = document.getElementById('av');
@@ -644,6 +661,7 @@ function processUser(u) {
   loadAdminData();
 }
 function signOut() {
+  try { localStorage.removeItem('adminUser'); } catch(e) {}
   google.accounts.id.disableAutoSelect();
   document.getElementById('app').style.display  = 'none';
   document.getElementById('auth').style.display = 'flex';

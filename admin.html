@@ -468,10 +468,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
       </div>
       <div id="pwa-install-section" style="display:none;">
         <div class="plbl">アプリ</div>
-        <button onclick="pwaTriggerInstall()" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r);cursor:pointer;font-family:var(--sans);color:var(--blue);font-size:12px;font-weight:700;">
-          <span style="font-size:16px;">📲</span>
-          <span>ホーム画面にインストール</span>
-        </button>
+        <button onclick="pwaTriggerInstall()" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blue-l);border:1.5px solid var(--blue);border-radius:var(--r);cursor:pointer;font-family:var(--sans);color:var(--blue);font-size:12px;font-weight:700;"><span style="font-size:15px;">📲</span><span>ホーム画面にインストール</span></button>
       </div>
     </div>
   </div>
@@ -1689,54 +1686,33 @@ function toast(msg,type){
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3000);
 }
 
-// ============================================================
 // PWA インストール
-// ============================================================
 (function(){
-  // manifest の start_url を現在のURLに動的設定
   try {
-    const manifestData = {
-      name:'シフト管理',short_name:'シフト管理',
+    const md={name:'シフト管理',short_name:'シフト管理',
       icons:[{src:'logo.png',sizes:'192x192',type:'image/png'},{src:'logo.png',sizes:'512x512',type:'image/png'}],
-      start_url:location.href,
-      display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'
-    };
-    const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
+      start_url:location.href,display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
     const link=document.querySelector('link[rel="manifest"]');
-    if(link) link.href=URL.createObjectURL(blob);
+    if(link) link.href=URL.createObjectURL(new Blob([JSON.stringify(md)],{type:'application/json'}));
   } catch(e){}
-
-  let deferredPrompt=null;
-
-  // インストール済みなら何もしない
   if(window.matchMedia('(display-mode: standalone)').matches) return;
-
+  let deferredPrompt=null;
+  const sec=()=>document.getElementById('pwa-install-section');
   window.addEventListener('beforeinstallprompt', e=>{
-    e.preventDefault();
-    deferredPrompt=e;
-    const sec=document.getElementById('pwa-install-section');
-    if(sec) sec.style.display='block';
+    e.preventDefault(); deferredPrompt=e;
+    const s=sec(); if(s) s.style.display='block';
   });
-
   window.addEventListener('appinstalled', ()=>{
     deferredPrompt=null;
-    const sec=document.getElementById('pwa-install-section');
-    if(sec) sec.style.display='none';
-    toast('インストールしました！','s');
+    const s=sec(); if(s) s.style.display='none';
+    toast('インストールしました!','s');
   });
-
   window.pwaTriggerInstall=async function(){
-    if(!deferredPrompt){
-      toast('ブラウザのメニュー →「ホーム画面に追加」→「インストール」を選択してください','');
-      return;
-    }
+    if(!deferredPrompt){ toast('ブラウザのメニュー→「ホーム画面に追加」→「インストール」を選択してください',''); return; }
     deferredPrompt.prompt();
     const{outcome}=await deferredPrompt.userChoice;
     deferredPrompt=null;
-    if(outcome==='accepted'){
-      const sec=document.getElementById('pwa-install-section');
-      if(sec) sec.style.display='none';
-    }
+    if(outcome==='accepted'){ const s=sec(); if(s) s.style.display='none'; }
   };
 })();
 </script>

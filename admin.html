@@ -503,24 +503,24 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
       <div>
         <div class="plbl">処理メニュー</div>
         <div class="ag">
-          <button class="abtn" onclick="openFormModal()">
-            <div class="ab-ic ic-p">&#128221;</div>
-            <div class="ab-tx"><span class="ab-n">シフトフォーム作成</span><span class="ab-d">スロット紐付け・シート配置</span></div>
-            <span class="ab-ar">›</span>
-          </button>
-          <button class="abtn" onclick="openShiftPubModal()">
-            <div class="ab-ic ic-g">&#128228;</div>
-            <div class="ab-tx"><span class="ab-n">シフト公開</span><span class="ab-d">シートを公開用ファイルへコピー</span></div>
-            <span class="ab-ar">›</span>
-          </button>
           <button class="abtn" onclick="openCalPubModal()">
             <div class="ab-ic ic-a">&#128197;</div>
             <div class="ab-tx"><span class="ab-n">予定表公開</span><span class="ab-d">予定表を外部ファイルへコピー</span></div>
             <span class="ab-ar">›</span>
           </button>
+          <button class="abtn" onclick="openFormModal()">
+            <div class="ab-ic ic-p">&#128221;</div>
+            <div class="ab-tx"><span class="ab-n">シフトフォーム作成</span><span class="ab-d">スロット紐付け・シート配置</span></div>
+            <span class="ab-ar">›</span>
+          </button>
           <button class="abtn" onclick="openAutoModal()">
             <div class="ab-ic ic-t">&#9881;</div>
-            <div class="ab-tx"><span class="ab-n">予定表自動作成</span><span class="ab-d">シフト作成シートを生成</span></div>
+            <div class="ab-tx"><span class="ab-n">シフト作成枠作成</span><span class="ab-d">シフト作成シートを生成</span></div>
+            <span class="ab-ar">›</span>
+          </button>
+          <button class="abtn" onclick="openShiftPubModal()">
+            <div class="ab-ic ic-g">&#128228;</div>
+            <div class="ab-tx"><span class="ab-n">シフト公開</span><span class="ab-d">シートを公開用ファイルへコピー</span></div>
             <span class="ab-ar">›</span>
           </button>
         </div>
@@ -1203,7 +1203,8 @@ function renderFormModal(d){
   });
   let mapHtml='';
   if(prevSlots.length===0){
-    mapHtml='<div style="color:var(--ink2);font-size:12px;padding:10px;background:var(--surface2);border-radius:var(--r);">前月のシートが見つかりません（初回は紐付け不要です）</div>';
+    // 前月データなくても手動入力エリアを提供
+    mapHtml='<div style="color:var(--ink2);font-size:12px;padding:8px 10px;background:var(--amber-l);border:1px solid #fcd34d;border-radius:var(--r);margin-bottom:8px;">前月のシートが見つかりませんでした。紐付けは不要です。</div>';
   } else {
     Object.values(groups).forEach(g=>{
       mapHtml+=`<div class="map-date-hd">&#128197; ${g.dl} <span style="font-size:10px;opacity:.7;">${g.wk}</span></div>`;
@@ -1471,8 +1472,15 @@ async function openAutoModal(){
 async function execAuto(){
   document.getElementById('auto-exec-btn').disabled=true;
   document.getElementById('auto-st').classList.add('show');
+  // 刻み分数をスロットから収集
+  const slotsWithIntv = slots.map((s,i)=>{
+    const sel=document.getElementById('auto-intv-'+i);
+    return {...s, interval: sel ? parseInt(sel.value)||15 : parseInt(s.interval)||15};
+  });
+  const ymVal=document.getElementById('auto-ym-sel')?.value||curY+'-'+curM;
+  const[ay,am]=ymVal.split('-').map(Number);
   try{
-    await gasGet('createScheduleSheet',{});
+    await gasGet('createScheduleSheet',{year:ay,month:am,slots:slotsWithIntv});
     document.getElementById('auto-st').classList.remove('show');
     document.getElementById('auto-done').style.display='block';
     document.getElementById('m-auto-ft').innerHTML=`<button class="btn btn-p" onclick="closeM('m-auto')">閉じる</button>`;

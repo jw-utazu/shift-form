@@ -91,7 +91,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 .cal-scroll-area{height:420px;overflow-y:auto;padding:14px;border-bottom:1px solid var(--border);}
 .cal-month-block{margin-bottom:20px;}
 .cal-month-label{display:none;}
-.cal-ym-header{font-size:20px;font-weight:700;text-align:center;padding:12px 14px 4px;color:var(--ink);letter-spacing:-.02em;display:flex;align-items:center;justify-content:center;gap:8px;}
+.cal-ym-header{font-size:20px;font-weight:700;text-align:center;padding:12px 14px 4px;color:var(--ink);letter-spacing:-.02em;display:flex;align-items:center;justify-content:flex-start;gap:8px;}
 .cal-ym-header button{background:none;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;color:var(--ink2);display:flex;align-items:center;justify-content:center;}
 .cal-ym-header button:hover{background:var(--border);}
 .mini-cal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
@@ -304,7 +304,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 .btn-d{background:var(--red);color:#fff;}
 .btn-s{background:var(--green);color:#fff;}
 .save-btn-sm{padding:5px 12px;border:none;border-radius:var(--r);background:var(--blue);color:#fff;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
-.save-slot-btn{padding:6px 13px;border:none;border-radius:var(--r);background:var(--teal);color:#fff;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
+.save-slot-btn{padding:9px 18px;border:none;border-radius:var(--r);background:var(--teal);color:#fff;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;}
 .cancel-btn-sm{padding:5px 12px;border:1px solid var(--border);border-radius:var(--r);background:none;color:var(--ink2);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
 
 /* サマリー */
@@ -391,7 +391,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
           <button onclick="chM(-1)">&#8249;</button>
           <span id="cal-ym-label">読み込み中...</span>
           <button onclick="chM(1)">&#8250;</button>
-          <button class="save-slot-btn" onclick="confirmSlotSave()" style="font-size:10px;padding:4px 10px;margin-left:4px;">保存・再生成</button>
+          <button class="save-slot-btn" onclick="confirmSlotSave()" style="margin-left:8px;">保存・再生成</button>
         </div>
         <!-- スクロールエリア（2ヶ月） -->
         <div class="cal-scroll-area" id="cal-scroll-area"></div>
@@ -463,15 +463,42 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
           <button class="copy-btn-s" onclick="copyUrl()">コピー</button>
         </div>
       </div>
-      <div id="pwa-install-section" style="display:none;">
+      <div>
         <div class="plbl">アプリ</div>
-        <button onclick="pwaTriggerInstall()" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blue-l);border:1.5px solid var(--blue);border-radius:var(--r);cursor:pointer;font-family:var(--sans);color:var(--blue);font-size:12px;font-weight:700;"><span style="font-size:15px;">📲</span><span>ホーム画面にインストール</span></button>
+        <button onclick="openPwaModal()" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blue-l);border:1.5px solid var(--blue);border-radius:var(--r);cursor:pointer;font-family:var(--sans);color:var(--blue);font-size:12px;font-weight:700;"><span style="font-size:15px;">📲</span><span>ホーム画面に追加</span></button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- MODALS -->
+<!-- PWAインストール案内 -->
+<div class="ov" id="m-pwa">
+  <div class="modal sm">
+    <div class="mhd"><span class="mt">📲 ホーム画面に追加</span><button class="mx" onclick="closeM('m-pwa')">&#10005;</button></div>
+    <div class="mbd">
+      <div id="pwa-auto-section" style="display:none;margin-bottom:14px;">
+        <p style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px;">✓ このブラウザはワンタップでインストールできます</p>
+        <button onclick="pwaTriggerInstall()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;">インストールする</button>
+        <hr style="margin:14px 0;border:none;border-top:1px solid var(--border);">
+      </div>
+      <p style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:10px;">手順</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:4px;">Android (Chrome)</div>
+          <div style="font-size:12px;color:var(--ink2);line-height:1.7;">右上の <b>⋮</b> メニュー →「<b>ホーム画面に追加</b>」→「<b>インストール</b>」を選択</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px;">iPhone / iPad (Safari)</div>
+          <div style="font-size:12px;color:var(--ink2);line-height:1.7;">下部の <b>共有ボタン（□↑）</b> →「<b>ホーム画面に追加</b>」→「<b>追加</b>」を選択<br><span style="color:var(--amber);font-size:11px;">※ Safariで開いている必要があります</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="closeM('m-pwa')">閉じる</button>
+    </div>
+  </div>
+</div>
 <!-- シフトフォーム作成 -->
 <div class="ov" id="m-form">
   <div class="modal">
@@ -1685,31 +1712,32 @@ function toast(msg,type){
 
 // PWA インストール
 (function(){
-  try {
-    const md={name:'シフト管理',short_name:'シフト管理',
-      icons:[{src:'logo.png',sizes:'192x192',type:'image/png'},{src:'logo.png',sizes:'512x512',type:'image/png'}],
-      start_url:location.href,display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
-    const link=document.querySelector('link[rel="manifest"]');
-    if(link) link.href=URL.createObjectURL(new Blob([JSON.stringify(md)],{type:'application/json'}));
-  } catch(e){}
   if(window.matchMedia('(display-mode: standalone)').matches) return;
   let deferredPrompt=null;
-  const sec=()=>document.getElementById('pwa-install-section');
   window.addEventListener('beforeinstallprompt', e=>{
-    e.preventDefault(); deferredPrompt=e;
-    const s=sec(); if(s) s.style.display='block';
+    e.preventDefault();
+    deferredPrompt=e;
+    const s=document.getElementById('pwa-auto-section');
+    if(s) s.style.display='block';
   });
   window.addEventListener('appinstalled', ()=>{
     deferredPrompt=null;
-    const s=sec(); if(s) s.style.display='none';
     toast('インストールしました!','s');
+    closeM('m-pwa');
   });
+  window.openPwaModal=function(){
+    if(window.matchMedia('(display-mode: standalone)').matches){
+      toast('すでにインストール済みです','s'); return;
+    }
+    const s=document.getElementById('pwa-auto-section');
+    if(s) s.style.display=deferredPrompt?'block':'none';
+    openM('m-pwa');
+  };
   window.pwaTriggerInstall=async function(){
-    if(!deferredPrompt){ toast('ブラウザのメニュー→「ホーム画面に追加」→「インストール」を選択してください',''); return; }
+    if(!deferredPrompt) return;
     deferredPrompt.prompt();
     const{outcome}=await deferredPrompt.userChoice;
     deferredPrompt=null;
-    if(outcome==='accepted'){ const s=sec(); if(s) s.style.display='none'; }
   };
 })();
 </script>

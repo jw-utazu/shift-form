@@ -731,26 +731,30 @@ function gasGet(action, params) {
 // ============================================================
 async function loadAdminData() {
   updYmTitle();
+  let d;
   try {
-    const d = await gasGet('adminData');
-    adminData = d;
-    // GASのD3/F3の年月を取得（ただしUI上の対象月はcurY/curMを使う）
-    // slots・datesはGASから読み取る
-    if (d.eventDates) {
-      const toObj = str => {
-        if (!str) return null;
-        const p = str.split('/');
-        return p.length===2 ? {y:curY, m:parseInt(p[0]), d:parseInt(p[1])} : null;
-      };
-      dates.apply    = toObj(d.eventDates['申込開始']);
-      dates.deadline = toObj(d.eventDates['締切']);
-      dates.open     = toObj(d.eventDates['シフト公開']);
-    }
-    if (d.currentSlots) {
-      slots = d.currentSlots.map(s=>({y:s.y||curY,m:s.m||curM,d:s.d,time:s.time,interval:parseInt(s.interval)||15}));
-    }
-    renderAll();
-  } catch(e) { toast('データの読み込みに失敗しました: '+e.message,'e'); }
+    d = await gasGet('adminData');
+  } catch(e) {
+    toast('データの読み込みに失敗しました: '+e.message,'e');
+    return;
+  }
+  adminData = d;
+  // GASのD3/F3の年月を取得（ただしUI上の対象月はcurY/curMを使う）
+  // slots・datesはGASから読み取る
+  if (d.eventDates) {
+    const toObj = str => {
+      if (!str) return null;
+      const p = str.split('/');
+      return p.length===2 ? {y:curY, m:parseInt(p[0]), d:parseInt(p[1])} : null;
+    };
+    dates.apply    = toObj(d.eventDates['申込開始']);
+    dates.deadline = toObj(d.eventDates['締切']);
+    dates.open     = toObj(d.eventDates['シフト公開']);
+  }
+  if (d.currentSlots) {
+    slots = d.currentSlots.map(s=>({y:s.y||curY,m:s.m||curM,d:s.d,time:s.time,interval:parseInt(s.interval)||15}));
+  }
+  renderAll();
 }
 
 function renderAll() {

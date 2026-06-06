@@ -669,7 +669,7 @@ function gasGet(action, params) {
         if(done) return; done=true;
         delete window[cbName];
         reject(new Error('通信タイムアウト（GASが応答しませんでした）'));
-      }, 20000);
+      }, 60000);
 
       // まずJSONPスクリプト方式で試み、失敗時はfetchで再試行
       const sc = document.createElement('script');
@@ -705,7 +705,7 @@ function gasGet(action, params) {
       if(done) return; done=true;
       delete window[cbName];
       reject(new Error('通信タイムアウト（GASが応答しませんでした）'));
-    }, 12000);
+    }, 60000);
     window[cbName] = d => {
       if(done) return; done=true;
       clearTimeout(timer);
@@ -825,16 +825,24 @@ function calcStatus() {
 function buildCalScroll() {
   const area = document.getElementById('cal-scroll-area');
   area.innerHTML = '';
-  // 当月のみ描画（矢印で月を切り替える）
-  const block = document.createElement('div');
-  block.className = 'cal-month-block';
-  block.id = 'cal-block-'+curY+'-'+curM;
-  const cal = document.createElement('div');
-  cal.className = 'mini-cal';
-  cal.innerHTML = '<div class="cal-dows"><div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div><div class="cdow">木</div><div class="cdow">金</div><div class="cdow sat">土</div><div class="cdow sun">日</div></div><div class="cal-body" id="cg-'+curY+'-'+curM+'"></div>';
-  block.appendChild(cal);
-  area.appendChild(block);
-  buildCalGrid('cg-'+curY+'-'+curM, curY, curM, 'main');
+  // 前月・当月の2ヶ月を描画
+  const months = [ prevMonth(curY,curM), {y:curY,m:curM} ];
+  months.forEach(({y,m}) => {
+    const block = document.createElement('div');
+    block.className = 'cal-month-block';
+    block.id = 'cal-block-'+y+'-'+m;
+    const lbl = document.createElement('div');
+    lbl.style.cssText='font-size:11px;font-weight:700;color:var(--ink3);padding:0 2px 4px;';
+    lbl.textContent = y+'年'+m+'月';
+    const cal = document.createElement('div');
+    cal.className = 'mini-cal';
+    cal.innerHTML = '<div class="cal-dows"><div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div><div class="cdow">木</div><div class="cdow">金</div><div class="cdow sat">土</div><div class="cdow sun">日</div></div><div class="cal-body" id="cg-'+y+'-'+m+'"></div>';
+    block.appendChild(lbl);
+    block.appendChild(cal);
+    area.appendChild(block);
+    buildCalGrid('cg-'+y+'-'+m, y, m, 'main');
+  });
+  // 先頭（前月）にスクロール
   area.scrollTop = 0;
 }
 

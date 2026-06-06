@@ -391,6 +391,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
           <button onclick="chM(-1)">&#8249;</button>
           <span id="cal-ym-label">読み込み中...</span>
           <button onclick="chM(1)">&#8250;</button>
+          <button class="save-slot-btn" onclick="confirmSlotSave()" style="font-size:10px;padding:4px 10px;margin-left:4px;">保存・再生成</button>
         </div>
         <!-- スクロールエリア（2ヶ月） -->
         <div class="cal-scroll-area" id="cal-scroll-area"></div>
@@ -418,10 +419,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
           <!-- 実施日設定エリア（カレンダータブ内） -->
           <div style="margin-top:10px;">
             <div class="slot-set-card">
-              <div class="slot-set-hd">
-                <span class="slot-set-title">実施日一覧</span>
-                <button class="save-slot-btn" onclick="confirmSlotSave()" style="font-size:10px;padding:4px 10px;">保存・再生成</button>
-              </div>
               <div id="popup-area"></div>
               <div class="slot-set-list" id="slot-set-list">
                 <div class="slot-empty">実施日がありません</div>

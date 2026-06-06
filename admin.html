@@ -669,7 +669,7 @@ function gasGet(action, params) {
         if(done) return; done=true;
         delete window[cbName];
         reject(new Error('通信タイムアウト（GASが応答しませんでした）'));
-      }, 60000);
+      }, 180000);
 
       // まずJSONPスクリプト方式で試み、失敗時はfetchで再試行
       const sc = document.createElement('script');
@@ -705,7 +705,7 @@ function gasGet(action, params) {
       if(done) return; done=true;
       delete window[cbName];
       reject(new Error('通信タイムアウト（GASが応答しませんでした）'));
-    }, 60000);
+    }, 180000);
     window[cbName] = d => {
       if(done) return; done=true;
       clearTimeout(timer);

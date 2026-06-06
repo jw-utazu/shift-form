@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "start_url": "/shift-form/admin.html",
+  "start_url": "admin.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff"

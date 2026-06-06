@@ -389,9 +389,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
         <!-- 年月ヘッダー -->
         <div class="cal-ym-header">
           <button onclick="chM(-1)">&#8249;</button>
-          <span id="cal-ym-label" onclick="toggleYmDropdown()" style="cursor:pointer;">読み込み中...</span>
+          <span id="cal-ym-label">読み込み中...</span>
           <button onclick="chM(1)">&#8250;</button>
-          <button class="save-slot-btn" id="save-slot-hdr-btn" onclick="confirmSlotSave()" style="display:none;font-size:10px;padding:4px 10px;margin-left:4px;">保存・再生成</button>
         </div>
         <!-- スクロールエリア（2ヶ月） -->
         <div class="cal-scroll-area" id="cal-scroll-area"></div>
@@ -421,6 +420,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
             <div class="slot-set-card">
               <div class="slot-set-hd">
                 <span class="slot-set-title">実施日一覧</span>
+                <button class="save-slot-btn" onclick="confirmSlotSave()" style="font-size:10px;padding:4px 10px;">保存・再生成</button>
               </div>
               <div id="popup-area"></div>
               <div class="slot-set-list" id="slot-set-list">
@@ -465,6 +465,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
           <a href="https://jw-utazu.github.io/shift-form/" target="_blank" class="url-txt">https://jw-utazu.github.io/shift-form/</a>
           <button class="copy-btn-s" onclick="copyUrl()">コピー</button>
         </div>
+      </div>
+      <div id="pwa-install-section" style="display:none;">
+        <div class="plbl">アプリ</div>
+        <button onclick="pwaTriggerInstall()" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r);cursor:pointer;font-family:var(--sans);color:var(--blue);font-size:12px;font-weight:700;">
+          <span style="font-size:16px;">📲</span>
+          <span>ホーム画面にインストール</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1180,11 +1187,9 @@ function toggleSlotMode() {
   slotMode=!slotMode;
   const btn=document.getElementById('slot-mode-btn');
   const area=document.getElementById('slot-cal-area');
-  const saveBtn=document.getElementById('save-slot-hdr-btn');
   btn.className='slot-toggle-btn '+(slotMode?'on':'off');
   btn.innerHTML=slotMode?'&#10005; 選択を終了':'&#128197; 実施日を選択';
   area.style.display=slotMode?'block':'none';
-  if(saveBtn) saveBtn.style.display=slotMode?'inline-flex':'none';
   if(slotMode){
     document.getElementById('slot-mlbl').textContent=slotY+'年'+slotM+'月';
     buildCalGrid('cg-slot',slotY,slotM,'slot');
@@ -1683,6 +1688,57 @@ function toast(msg,type){
   a.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3000);
 }
+
+// ============================================================
+// PWA インストール
+// ============================================================
+(function(){
+  // manifest の start_url を現在のURLに動的設定
+  try {
+    const manifestData = {
+      name:'シフト管理',short_name:'シフト管理',
+      icons:[{src:'logo.png',sizes:'192x192',type:'image/png'},{src:'logo.png',sizes:'512x512',type:'image/png'}],
+      start_url:location.href,
+      display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'
+    };
+    const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
+    const link=document.querySelector('link[rel="manifest"]');
+    if(link) link.href=URL.createObjectURL(blob);
+  } catch(e){}
+
+  let deferredPrompt=null;
+
+  // インストール済みなら何もしない
+  if(window.matchMedia('(display-mode: standalone)').matches) return;
+
+  window.addEventListener('beforeinstallprompt', e=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    const sec=document.getElementById('pwa-install-section');
+    if(sec) sec.style.display='block';
+  });
+
+  window.addEventListener('appinstalled', ()=>{
+    deferredPrompt=null;
+    const sec=document.getElementById('pwa-install-section');
+    if(sec) sec.style.display='none';
+    toast('インストールしました！','s');
+  });
+
+  window.pwaTriggerInstall=async function(){
+    if(!deferredPrompt){
+      toast('ブラウザのメニュー →「ホーム画面に追加」→「インストール」を選択してください','');
+      return;
+    }
+    deferredPrompt.prompt();
+    const{outcome}=await deferredPrompt.userChoice;
+    deferredPrompt=null;
+    if(outcome==='accepted'){
+      const sec=document.getElementById('pwa-install-section');
+      if(sec) sec.style.display='none';
+    }
+  };
+})();
 </script>
 </body>
 </html>

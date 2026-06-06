@@ -657,8 +657,27 @@ function signIn() {
       fetchUser(r.access_token);
     }
   });
-  tc.requestAccessToken({ prompt: 'select_account' });
+  // prompt: '' で前回アカウントを自動選択、初回は選択画面
+  tc.requestAccessToken({ prompt: '' });
 }
+
+// 自動ログイン（One Tap）
+function tryAutoLogin() {
+  if (!window.google || !google.accounts) return;
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: r => {
+      try {
+        const p = JSON.parse(atob(r.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        processUser({ email: p.email, name: p.name, picture: p.picture });
+      } catch(e) {}
+    },
+    auto_select: true,
+    cancel_on_tap_outside: false,
+  });
+  google.accounts.id.prompt();
+}
+setTimeout(tryAutoLogin, 800);
 function fetchUser(token) {
   fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + token } })
     .then(r => r.json()).then(u => processUser({ email: u.email, name: u.name, picture: u.picture }))

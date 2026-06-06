@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PW管理</title>
+<title>管理アプリ</title>
+<link rel="icon" type="image/png" href="logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client"></script>
 <style>
@@ -397,16 +398,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
               <button class="sdc-close" onclick="closeSlotDetail()">&#10005;</button>
             </div>
             <div class="sdc-body" id="sdc-body"></div>
-          </div>
-          <!-- 受付日程カード -->
-          <div class="info-card" id="info-dates-card" style="display:none;">
-            <div class="info-card-hd"><span class="info-card-title">受付日程</span></div>
-            <div class="info-rows" id="info-dates-rows"></div>
-          </div>
-          <!-- 実施日一覧カード -->
-          <div class="slot-list-card" id="info-slots-card" style="display:none;">
-            <div class="info-card-hd"><span class="info-card-title">実施日一覧</span></div>
-            <div id="info-slots-body"></div>
           </div>
           <!-- 受付日程表示カード（カレンダータブ内） -->
           <div class="dsp-card" style="margin-top:10px;">
@@ -834,33 +825,32 @@ function calcStatus() {
 function buildCalScroll() {
   const area = document.getElementById('cal-scroll-area');
   area.innerHTML = '';
-  // 前月・当月の2ヶ月を描画
-  const months = [ prevMonth(curY,curM), {y:curY,m:curM} ];
-  months.forEach(({y,m}) => {
-    const block = document.createElement('div');
-    block.className = 'cal-month-block';
-    block.id = 'cal-block-'+y+'-'+m;
-    // 月ラベルをcal-month-blockの上に表示（小さめ）
-    const lbl = document.createElement('div');
-    lbl.style.cssText='font-size:11px;font-weight:700;color:var(--ink3);padding:0 2px 4px;';
-    lbl.textContent = y+'年'+m+'月';
-    const cal = document.createElement('div');
-    cal.className = 'mini-cal';
-    cal.innerHTML = '<div class="cal-dows"><div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div><div class="cdow">木</div><div class="cdow">金</div><div class="cdow sat">土</div><div class="cdow sun">日</div></div><div class="cal-body" id="cg-'+y+'-'+m+'"></div>';
-    block.appendChild(lbl);
-    block.appendChild(cal);
-    area.appendChild(block);
-    buildCalGrid('cg-'+y+'-'+m, y, m, 'main');
-  });
-  // 当月にスクロール
-  setTimeout(() => {
-    const el = document.getElementById('cal-block-'+curY+'-'+curM);
-    if (el) el.scrollIntoView({block:'start', behavior:'auto'});
-  }, 50);
+  // 当月のみ描画（矢印で月を切り替える）
+  const block = document.createElement('div');
+  block.className = 'cal-month-block';
+  block.id = 'cal-block-'+curY+'-'+curM;
+  const cal = document.createElement('div');
+  cal.className = 'mini-cal';
+  cal.innerHTML = '<div class="cal-dows"><div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div><div class="cdow">木</div><div class="cdow">金</div><div class="cdow sat">土</div><div class="cdow sun">日</div></div><div class="cal-body" id="cg-'+curY+'-'+curM+'"></div>';
+  block.appendChild(cal);
+  area.appendChild(block);
+  buildCalGrid('cg-'+curY+'-'+curM, curY, curM, 'main');
+  area.scrollTop = 0;
 }
 
 function prevMonth(y,m){ return m===1?{y:y-1,m:12}:{y,m:m-1}; }
 function nextMonth(y,m){ return m===12?{y:y+1,m:1}:{y,m:m+1}; }
+
+function chM(dir) {
+  curM += dir;
+  if (curM > 12) { curM = 1; curY++; }
+  if (curM < 1)  { curM = 12; curY--; }
+  scY = curY; scM = curM;
+  slotY = curY; slotM = curM;
+  updYmTitle();
+  buildCalScroll();
+  buildInfoArea();
+}
 
 // ============================================================
 // カレンダーグリッド描画

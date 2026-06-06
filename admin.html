@@ -111,7 +111,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 /* チップ */
 .chip{font-size:8px;font-weight:700;border-radius:3px;padding:1px 3px;width:100%;text-align:center;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chip.apply{background:var(--green-l);color:var(--green);}
-.chip.deadline{background:var(--amber-l);color:var(--amber);}
+.chip.deadline{background:var(--red-l);color:var(--red);}
 .chip.open{background:var(--blue-l);color:var(--blue);}
 .chip.slot{background:var(--purple-l);color:var(--purple);cursor:pointer;}
 /* 期間バー */
@@ -354,7 +354,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
   <!-- HEADER -->
   <header class="hdr">
     <div class="hdr-logo" id="hdr-logo"><img src="logo.png" alt="PW" onerror="this.parentNode.textContent='PW'"></div>
-    <span style="flex:1;"></span>
+    <span style="font-size:14px;font-weight:700;color:var(--ink);margin-right:auto;padding-left:8px;">管理アプリ</span>
     <!-- 受付状況 -->
     <div class="status-badge sb-prep" id="status-badge">
       <div class="sb-dot sb-dot-prep" id="status-dot"></div>
@@ -378,13 +378,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
   <div class="layout">
     <!-- CAL PANEL -->
     <div class="cp">
-      <!-- タブ -->
-      <div class="tabs">
-        <button class="tb on" onclick="swTab('cal',this)">&#128197; カレンダー</button>
-        <button class="tb" onclick="swTab('set',this)">&#9881; 設定</button>
-      </div>
-
-      <!-- TAB: カレンダー -->
+      <!-- タブなし（カレンダーのみ） -->
       <div id="tab-cal" style="display:flex;flex-direction:column;flex:1;">
         <!-- 年月ヘッダー -->
         <div class="cal-ym-header">
@@ -414,88 +408,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
             <div class="info-card-hd"><span class="info-card-title">実施日一覧</span></div>
             <div id="info-slots-body"></div>
           </div>
-        </div>
-      </div>
-
-      <!-- TAB: 設定 -->
-      <div id="tab-set" style="display:none;">
-        <div class="set-panel">
-          <!-- 日程設定 -->
-          <div>
-            <div class="plbl">受付日程の設定</div>
-            <div class="dsp-card">
-              <div class="dsp-hd">
-                <span class="dsp-title">受付日程</span>
-                <button class="edit-toggle-btn view-mode" id="date-edit-btn" onclick="toggleDateEdit()">&#9998; 編集</button>
-              </div>
-              <!-- 通常表示 -->
-              <div class="date-rows" id="date-view">
-                <div class="date-row selected-g"><span class="dr-icon">&#128203;</span><span class="dr-label g">申込開始</span><span class="dr-val" id="dv-apply">未設定</span></div>
-                <div class="date-row selected-a"><span class="dr-icon">&#9203;</span><span class="dr-label a">締切</span><span class="dr-val" id="dv-deadline">未設定</span></div>
-                <div class="date-row selected-b"><span class="dr-icon">&#128226;</span><span class="dr-label b">シフト公開</span><span class="dr-val" id="dv-open">未設定</span></div>
-              </div>
-              <!-- 編集モード -->
-              <div id="date-edit" style="display:none;">
-                <div class="date-rows" id="date-edit-rows">
-                  <div class="date-row" id="dr-apply" onclick="setActiveKind('apply')"><span class="dr-icon">&#128203;</span><span class="dr-label g">申込開始</span><span class="dr-val" id="de-apply">クリックして選択</span><span class="dr-hint">→</span></div>
-                  <div class="date-row" id="dr-deadline" onclick="setActiveKind('deadline')"><span class="dr-icon">&#9203;</span><span class="dr-label a">締切</span><span class="dr-val" id="de-deadline">クリックして選択</span><span class="dr-hint">→</span></div>
-                  <div class="date-row" id="dr-open" onclick="setActiveKind('open')"><span class="dr-icon">&#128226;</span><span class="dr-label b">シフト公開</span><span class="dr-val" id="de-open">クリックして選択</span><span class="dr-hint">→</span></div>
-                </div>
-                <div class="date-edit-cal">
-                  <div class="cal-nav2">
-                    <button class="nb" onclick="chScM(-1)">&#8249;</button>
-                    <span id="sc-lbl">--</span>
-                    <button class="nb" onclick="chScM(1)">&#8250;</button>
-                  </div>
-                  <div class="cal-dows">
-                    <div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div>
-                    <div class="cdow">木</div><div class="cdow">金</div>
-                    <div class="cdow sat">土</div><div class="cdow sun">日</div>
-                  </div>
-                  <div class="cal-body" id="cg-sched"></div>
-                </div>
-                <div class="dsp-ft">
-                  <span class="dsp-hint" id="dsp-hint">設定する日程をクリックしてください</span>
-                  <div style="display:flex;gap:6px;">
-                    <button class="cancel-btn-sm" onclick="cancelDateEdit()">キャンセル</button>
-                    <button class="save-btn-sm" onclick="saveDates()">保存する</button>
-                  </div>
-                </div>
-              </div>
+          <!-- 受付日程表示カード（カレンダータブ内） -->
+          <div class="dsp-card" style="margin-top:10px;">
+            <div class="dsp-hd">
+              <span class="dsp-title">受付日程</span>
+            </div>
+            <div class="date-rows" id="date-view">
+              <div class="date-row selected-g"><span class="dr-icon">&#128203;</span><span class="dr-label g">申込開始</span><span class="dr-val" id="dv-apply">未設定</span></div>
+              <div class="date-row selected-a"><span class="dr-icon">&#9203;</span><span class="dr-label a" style="color:var(--red);">締切</span><span class="dr-val" id="dv-deadline" style="color:var(--red);">未設定</span></div>
+              <div class="date-row selected-b"><span class="dr-icon">&#128226;</span><span class="dr-label b">シフト公開</span><span class="dr-val" id="dv-open">未設定</span></div>
             </div>
           </div>
-
-          <!-- 実施日設定 -->
-          <div>
-            <div class="plbl">実施日の設定</div>
+          <!-- 実施日設定エリア（カレンダータブ内） -->
+          <div style="margin-top:10px;">
             <div class="slot-set-card">
               <div class="slot-set-hd">
                 <span class="slot-set-title">実施日一覧</span>
-                <button class="slot-toggle-btn off" id="slot-mode-btn" onclick="toggleSlotMode()">&#128197; 実施日を選択</button>
+                <button class="save-slot-btn" onclick="confirmSlotSave()" style="font-size:10px;padding:4px 10px;">保存・再生成</button>
               </div>
-              <!-- スロット選択カレンダー（トグル） -->
-              <div id="slot-cal-area" style="display:none;">
-                <div class="cal-nav2">
-                  <button class="nb" onclick="chSlotM(-1)">&#8249;</button>
-                  <span id="slot-mlbl">--</span>
-                  <button class="nb" onclick="chSlotM(1)">&#8250;</button>
-                </div>
-                <div class="cal-dows">
-                  <div class="cdow">月</div><div class="cdow">火</div><div class="cdow">水</div>
-                  <div class="cdow">木</div><div class="cdow">金</div>
-                  <div class="cdow sat">土</div><div class="cdow sun">日</div>
-                </div>
-                <div class="cal-body" id="cg-slot"></div>
-                <div class="slot-hint">日付をクリックして時間帯を追加</div>
-              </div>
-              <!-- インラインポップアップ -->
               <div id="popup-area"></div>
-              <!-- 実施日一覧 -->
               <div class="slot-set-list" id="slot-set-list">
                 <div class="slot-empty">実施日がありません</div>
-              </div>
-              <div class="slot-set-ft">
-                <button class="save-slot-btn" onclick="confirmSlotSave()">保存してカレンダー再生成</button>
               </div>
             </div>
           </div>
@@ -611,6 +544,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
   </div>
 </div>
 
+<!-- 日付クリック: 設定種別選択モーダル -->
+<div class="ov" id="m-day-select">
+  <div class="modal sm">
+    <div class="mhd"><span class="mt" id="m-day-select-title">日付の設定</span><button class="mx" onclick="closeM('m-day-select')">&#10005;</button></div>
+    <div class="mbd">
+      <p style="font-size:12px;color:var(--ink2);margin-bottom:12px;">この日付に何を設定しますか？</p>
+      <div style="display:flex;flex-direction:column;gap:6px;" id="m-day-select-btns"></div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="closeM('m-day-select')">キャンセル</button>
+      <button class="btn btn-d" id="m-day-reset-btn" onclick="resetDaySettings()" style="display:none;">リセット</button>
+    </div>
+  </div>
+</div>
+
 <div class="ta" id="ta"></div>
 
 <script>
@@ -720,9 +668,48 @@ function gasGet(action, params) {
   return new Promise((resolve,reject) => {
     let url = GAS_URL+'?action='+action;
     if (params) url += '&params='+encodeURIComponent(JSON.stringify(params));
+
+    // fetch API を優先（スマホ対応）
+    if (window.fetch) {
+      const cbName = '_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const fetchUrl = url + '&callback='+cbName;
+      let done = false;
+      const timer = setTimeout(() => {
+        if(done) return; done=true;
+        delete window[cbName];
+        reject(new Error('通信タイムアウト（GASが応答しませんでした）'));
+      }, 20000);
+
+      // まずJSONPスクリプト方式で試み、失敗時はfetchで再試行
+      const sc = document.createElement('script');
+      window[cbName] = d => {
+        if(done) return; done=true;
+        clearTimeout(timer);
+        delete window[cbName];
+        if(sc.parentNode) sc.parentNode.removeChild(sc);
+        if (d && d.error && !d.ok) return reject(new Error(d.error));
+        resolve(d);
+      };
+      sc.onerror = () => {
+        if(done) return; done=true;
+        clearTimeout(timer);
+        delete window[cbName];
+        // fetchフォールバック
+        fetch(url+'&callback=noop', {mode:'no-cors'}).catch(()=>{});
+        // no-corsでは結果が取れないのでfetch+json試行
+        fetch(url).then(r=>r.json()).then(d=>{
+          if (d && d.error && !d.ok) return reject(new Error(d.error));
+          resolve(d);
+        }).catch(()=>reject(new Error('通信エラー（GASへの接続に失敗）')));
+      };
+      sc.src = fetchUrl;
+      document.head.appendChild(sc);
+      return;
+    }
+
+    // fetch未対応環境は従来のJSONP
     const cbName = '_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     let done = false;
-    // タイムアウト12秒
     const timer = setTimeout(() => {
       if(done) return; done=true;
       delete window[cbName];
@@ -916,9 +903,11 @@ function buildCalGrid(gid, y, m, mode) {
     if(isApply) chips+='<div class="period-bar start"></div>';
     if(isDL) chips+='<div class="period-bar end"></div>';
     let oc='';
-    if(mode==='main'&&hasSlot) oc=`onclick="showSlotDetail(${y},${m},${d})"`;
+    if(mode==='main') oc=`onclick="openDaySelectModal(${y},${m},${d})"`;
     if(mode==='sched'&&dateEditMode) oc=`onclick="onScClick(${y},${m},${d})"`;
     if(mode==='slot'&&slotMode) oc=`onclick="onSlotClick(${y},${m},${d},this)"`;
+    // メインモードでは全日付クリック可能
+    if(mode==='main') cls+=' has-slot'; // カーソルpointer
     h+=`<div class="${cls}" ${oc}>${chips}</div>`;
   }
   g.innerHTML=h;
@@ -928,12 +917,7 @@ function buildCalGrid(gid, y, m, mode) {
 // タブ切り替え
 // ============================================================
 function swTab(id,btn){
-  ['cal','set'].forEach(t=>{
-    const el=document.getElementById('tab-'+t);
-    if(el) el.style.display=t===id?(t==='cal'?'flex':'block'):'none';
-  });
-  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  // 設定タブ廃止 - カレンダー統合
 }
 
 // ============================================================
@@ -952,6 +936,101 @@ function showSlotDetail(y,m,d) {
 }
 function closeSlotDetail(){
   document.getElementById('slot-detail-card').classList.remove('show');
+}
+
+// ============================================================
+// 日付クリック → 設定種別選択モーダル
+// ============================================================
+let daySelectTarget = null;
+
+function openDaySelectModal(y,m,d) {
+  if(d < 1) return; // 空白セルは無視
+  daySelectTarget = {y,m,d};
+  const dt = new Date(y,m-1,d);
+  const dow = DOW7[dt.getDay()===0?6:dt.getDay()-1];
+  document.getElementById('m-day-select-title').textContent = m+'/'+d+'（'+dow+'） の設定';
+
+  const isApply    = dates.apply    && dates.apply.y===y    && dates.apply.m===m    && dates.apply.d===d;
+  const isDeadline = dates.deadline && dates.deadline.y===y && dates.deadline.m===m && dates.deadline.d===d;
+  const isOpen     = dates.open     && dates.open.y===y     && dates.open.m===m     && dates.open.d===d;
+  const hasSlot    = slots.some(s=>s.y===y&&s.m===m&&s.d===d);
+  const hasAny     = isApply||isDeadline||isOpen||hasSlot;
+
+  const btn = document.getElementById('m-day-reset-btn');
+  btn.style.display = hasAny ? 'inline-flex' : 'none';
+
+  const btnsEl = document.getElementById('m-day-select-btns');
+  btnsEl.innerHTML = `
+    <button class="abtn" onclick="setDayAs('apply')" style="border-color:${isApply?'var(--green)':'var(--border)'};background:${isApply?'var(--green-l)':''};">
+      <div class="ab-ic ic-g">&#128203;</div>
+      <div class="ab-tx"><span class="ab-n" style="color:var(--green);">申込開始日</span><span class="ab-d">${isApply?'✓ 設定済み':'この日を申込開始日にする'}</span></div>
+    </button>
+    <button class="abtn" onclick="setDayAs('deadline')" style="border-color:${isDeadline?'var(--red)':'var(--border)'};background:${isDeadline?'var(--red-l)':''};">
+      <div class="ab-ic" style="background:var(--red-l);">&#9203;</div>
+      <div class="ab-tx"><span class="ab-n" style="color:var(--red);">締切日</span><span class="ab-d">${isDeadline?'✓ 設定済み':'この日を締切日にする'}</span></div>
+    </button>
+    <button class="abtn" onclick="setDayAs('open')" style="border-color:${isOpen?'var(--blue)':'var(--border)'};background:${isOpen?'var(--blue-l)':''};">
+      <div class="ab-ic ic-p">&#128226;</div>
+      <div class="ab-tx"><span class="ab-n" style="color:var(--blue);">シフト公開日</span><span class="ab-d">${isOpen?'✓ 設定済み':'この日をシフト公開日にする'}</span></div>
+    </button>
+    <button class="abtn" onclick="setDayAsSlot()" style="border-color:${hasSlot?'var(--purple)':'var(--border)'};background:${hasSlot?'var(--purple-l)':''};">
+      <div class="ab-ic ic-t">&#127775;</div>
+      <div class="ab-tx"><span class="ab-n" style="color:var(--purple);">実施日</span><span class="ab-d">${hasSlot?'✓ 設定済み（クリックで時間帯編集）':'この日を実施日にする'}</span></div>
+    </button>`;
+  openM('m-day-select');
+}
+
+function setDayAs(kind) {
+  if(!daySelectTarget) return;
+  const {y,m,d} = daySelectTarget;
+  datesBak = JSON.parse(JSON.stringify(dates));
+  dates[kind] = {y,m,d};
+  closeM('m-day-select');
+  updDateViews();
+  buildCalScroll();
+  buildInfoArea();
+  // GASに即時保存
+  gasGet('updateEventDates',{apply:dates.apply,deadline:dates.deadline,open:dates.open})
+    .then(()=>toast((kind==='apply'?'申込開始日':kind==='deadline'?'締切日':'シフト公開日')+'を保存しました','s'))
+    .catch(e=>toast('保存に失敗しました: '+e.message,'e'));
+}
+
+function setDayAsSlot() {
+  if(!daySelectTarget) return;
+  const {y,m,d} = daySelectTarget;
+  closeM('m-day-select');
+  // 既存スロットから読み込み
+  popupDay = {y,m,d};
+  const exist = slots.filter(s=>s.y===y&&s.m===m&&s.d===d);
+  popupTimes = exist.length>0
+    ? exist.map(s=>parseTimeStr(s.time,s.interval))
+    : [{sh:'07',sm:'00',eh:'08',em:'30',intv:15}];
+  renderPopup(y,m,d);
+  // popup-areaが見えるようにスクロール
+  setTimeout(()=>{
+    const el=document.getElementById('popup-area');
+    if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },100);
+}
+
+function resetDaySettings() {
+  if(!daySelectTarget) return;
+  const {y,m,d} = daySelectTarget;
+  // 受付日程リセット
+  ['apply','deadline','open'].forEach(k=>{
+    if(dates[k]&&dates[k].y===y&&dates[k].m===m&&dates[k].d===d) dates[k]=null;
+  });
+  // スロットリセット
+  slots = slots.filter(s=>!(s.y===y&&s.m===m&&s.d===d));
+  closeM('m-day-select');
+  updDateViews();
+  buildCalScroll();
+  buildSlotSetList();
+  buildInfoArea();
+  // GASに保存
+  gasGet('updateEventDates',{apply:dates.apply,deadline:dates.deadline,open:dates.open})
+    .then(()=>toast('設定をリセットしました','s'))
+    .catch(e=>toast('保存に失敗しました: '+e.message,'e'));
 }
 
 // ============================================================
@@ -1446,6 +1525,13 @@ async function openCalPubModal(){
   try{
     const d=await gasGet('adminData');
     const fmt=obj=>{if(!obj)return '<span style="color:var(--ink3)">未設定</span>';const dt=new Date(obj.y,obj.m-1,obj.d),dow=DOW7[dt.getDay()===0?6:dt.getDay()-1];return obj.m+'/'+obj.d+'（'+dow+'）';};
+    // 実施日をスロットから収集
+    const slotGroups={};
+    slots.forEach(s=>{const k=s.m+'/'+s.d;if(!slotGroups[k])slotGroups[k]=[];slotGroups[k].push(s.time);});
+    const slotKeys=Object.keys(slotGroups).sort((a,b)=>{const[am,ad]=a.split('/').map(Number),[bm,bd]=b.split('/').map(Number);return am!==bm?am-bm:ad-bd;});
+    const slotHtml=slotKeys.length>0
+      ? slotKeys.map(k=>`<div class="sumrow"><span class="sumk" style="color:var(--purple);">実施日</span><span class="sumv" style="color:var(--purple);">${k}（${slotGroups[k].length}枠）</span></div>`).join('')
+      : '<div class="sumrow"><span class="sumk" style="color:var(--ink3);">実施日</span><span class="sumv" style="color:var(--ink3);">未設定</span></div>';
     let yrOpts='',moOpts='';
     for(let y=curY-1;y<=curY+2;y++) yrOpts+=`<option value="${y}"${y===curY?' selected':''}>${y}年</option>`;
     for(let m=1;m<=12;m++) moOpts+=`<option value="${m}"${m===curM?' selected':''}>${m}月</option>`;
@@ -1457,11 +1543,12 @@ async function openCalPubModal(){
         </div>
       </div>
       <div class="fg">
-        <label class="fl">受付日程</label>
+        <label class="fl">受付日程・実施日</label>
         <div class="sumbox">
           <div class="sumrow"><span class="sumk">申込開始</span><span class="sumv" style="color:var(--green);">${fmt(dates.apply)}</span></div>
-          <div class="sumrow"><span class="sumk">締切</span><span class="sumv" style="color:var(--amber);">${fmt(dates.deadline)}</span></div>
+          <div class="sumrow"><span class="sumk" style="color:var(--red);">締切</span><span class="sumv" style="color:var(--red);">${fmt(dates.deadline)}</span></div>
           <div class="sumrow"><span class="sumk">シフト公開</span><span class="sumv" style="color:var(--blue);">${fmt(dates.open)}</span></div>
+          ${slotHtml}
         </div>
       </div>
       <div class="exec-st" id="cp-st"><div class="spin"></div>予定表公開中...</div>

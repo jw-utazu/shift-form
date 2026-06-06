@@ -6,7 +6,7 @@
 <title>管理アプリ</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" id="manifest-link" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="シフト管理">
 <meta name="mobile-web-app-capable" content="yes">
@@ -337,6 +337,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 
 /* 時間選択用selectの見た目 */
 .time-sel option{font-family:var(--mono);}
+
+/* PWA インストールバナー */
+#pwa-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:var(--surface);border-top:1.5px solid var(--border);
+  box-shadow:0 -2px 12px rgba(0,0,0,.10);
+  padding:12px 16px;display:none;
+  flex-direction:row;align-items:center;gap:12px;
+}
+#pwa-banner.show{display:flex;}
+#pwa-banner .pwa-icon{width:40px;height:40px;border-radius:9px;flex-shrink:0;object-fit:cover;}
+#pwa-banner .pwa-txt{flex:1;min-width:0;}
+#pwa-banner .pwa-txt strong{display:block;font-size:13px;font-weight:700;color:var(--ink);}
+#pwa-banner .pwa-txt span{font-size:11px;color:var(--ink2);}
+#pwa-banner .pwa-install-btn{
+  background:var(--blue);color:#fff;border:none;border-radius:var(--r);
+  padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:var(--sans);
+}
+#pwa-banner .pwa-close-btn{
+  background:none;border:none;color:var(--ink3);font-size:20px;cursor:pointer;
+  padding:4px;line-height:1;flex-shrink:0;
+}
 </style>
 </head>
 <body>
@@ -553,6 +576,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
       <button class="btn btn-d" id="m-day-reset-btn" onclick="resetDaySettings()" style="display:none;">リセット</button>
     </div>
   </div>
+</div>
+
+<!-- PWA インストールバナー -->
+<div id="pwa-banner">
+  <img class="pwa-icon" src="logo.png" alt="シフト管理">
+  <div class="pwa-txt">
+    <strong>アプリとしてインストール</strong>
+    <span>ホーム画面に追加してアプリのように使えます</span>
+  </div>
+  <button class="pwa-install-btn" onclick="pwaTriggerInstall()">インストール</button>
+  <button class="pwa-close-btn" onclick="pwaDismiss()" aria-label="閉じる">&#10005;</button>
 </div>
 
 <div class="ta" id="ta"></div>
@@ -1681,6 +1715,67 @@ function toast(msg,type){
   a.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3000);
 }
+
+// ============================================================
+// PWA インストール促進
+// ============================================================
+(function(){
+  // manifest の start_url を現在のURLに動的設定
+  try {
+    const manifestData = {
+      name: 'シフト管理',
+      short_name: 'シフト管理',
+      icons: [
+        { src: 'logo.png', sizes: '192x192', type: 'image/png' },
+        { src: 'logo.png', sizes: '512x512', type: 'image/png' }
+      ],
+      start_url: location.href,
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#ffffff'
+    };
+    const blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const link = document.getElementById('manifest-link');
+    if(link){ link.href = url; }
+  } catch(e) {}
+
+  let deferredPrompt = null;
+  const DISMISSED_KEY = 'pwa_banner_dismissed';
+
+  // beforeinstallprompt をキャプチャ（Androidブラウザ対応）
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 以前に「後で」を選んだ場合は24時間後に再表示
+    const dismissed = localStorage.getItem(DISMISSED_KEY);
+    if(dismissed && Date.now() - parseInt(dismissed) < 86400000) return;
+    // すでにインストール済みなら表示しない
+    if(window.matchMedia('(display-mode: standalone)').matches) return;
+    document.getElementById('pwa-banner').classList.add('show');
+  });
+
+  // インストール済みになったらバナーを隠す
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('pwa-banner').classList.remove('show');
+    deferredPrompt = null;
+    toast('インストールしました！', 's');
+  });
+
+  window.pwaTriggerInstall = async function() {
+    if(!deferredPrompt){ toast('ブラウザのメニューから「ホーム画面に追加」→「インストール」を選択してください', ''); return; }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('pwa-banner').classList.remove('show');
+    if(outcome === 'accepted') toast('インストールしました！', 's');
+  };
+
+  window.pwaDismiss = function() {
+    document.getElementById('pwa-banner').classList.remove('show');
+    try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch(e){}
+  };
+})();
 </script>
 </body>
 </html>

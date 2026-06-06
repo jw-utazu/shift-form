@@ -91,7 +91,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 .cal-scroll-area{height:420px;overflow-y:auto;padding:14px;border-bottom:1px solid var(--border);}
 .cal-month-block{margin-bottom:20px;}
 .cal-month-label{display:none;}
-.cal-ym-header{font-size:20px;font-weight:700;text-align:center;padding:12px 14px 4px;color:var(--ink);letter-spacing:-.02em;display:flex;align-items:center;justify-content:flex-start;gap:8px;}
+.cal-ym-header{font-size:20px;font-weight:700;text-align:center;padding:12px 14px 4px;color:var(--ink);letter-spacing:-.02em;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .cal-ym-header button{background:none;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;color:var(--ink2);display:flex;align-items:center;justify-content:center;}
 .cal-ym-header button:hover{background:var(--border);}
 .mini-cal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
@@ -304,7 +304,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 .btn-d{background:var(--red);color:#fff;}
 .btn-s{background:var(--green);color:#fff;}
 .save-btn-sm{padding:5px 12px;border:none;border-radius:var(--r);background:var(--blue);color:#fff;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
-.save-slot-btn{padding:9px 50px;border:none;border-radius:var(--r);background:var(--teal);color:#fff;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;}
+.save-slot-btn{padding:8px 16px;border:none;border-radius:var(--r);background:var(--teal);color:#fff;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .cancel-btn-sm{padding:5px 12px;border:1px solid var(--border);border-radius:var(--r);background:none;color:var(--ink2);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
 
 /* サマリー */
@@ -388,10 +388,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
       <div id="tab-cal" style="display:flex;flex-direction:column;flex:1;">
         <!-- 年月ヘッダー -->
         <div class="cal-ym-header">
-          <button onclick="chM(-1)">&#8249;</button>
-          <span id="cal-ym-label">読み込み中...</span>
-          <button onclick="chM(1)">&#8250;</button>
-          <button class="save-slot-btn" onclick="confirmSlotSave()" style="margin-left:8px;">保存・再生成</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="chM(-1)">&#8249;</button>
+            <span id="cal-ym-label">読み込み中...</span>
+            <button onclick="chM(1)">&#8250;</button>
+          </div>
+          <button class="save-slot-btn" onclick="confirmSlotSave()">保存・再生成</button>
         </div>
         <!-- スクロールエリア（2ヶ月） -->
         <div class="cal-scroll-area" id="cal-scroll-area"></div>
@@ -472,7 +474,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
 </div>
 
 <!-- MODALS -->
-<!-- PWAインストール案内 -->
 <div class="ov" id="m-pwa">
   <div class="modal sm">
     <div class="mhd"><span class="mt">📲 ホーム画面に追加</span><button class="mx" onclick="closeM('m-pwa')">&#10005;</button></div>
@@ -494,9 +495,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13p
         </div>
       </div>
     </div>
-    <div class="mft">
-      <button class="btn btn-g" onclick="closeM('m-pwa')">閉じる</button>
-    </div>
+    <div class="mft"><button class="btn btn-g" onclick="closeM('m-pwa')">閉じる</button></div>
   </div>
 </div>
 <!-- シフトフォーム作成 -->
@@ -1709,35 +1708,23 @@ function toast(msg,type){
   a.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3000);
 }
-
-// PWA インストール
 (function(){
   if(window.matchMedia('(display-mode: standalone)').matches) return;
   let deferredPrompt=null;
   window.addEventListener('beforeinstallprompt', e=>{
-    e.preventDefault();
-    deferredPrompt=e;
-    const s=document.getElementById('pwa-auto-section');
-    if(s) s.style.display='block';
+    e.preventDefault(); deferredPrompt=e;
+    const s=document.getElementById('pwa-auto-section'); if(s) s.style.display='block';
   });
-  window.addEventListener('appinstalled', ()=>{
-    deferredPrompt=null;
-    toast('インストールしました!','s');
-    closeM('m-pwa');
-  });
+  window.addEventListener('appinstalled', ()=>{ deferredPrompt=null; toast('インストールしました!','s'); closeM('m-pwa'); });
   window.openPwaModal=function(){
-    if(window.matchMedia('(display-mode: standalone)').matches){
-      toast('すでにインストール済みです','s'); return;
-    }
-    const s=document.getElementById('pwa-auto-section');
-    if(s) s.style.display=deferredPrompt?'block':'none';
+    if(window.matchMedia('(display-mode: standalone)').matches){ toast('すでにインストール済みです','s'); return; }
+    const s=document.getElementById('pwa-auto-section'); if(s) s.style.display=deferredPrompt?'block':'none';
     openM('m-pwa');
   };
   window.pwaTriggerInstall=async function(){
     if(!deferredPrompt) return;
     deferredPrompt.prompt();
-    const{outcome}=await deferredPrompt.userChoice;
-    deferredPrompt=null;
+    const{outcome}=await deferredPrompt.userChoice; deferredPrompt=null;
   };
 })();
 </script>

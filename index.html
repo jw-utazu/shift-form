@@ -162,7 +162,14 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===================== 初回登録画面 ===================== */
-#screen-register { display: none; }
+#screen-register {
+  display: none;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
 .register-card {
   background: #fff;
   border-radius: 20px;
@@ -908,9 +915,16 @@ function hideLoading() {
 
 // ===== 画面切替 =====
 const SCREENS = ['login','register','main','form','shift','request'];
+// flex レイアウトが必要な画面
+const FLEX_SCREENS = new Set(['login','register']);
 function showScreen(name) {
   SCREENS.forEach(s => {
-    document.getElementById('screen-' + s).style.display = (s === name) ? '' : 'none';
+    const el = document.getElementById('screen-' + s);
+    if (s === name) {
+      el.style.display = FLEX_SCREENS.has(s) ? 'flex' : '';
+    } else {
+      el.style.display = 'none';
+    }
   });
 }
 

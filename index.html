@@ -7,7 +7,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./logo.png" type="image/png">
 <link rel="apple-touch-icon" href="./logo.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="シフト管理">
 <title>シフト管理</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -883,7 +883,7 @@ let shiftViewingDate = null; // 現在表示中のシフト日付
 
 // ===== PWA =====
 window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
+  deferredPrompt = e;
   const b = document.getElementById('btn-install');
   if (b) b.style.display = 'flex';
 });

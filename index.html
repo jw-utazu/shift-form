@@ -8,8 +8,8 @@
 <link rel="icon" href="./logo.png" type="image/png">
 <link rel="apple-touch-icon" href="./logo.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="シフト管理">
-<title>シフト管理</title>
+<meta name="apple-mobile-web-app-title" content="PW">
+<title>PW</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
@@ -46,15 +46,77 @@ body {
 .hdr {
   background: var(--green);
   color: #fff;
-  padding: 14px 16px 12px;
-  text-align: center;
+  padding: 0 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(22,163,74,0.3);
 }
-.hdr h1 { font-size: 18px; font-weight: 700; }
-.hdr p  { font-size: 13px; opacity: .88; margin-top: 2px; }
+.hdr-left  { display: flex; align-items: center; gap: 10px; }
+.hdr h1    { font-size: 18px; font-weight: 700; }
+.hdr-right { display: flex; align-items: center; }
+
+/* バー右アイコン */
+.hdr-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.7);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.2);
+  transition: border-color .15s;
+  flex-shrink: 0;
+}
+.hdr-avatar:active { border-color: #fff; }
+.hdr-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hdr-avatar-fallback { font-size: 18px; color: #fff; }
+
+/* プロフィールポップアップ */
+#profile-popup {
+  display: none;
+  position: fixed;
+  top: 58px; right: 10px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  width: 240px;
+  z-index: 200;
+  overflow: hidden;
+}
+#profile-popup.show { display: block; }
+.pp-header {
+  background: var(--green);
+  padding: 16px 14px 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.pp-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.2);
+}
+.pp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pp-name  { font-size: 15px; font-weight: 700; color: #fff; }
+.pp-email { font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 2px; word-break: break-all; }
+.pp-roles { padding: 12px 14px; border-bottom: 1px solid var(--green-light); display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-logout {
+  display: block; width: 100%; padding: 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: var(--danger);
+  text-align: center; font-family: inherit;
+}
+.pp-logout:active { background: #fee2e2; }
+#profile-overlay {
+  display: none; position: fixed; inset: 0; z-index: 199;
+}
+#profile-overlay.show { display: block; }
 
 /* カード */
 .container { padding: 10px 10px 0; }
@@ -236,6 +298,19 @@ body {
 .next-shift-label { font-size: 13px; opacity: .85; margin-bottom: 6px; }
 .next-shift-date  { font-size: 22px; font-weight: 700; }
 .next-shift-role  { font-size: 14px; opacity: .9; margin-top: 4px; }
+
+/* カレンダー月ナビ */
+.cal-month-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.cal-month-label { font-size: 14px; font-weight: 700; color: var(--green); }
+.cal-nav-btn {
+  background: var(--green-light); border: none; border-radius: 6px;
+  padding: 4px 10px; font-size: 14px; cursor: pointer; color: var(--green-dark);
+  font-weight: 700;
+}
+.cal-nav-btn:active { background: var(--green-mid); }
 
 /* カレンダー */
 .cal-grid {
@@ -686,8 +761,10 @@ body {
 <!-- ===== ログイン画面 ===== -->
 <div id="screen-login">
   <div class="login-card">
-    <div class="login-logo">🌿</div>
-    <div class="login-title">シフト管理</div>
+    <div class="login-logo" style="background:transparent;width:80px;height:80px;">
+      <img src="./logo.png" alt="PW" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
+    </div>
+    <div class="login-title">PW</div>
     <div class="login-sub">Googleアカウントでログインしてください</div>
     <button class="g-signin-btn" onclick="startGoogleLogin()">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
@@ -702,7 +779,7 @@ body {
   <div style="padding: 16px;">
     <div class="register-card">
       <div class="register-title">👤 初回登録</div>
-      <div class="register-sub">あなたのお名前を選択してください。一度登録すると次回から自動でログインできます。</div>
+      <div class="register-sub">あなたの名前を選択してください。一度登録すると次回から自動でログインできます。</div>
       <div class="select-wrap">
         <select id="sel-register-name">
           <option value="">-- 選択してください --</option>
@@ -717,8 +794,14 @@ body {
 <!-- ===== メイン画面 ===== -->
 <div id="screen-main">
   <div class="hdr">
-    <h1 id="main-title">シフト管理</h1>
-    <p id="main-sub">ようこそ</p>
+    <div class="hdr-left">
+      <h1 id="main-title">PW</h1>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
+        <span class="hdr-avatar-fallback">👤</span>
+      </div>
+    </div>
   </div>
   <div class="container">
     <!-- 次のシフト -->
@@ -731,14 +814,19 @@ body {
     <!-- 受付状況 -->
     <div class="card status-card">
       <div class="card-title">📬 シフト希望受付</div>
-      <div class="status-label">受付状況</div>
+      <div class="status-label">受付情報</div>
       <div class="status-value" id="status-value">-</div>
       <div style="margin-top:8px;font-size:15px;" id="status-dates"></div>
     </div>
 
     <!-- カレンダー -->
     <div class="card">
-      <div class="card-title">🗓️ <span id="cal-title">カレンダー</span></div>
+      <div class="card-title">🗓️ カレンダー</div>
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹ 先月</button>
+        <span class="cal-month-label" id="cal-title"></span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">今月 ›</button>
+      </div>
       <div class="cal-grid" id="cal-grid"></div>
       <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--amber);display:inline-block;"></span>自分のシフト</span>
@@ -760,7 +848,7 @@ body {
 
     <!-- ナビゲーション -->
     <div class="nav-buttons">
-      <button class="btn-nav" onclick="showScreen('form')">
+      <button class="btn-nav" id="btn-shift-form" onclick="showScreen('form')">
         <span class="nav-icon">📝</span>
         <span class="nav-txt">シフト希望を送る</span>
         <span class="nav-arr">›</span>
@@ -781,17 +869,32 @@ body {
         <span class="nav-arr">›</span>
       </button>
     </div>
-    <div style="text-align:center;margin-top:14px;">
-      <button onclick="logout()" style="font-size:13px;color:var(--sub);background:none;border:none;cursor:pointer;text-decoration:underline;">ログアウト</button>
+  </div>
+</div>
+
+<!-- プロフィールポップアップ -->
+<div id="profile-overlay" onclick="closeProfilePopup()"></div>
+<div id="profile-popup">
+  <div class="pp-header">
+    <div class="pp-avatar" id="pp-avatar">
+      <span style="font-size:22px;">👤</span>
+    </div>
+    <div>
+      <div class="pp-name" id="pp-name">-</div>
+      <div class="pp-email" id="pp-email">-</div>
     </div>
   </div>
+  <div class="pp-roles" id="pp-roles"></div>
+  <button class="pp-logout" onclick="logout()">ログアウト</button>
 </div>
 
 <!-- ===== フォーム画面 ===== -->
 <div id="screen-form">
   <div class="hdr">
-    <h1 id="form-title">シフト希望</h1>
-    <p>参加できる時間帯にチェックを入れてください</p>
+    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback" id="form-hdr-avatar-inner">👤</span></div>
+    </div>
   </div>
   <div class="container">
     <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
@@ -834,8 +937,10 @@ body {
 <!-- ===== シフト表画面 ===== -->
 <div id="screen-shift">
   <div class="hdr">
-    <h1>シフト表</h1>
-    <p id="shift-month-label"></p>
+    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
   </div>
   <div class="container">
     <div class="back-bar" id="shift-back-btn" onclick="shiftBack()">‹ 戻る</div>
@@ -855,8 +960,10 @@ body {
 <!-- ===== 要望画面 ===== -->
 <div id="screen-request">
   <div class="hdr">
-    <h1>要望を送る</h1>
-    <p>ご意見・ご要望をお送りください</p>
+    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
   </div>
   <div class="container">
     <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
@@ -984,32 +1091,46 @@ function clearSession() {
 // ===== Google Identity Services ログイン =====
 function startGoogleLogin() {
   showLoading('Googleにログイン中...');
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: 'email profile openid',
-    callback: async (resp) => {
-      if (resp.error) {
-        hideLoading();
-        showLoginError('ログインに失敗しました: ' + resp.error);
-        return;
+  try {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: 'email profile openid',
+      callback: async (resp) => {
+        if (resp.error) {
+          hideLoading();
+          showLoginError('ログインに失敗しました: ' + resp.error);
+          return;
+        }
+        // userinfo を取得（リトライ付き）
+        let user = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
+            const userResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: 'Bearer ' + resp.access_token }
+            });
+            if (!userResp.ok) throw new Error('status ' + userResp.status);
+            user = await userResp.json();
+            break;
+          } catch (fe) {
+            if (attempt === 2) {
+              hideLoading();
+              showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてお試しください。');
+              return;
+            }
+          }
+        }
+        await handleGASAuth(user.email, resp.access_token, user.name, user.picture || '');
       }
-      try {
-        // ユーザー情報取得
-        const userResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: 'Bearer ' + resp.access_token }
-        });
-        const user = await userResp.json();
-        await handleGASAuth(user.email, resp.access_token, user.name);
-      } catch (e) {
-        hideLoading();
-        showLoginError('ユーザー情報の取得に失敗しました。');
-      }
-    }
-  });
-  client.requestAccessToken();
+    });
+    client.requestAccessToken();
+  } catch (e) {
+    hideLoading();
+    showLoginError('Googleログインの初期化に失敗しました。ページを再読み込みしてください。');
+  }
 }
 
-async function handleGASAuth(email, token, displayName) {
+async function handleGASAuth(email, token, displayName, picture) {
   showLoading('認証中...');
   try {
     const data = await gasJsonp('auth', null, { source: 'form', email });
@@ -1025,9 +1146,8 @@ async function handleGASAuth(email, token, displayName) {
     }
 
     if (data.needsRegister) {
-      // 一時セッションを保存（ページリロード後も登録画面に戻れるよう）
-      saveSession({ email, token, needsRegister: true, members: data.members });
-      buildRegisterScreen(data.members, email, token, displayName);
+      saveSession({ email, token, needsRegister: true, members: data.members, picture: picture || '' });
+      buildRegisterScreen(data.members, email, token, displayName, picture || '');
       return;
     }
 
@@ -1035,10 +1155,10 @@ async function handleGASAuth(email, token, displayName) {
     SESSION = {
       uid: data.uid, name: data.name, email: email, token: token,
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
-      isCart: data.isCart, proxyTargets: data.proxyTargets || []
+      isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+      picture: picture || ''
     };
-    // uid が空（管理者専用アカウント）はフォームアプリ向けセッションを保存しない
-    if (data.uid) saveSession(SESSION);
+    saveSession(SESSION);
     await initApp();
   } catch (e) {
     hideLoading();
@@ -1054,18 +1174,19 @@ function showLoginError(msg) {
 }
 
 // ===== 初回登録 =====
-function buildRegisterScreen(members, email, token, displayName) {
+function buildRegisterScreen(members, email, token, displayName, picture) {
   const sel = document.getElementById('sel-register-name');
   sel.innerHTML = '<option value="">-- 選択してください --</option>';
   members.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m.name;
-    opt.textContent = m.name + '　(' + m.furigana + ')';
+    opt.textContent = m.name;
     sel.appendChild(opt);
   });
   // メタ情報を一時保存
-  sel.dataset.email = email;
-  sel.dataset.token = token;
+  sel.dataset.email   = email;
+  sel.dataset.token   = token;
+  sel.dataset.picture = picture || '';
   showScreen('register');
 }
 
@@ -1073,7 +1194,7 @@ async function doRegister() {
   const sel   = document.getElementById('sel-register-name');
   const name  = sel.value;
   const email = sel.dataset.email;
-  if (!name) { alert('お名前を選択してください。'); return; }
+  if (!name) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
@@ -1082,7 +1203,8 @@ async function doRegister() {
     SESSION = {
       uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
-      isCart: data.isCart, proxyTargets: data.proxyTargets || []
+      isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+      picture: sel.dataset.picture || ''
     };
     saveSession(SESSION);
     await initApp();
@@ -1092,6 +1214,55 @@ async function doRegister() {
     msg.textContent = '⚠️ ' + e.message;
     btn.disabled = false; btn.textContent = '登録する';
   }
+}
+
+// ===== プロフィールポップアップ =====
+function updateAvatarUI() {
+  if (!SESSION) return;
+  const pic = SESSION.picture || '';
+  // すべての画面のアバターを更新
+  ['hdr-avatar', 'pp-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (pic) {
+      el.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
+    }
+  });
+  // ポップアップ内情報
+  const ppName  = document.getElementById('pp-name');
+  const ppEmail = document.getElementById('pp-email');
+  const ppRoles = document.getElementById('pp-roles');
+  if (ppName)  ppName.textContent  = SESSION.name;
+  if (ppEmail) ppEmail.textContent = SESSION.email;
+  if (ppRoles) {
+    ppRoles.innerHTML = '';
+    if (SESSION.isAdmin && !SESSION.uid) {
+      // 管理アカウント：オーナーのみ
+      ppRoles.innerHTML = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
+    } else {
+      if (SESSION.isResponsible) ppRoles.innerHTML += '<span class="badge badge-resp">責任者</span>';
+      if (SESSION.isCart)        ppRoles.innerHTML += '<span class="badge badge-cart">カート担当</span>';
+      if (!SESSION.isResponsible && !SESSION.isCart) ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
+      if (SESSION.isAdmin) ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+    }
+  }
+}
+function toggleProfilePopup() {
+  const popup   = document.getElementById('profile-popup');
+  const overlay = document.getElementById('profile-overlay');
+  const isOpen  = popup.classList.contains('show');
+  if (isOpen) {
+    popup.classList.remove('show');
+    overlay.classList.remove('show');
+  } else {
+    updateAvatarUI();
+    popup.classList.add('show');
+    overlay.classList.add('show');
+  }
+}
+function closeProfilePopup() {
+  document.getElementById('profile-popup').classList.remove('show');
+  document.getElementById('profile-overlay').classList.remove('show');
 }
 
 // ===== ログアウト =====
@@ -1135,18 +1306,29 @@ async function initApp() {
 
 // ===== メイン画面構築 =====
 function buildMainScreen() {
-  document.getElementById('main-title').textContent = YEAR + '年' + MONTH + '月 シフト管理';
-  document.getElementById('main-sub').textContent   = SESSION.name + ' さん';
+  document.getElementById('main-title').textContent = 'PW';
   document.getElementById('user-name-display').textContent = SESSION.name;
-  document.title = YEAR + '年' + MONTH + '月 シフト管理';
+  document.title = 'PW';
+
+  // バー右アイコン更新（全画面共通）
+  updateAvatarUI();
 
   // ロールバッジ
   const rb = document.getElementById('role-badges');
   rb.innerHTML = '';
-  if (SESSION.isResponsible) rb.innerHTML += '<span class="badge badge-resp">責任者</span>';
-  if (SESSION.isCart)        rb.innerHTML += '<span class="badge badge-cart">カート担当</span>';
-  if (!SESSION.isResponsible && !SESSION.isCart) rb.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
-  if (SESSION.isAdmin)       rb.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+  if (SESSION.isAdmin && !SESSION.uid) {
+    // 管理アカウント（uidなし）はオーナーのみ
+    rb.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
+  } else {
+    if (SESSION.isResponsible) rb.innerHTML += '<span class="badge badge-resp">責任者</span>';
+    if (SESSION.isCart)        rb.innerHTML += '<span class="badge badge-cart">カート担当</span>';
+    if (!SESSION.isResponsible && !SESSION.isCart) rb.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
+    if (SESSION.isAdmin)       rb.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+  }
+
+  // 管理者アカウントはシフト希望送信ボタンを非表示
+  const btnForm = document.getElementById('btn-shift-form');
+  if (btnForm) btnForm.style.display = (SESSION.isAdmin && !SESSION.uid) ? 'none' : '';
 
   // 受付状況
   const status   = APP_DATA.status || '準備中';
@@ -1154,21 +1336,44 @@ function buildMainScreen() {
   const sd       = document.getElementById('status-dates');
   sv.className   = 'status-value';
   const ed       = APP_DATA.eventDates || {};
-  if (status === '受付中') {
+
+  // 今日が締切日かどうか判定
+  const today = new Date(); today.setHours(0,0,0,0);
+  const parseDate = str => {
+    if (!str) return null;
+    const p = str.split('/');
+    const y = today.getFullYear();
+    if (p.length === 2) return new Date(y, parseInt(p[0]) - 1, parseInt(p[1]));
+    return null;
+  };
+  const deadlineD = parseDate(ed['締切']);
+  const isDeadlineToday = deadlineD && deadlineD.getTime() === today.getTime();
+
+  if (isDeadlineToday) {
+    sv.textContent = '🔒 締切日';
+    sv.classList.add('status-closed');
+    sv.style.color = 'var(--danger)';
+    sd.innerHTML = '<span class="deadline-red">本日が締切日です</span>';
+  } else if (status === '受付中') {
     sv.textContent = '✅ 受付中';
     sv.classList.add('status-open');
+    sv.style.color = '';
     sd.innerHTML = '申込開始: ' + (ed['申込開始'] || '-') + '&nbsp;&nbsp;締切: <span class="deadline-red">' + (ed['締切'] || '-') + '</span>';
   } else if (status === '準備中') {
     sv.textContent = '⏳ 受付準備中';
     sv.classList.add('status-prep');
+    sv.style.color = '';
     sd.textContent = ed['申込開始'] ? '申込開始: ' + ed['申込開始'] : '';
   } else {
     sv.textContent = '🔒 受付終了';
     sv.classList.add('status-closed');
+    sv.style.color = '';
     sd.textContent = '';
   }
 
-  // カレンダー描画
+  // カレンダー描画（実際の今月を初期表示）
+  calDisplayYear  = today.getFullYear();
+  calDisplayMonth = today.getMonth() + 1;
   buildCalendar();
 
   // 次のシフト表示
@@ -1190,12 +1395,42 @@ function buildMainScreen() {
   }
 }
 
+// カレンダー表示中の年月（実際の今月 or 先月）
+let calDisplayYear  = 0;
+let calDisplayMonth = 0;
+
+function calNavMonth(delta) {
+  const today = new Date();
+  const thisY = today.getFullYear();
+  const thisM = today.getMonth() + 1;
+  // 今月 or 先月のみ
+  const newM = calDisplayMonth + delta;
+  if (newM < thisM - 1 && thisY === calDisplayYear) return; // 先月より前は行かない
+  if (newM > thisM && thisY === calDisplayYear) return;     // 今月より先は行かない
+  calDisplayMonth += delta;
+  if (calDisplayMonth < 1) { calDisplayMonth = 12; calDisplayYear--; }
+  if (calDisplayMonth > 12){ calDisplayMonth = 1;  calDisplayYear++; }
+  buildCalendar();
+}
+
 function buildCalendar() {
   const ed     = APP_DATA.eventDates || {};
-  const cancel = APP_DATA.cancelInfo || [];
   const grid   = document.getElementById('cal-grid');
   grid.innerHTML = '';
-  document.getElementById('cal-title').textContent = YEAR + '年' + MONTH + '月';
+
+  const dispY = calDisplayYear;
+  const dispM = calDisplayMonth;
+  document.getElementById('cal-title').textContent = dispY + '年' + dispM + '月';
+
+  // 今月/先月ナビボタンの活性制御
+  const today   = new Date(); today.setHours(0,0,0,0);
+  const thisY   = today.getFullYear();
+  const thisM   = today.getMonth() + 1;
+  const isPrevM = !(dispY === thisY && dispM === thisM); // 先月表示中か
+  const prevBtn = document.querySelector('.cal-nav-btn:first-child');
+  const nextBtn = document.querySelector('.cal-nav-btn:last-child');
+  if (prevBtn) prevBtn.style.opacity = isPrevM ? '0.4' : '1';
+  if (nextBtn) nextBtn.style.opacity = isPrevM ? '1' : '0.4';
 
   const DOWS = ['月','火','水','木','金','土','日'];
   DOWS.forEach((d, i) => {
@@ -1205,27 +1440,29 @@ function buildCalendar() {
     grid.appendChild(el);
   });
 
-  const firstDay = new Date(YEAR, MONTH - 1, 1);
+  const firstDay = new Date(dispY, dispM - 1, 1);
   const dow      = firstDay.getDay();
   const offset   = dow === 0 ? 6 : dow - 1;
-  const lastDate = new Date(YEAR, MONTH, 0).getDate();
-  const today    = new Date(); today.setHours(0,0,0,0);
+  const lastDate = new Date(dispY, dispM, 0).getDate();
 
-  // イベント日付セット
+  // イベント日付セット（表示中の年を基準）
   const parseDate = str => {
     if (!str) return null;
     const p = str.split('/');
-    return p.length === 2 ? new Date(YEAR, parseInt(p[0]) - 1, parseInt(p[1])) : null;
+    return p.length === 2 ? new Date(dispY, parseInt(p[0]) - 1, parseInt(p[1])) : null;
   };
   const applyD    = parseDate(ed['申込開始']);
   const deadlineD = parseDate(ed['締切']);
   const openD     = parseDate(ed['シフト公開']);
 
-  // シフト実施日セット
+  // シフト実施日セット（月付きで判定）
   const shiftDays = new Set();
   (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
     const p = d.date.split('/');
-    if (p.length === 2) shiftDays.add(parseInt(p[0]) + '_' + parseInt(p[1]));
+    if (p.length === 2) {
+      const m = parseInt(p[0]), day = parseInt(p[1]);
+      if (m === dispM) shiftDays.add(m + '_' + day);
+    }
   });
 
   // 自分のシフト日セット
@@ -1233,7 +1470,10 @@ function buildCalendar() {
   (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
     if (isMyCellInDate(d)) {
       const p = d.date.split('/');
-      if (p.length === 2) myShiftDays.add(parseInt(p[0]) + '_' + parseInt(p[1]));
+      if (p.length === 2) {
+        const m = parseInt(p[0]), day = parseInt(p[1]);
+        if (m === dispM) myShiftDays.add(m + '_' + day);
+      }
     }
   });
 
@@ -1245,13 +1485,14 @@ function buildCalendar() {
     if (day < 1 || day > lastDate) {
       el.classList.add('other');
     } else {
-      const thisDate = new Date(YEAR, MONTH - 1, day);
+      const thisDate = new Date(dispY, dispM - 1, day);
       const col = i % 7;
       if (col === 5) el.classList.add('sat');
       if (col === 6) el.classList.add('sun');
+      // 実際の今日でハイライト
       if (thisDate.getTime() === today.getTime()) el.classList.add('today');
 
-      const key = MONTH + '_' + day;
+      const key = dispM + '_' + day;
       const isApply    = applyD    && isSameDayJS(thisDate, applyD);
       const isDeadline = deadlineD && isSameDayJS(thisDate, deadlineD);
       const isOpen     = openD     && isSameDayJS(thisDate, openD);
@@ -1321,7 +1562,7 @@ function initFormScreen() {
   isCartUser      = SESSION.isCart;
   lastMonthOn     = false;
   document.getElementById('toggle-track').classList.remove('on');
-  document.getElementById('form-title').textContent = YEAR + '年' + MONTH + '月 シフト希望';
+  document.title = 'PW';
 
   // 代理送信
   const proxyArea = document.getElementById('proxy-area');
@@ -1502,7 +1743,6 @@ async function submitForm() {
 
 // ===== シフト表画面 =====
 function initShiftScreen() {
-  document.getElementById('shift-month-label').textContent = YEAR + '年' + MONTH + '月';
   document.getElementById('shift-date-list').style.display   = '';
   document.getElementById('shift-detail-view').style.display = 'none';
   document.getElementById('shift-back-btn').onclick = () => showScreen('main');
@@ -1702,17 +1942,13 @@ function esc(s) {
   if (saved && saved.email) {
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
-      buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '');
+      buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
       return;
     }
-    if (!saved.uid) {
-      // uid空（管理者専用）のセッションは無効として削除しログイン画面へ
-      clearSession();
-    } else {
-      SESSION = saved;
-      await initApp();
-      return;
-    }
+    // uid有り（一般メンバー）またはuid無し（管理者）どちらもセッション復元
+    SESSION = saved;
+    await initApp();
+    return;
   }
   // 未ログイン
   showScreen('login');

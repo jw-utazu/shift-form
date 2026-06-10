@@ -913,16 +913,19 @@ function hideLoading() {
 
 // ===== 画面切替 =====
 const SCREENS = ['login','register','main','form','shift','request'];
-// flex レイアウトが必要な画面
-const FLEX_SCREENS = new Set(['login','register']);
+// 画面ごとの display 値
+const SCREEN_DISPLAY = {
+  login:    'flex',
+  register: 'flex',
+  main:     'block',
+  form:     'block',
+  shift:    'block',
+  request:  'block'
+};
 function showScreen(name) {
   SCREENS.forEach(s => {
     const el = document.getElementById('screen-' + s);
-    if (s === name) {
-      el.style.display = FLEX_SCREENS.has(s) ? 'flex' : '';
-    } else {
-      el.style.display = 'none';
-    }
+    el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
   });
 }
 
@@ -994,7 +997,8 @@ async function handleGASAuth(email, token, displayName) {
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, proxyTargets: data.proxyTargets || []
     };
-    saveSession(SESSION);
+    // uid が空（管理者専用アカウント）はフォームアプリ向けセッションを保存しない
+    if (data.uid) saveSession(SESSION);
     await initApp();
   } catch (e) {
     hideLoading();
@@ -1685,15 +1689,20 @@ function esc(s) {
 (async function init() {
   // セッション復元を試みる
   const saved = loadSession();
-  if (saved && saved.email) { // uidが空の管理者専用アカウントも復元できるようにemailのみチェック
+  if (saved && saved.email) {
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '');
       return;
     }
-    SESSION = saved;
-    await initApp();
-    return;
+    if (!saved.uid) {
+      // uid空（管理者専用）のセッションは無効として削除しログイン画面へ
+      clearSession();
+    } else {
+      SESSION = saved;
+      await initApp();
+      return;
+    }
   }
   // 未ログイン
   showScreen('login');

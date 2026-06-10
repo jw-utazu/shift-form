@@ -1040,39 +1040,33 @@ const SS_KEY     = "shiftapp_session";
 // actionはGASのdoGetで受け付けるアクション名
 // paramsはオブジェクト（GASのparams()で受け取る）
 // extraQueryはURLに直接付加するオブジェクト（email等）
+// fetch方式（リダイレクト追従対応・Android Chrome対応）
 function gasJsonp(action, params, extraQuery) {
-  return new Promise((resolve, reject) => {
-    const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
-    if (params) url += '&params=' + encodeURIComponent(JSON.stringify(params));
-    if (extraQuery) {
-      Object.entries(extraQuery).forEach(([k, v]) => {
-        url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
-      });
-    }
-    let done = false;
-    const timer = setTimeout(() => {
-      if (done) return; done = true;
-      delete window[cbName];
-      reject(new Error('通信タイムアウト'));
-    }, 60000);
-    window[cbName] = d => {
-      if (done) return; done = true;
+  const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+  if (params) url += '&params=' + encodeURIComponent(JSON.stringify(params));
+  if (extraQuery) {
+    Object.entries(extraQuery).forEach(([k, v]) => {
+      url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
+    });
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  return fetch(url, { redirect: 'follow', signal: controller.signal })
+    .then(r => r.text())
+    .then(text => {
       clearTimeout(timer);
-      delete window[cbName];
-      if (sc.parentNode) sc.parentNode.removeChild(sc);
-      resolve(d);
-    };
-    const sc = document.createElement('script');
-    sc.onerror = () => {
-      if (done) return; done = true;
+      // "cbName({...})" 形式からJSONを取り出す
+      const start = text.indexOf('(');
+      const end   = text.lastIndexOf(')');
+      if (start === -1 || end === -1) throw new Error('レスポンス形式エラー');
+      return JSON.parse(text.slice(start + 1, end));
+    })
+    .catch(err => {
       clearTimeout(timer);
-      delete window[cbName];
-      reject(new Error('通信エラー（GASへの接続に失敗）'));
-    };
-    sc.src = url;
-    document.head.appendChild(sc);
-  });
+      if (err.name === 'AbortError') throw new Error('通信タイムアウト');
+      throw new Error('通信エラー（GASへの接続に失敗）');
+    });
 }
 
 // ===== グローバル状態 =====

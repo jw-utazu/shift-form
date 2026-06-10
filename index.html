@@ -899,9 +899,7 @@ function installPWA() {
   deferredPrompt.prompt();
   deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
 }
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
-}
+
 
 // ===== ローディング =====
 function showLoading(msg) {

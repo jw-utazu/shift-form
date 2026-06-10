@@ -345,11 +345,24 @@ body {
 .cal-day.other     { color: #d1d5db; }
 .cal-day.sat       { color: #2563eb; background: #eff6ff; }
 .cal-day.sun       { color: var(--danger); background: #fff1f2; }
-.cal-day.today     { background: #3b82f6; color: #fff !important; border-radius: 50%; font-weight: 700; }
 .cal-day.apply-day { background: #d1fae5; color: var(--green-dark); }
 .cal-day.deadline  { background: #fee2e2; color: var(--danger-dark); }
 .cal-day.open-day  { background: #eff6ff; color: #1d4ed8; }
 .cal-day.shift-day { font-weight: 700; }
+/* today: 日付数字をspan.today-circleで囲んで真円表示 */
+.today-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
 .cal-badge {
   position: absolute;
   top: 2px;
@@ -361,6 +374,20 @@ body {
 }
 .cal-badge.my-shift { background: #f59e0b; }
 .cal-sub { font-size: 10px; opacity: .8; margin-top: 1px; }
+
+/* 申込期間バー */
+.cal-period-bar {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 2px;
+}
+.cal-period-bar.apply-bar  { background: #16a34a; }
+.cal-period-bar.apply-bar.bar-start { left: 50%; border-radius: 2px 2px 2px 2px; }
+.cal-period-bar.apply-bar.bar-end   { right: 50%; }
+.cal-period-bar.apply-bar.bar-mid   { border-radius: 0; }
 
 /* お知らせ */
 .notice-item {
@@ -1021,6 +1048,7 @@ function gasJsonp(action, params, extraQuery) {
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
 let APP_DATA     = null; // GASから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
+let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;
 let currentFormName = '';
@@ -1268,7 +1296,7 @@ function closeProfilePopup() {
 // ===== ログアウト =====
 function logout() {
   clearSession();
-  SESSION = null; APP_DATA = null; SHIFT_DATA = null;
+  SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = [];
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
@@ -1286,13 +1314,14 @@ async function initApp() {
       gasJsonp('data'),
       gasJsonp('getShiftTable')
     ]);
-    APP_DATA   = formData;
-    SHIFT_DATA = shiftData;
-    SLOTS      = formData.slots || [];
-    LAST_MONTH = formData.lastMonthData || {};
-    THIS_MONTH = formData.thisMonthData || {};
-    YEAR       = formData.year  || 0;
-    MONTH      = formData.month || 0;
+    APP_DATA    = formData;
+    SHIFT_DATA  = shiftData;
+    SLOTS       = formData.slots || [];
+    LAST_MONTH  = formData.lastMonthData || {};
+    THIS_MONTH  = formData.thisMonthData || {};
+    YEAR        = formData.year  || 0;
+    MONTH       = formData.month || 0;
+    SHIFT_DATES = formData.shiftDates || []; // 実施日一覧（'m/d'形式）
     hideLoading();
     try {
       buildMainScreen();
@@ -1406,15 +1435,15 @@ function buildMainScreen() {
     sv.textContent = '🔒 締切日';
     sv.classList.add('status-closed');
     sv.style.color = 'var(--danger)';
-    sd.innerHTML = '<span class="deadline-red">本日が締切日です</span>';
+    sd.innerHTML = '';
   } else if (status === '受付中') {
     sv.textContent = '✅ 受付中';
     sv.classList.add('status-open');
-    sd.innerHTML = '申込開始: ' + (ed['申込開始'] || '-') + '&nbsp;&nbsp;締切: <span class="deadline-red">' + (ed['締切'] || '-') + '</span>';
+    sd.innerHTML = '';
   } else if (status === '準備中') {
     sv.textContent = '⏳ 受付準備中';
     sv.classList.add('status-prep');
-    sd.textContent = ed['申込開始'] ? '申込開始: ' + ed['申込開始'] : '';
+    sd.textContent = '';
   } else {
     sv.textContent = '🔒 受付終了';
     sv.classList.add('status-closed');
@@ -1533,17 +1562,29 @@ function buildCalendar() {
   const deadlineD = parseDate(ed['締切']);
   const openD     = parseDate(ed['シフト公開']);
 
-  // シフト実施日セット（月付きで判定）
+  // 実施日セット：SHIFT_DATES（カレンダーB10以降）を優先使用
+  // SHIFT_DATESは'm/d'形式、表示月でフィルタして'm_d'キーのSetを作成
   const shiftDays = new Set();
-  (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
-    const p = d.date.split('/');
+  (SHIFT_DATES.length > 0 ? SHIFT_DATES : []).forEach(dateStr => {
+    const p = dateStr.split('/');
     if (p.length === 2) {
       const m = parseInt(p[0]), day = parseInt(p[1]);
       if (m === dispM) shiftDays.add(m + '_' + day);
     }
   });
+  // SHIFT_DATESが空の場合はSHIFT_DATA.datesからフォールバック
+  if (shiftDays.size === 0) {
+    (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
+      const p = d.date.split('/');
+      if (p.length === 2) {
+        const m = parseInt(p[0]), day = parseInt(p[1]);
+        if (m === dispM) shiftDays.add(m + '_' + day);
+      }
+    });
+  }
+  console.log('[Calendar] dispM=' + dispM + ' SHIFT_DATES=', SHIFT_DATES, ' shiftDays=', [...shiftDays]);
 
-  // 自分のシフト日セット
+  // 自分のシフト日セット（SHIFT_DATA.datesから、公開後のみ有効）
   const myShiftDays = new Set();
   (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
     if (isMyCellInDate(d)) {
@@ -1555,6 +1596,10 @@ function buildCalendar() {
     }
   });
 
+  // 申込期間バー用：申込開始〜締切の範囲を計算
+  const applyStart = applyD ? applyD.getTime() : null;
+  const applyEnd   = deadlineD ? deadlineD.getTime() : null;
+
   const total = Math.ceil((offset + lastDate) / 7) * 7;
   for (let i = 0; i < total; i++) {
     const day = i - offset + 1;
@@ -1562,15 +1607,15 @@ function buildCalendar() {
     el.className = 'cal-day';
     if (day < 1 || day > lastDate) {
       el.classList.add('other');
+      el.textContent = '';
     } else {
       const thisDate = new Date(dispY, dispM - 1, day);
+      const thisT    = thisDate.getTime();
       const col = i % 7;
       if (col === 5) el.classList.add('sat');
       if (col === 6) el.classList.add('sun');
-      // 実際の今日でハイライト
-      if (thisDate.getTime() === today.getTime()) el.classList.add('today');
 
-      const key = dispM + '_' + day;
+      const isToday    = thisT === today.getTime();
       const isApply    = applyD    && isSameDayJS(thisDate, applyD);
       const isDeadline = deadlineD && isSameDayJS(thisDate, deadlineD);
       const isOpen     = openD     && isSameDayJS(thisDate, openD);
@@ -1578,10 +1623,43 @@ function buildCalendar() {
       if (isDeadline) el.classList.add('deadline');
       if (isOpen)     el.classList.add('open-day');
 
-      el.textContent = day;
-      const hasSub = isApply ? '申込' : isDeadline ? '締切' : isOpen ? '公開' : '';
-      if (hasSub) el.innerHTML = day + '<span class="cal-sub">' + hasSub + '</span>';
+      // 日付表示：今日は真円span、それ以外はテキスト
+      const dayLabel = document.createElement('span');
+      if (isToday) {
+        dayLabel.className = 'today-circle';
+      }
+      dayLabel.textContent = day;
 
+      // サブラベル（申込/締切/公開）
+      const hasSub = isApply ? '申込' : isDeadline ? '締切' : isOpen ? '公開' : '';
+      if (hasSub) {
+        el.appendChild(dayLabel);
+        const sub = document.createElement('span');
+        sub.className   = 'cal-sub';
+        sub.textContent = hasSub;
+        el.appendChild(sub);
+      } else {
+        el.appendChild(dayLabel);
+      }
+
+      // 申込期間バー（申込開始〜締切の期間中）
+      if (applyStart && applyEnd && thisT >= applyStart && thisT <= applyEnd) {
+        const bar = document.createElement('div');
+        bar.className = 'cal-period-bar apply-bar';
+        if (thisT === applyStart && thisT === applyEnd) {
+          // 1日だけの場合
+        } else if (thisT === applyStart) {
+          bar.classList.add('bar-start');
+        } else if (thisT === applyEnd) {
+          bar.classList.add('bar-end');
+        } else {
+          bar.classList.add('bar-mid');
+        }
+        el.appendChild(bar);
+      }
+
+      // 実施日バッジ
+      const key = dispM + '_' + day;
       if (shiftDays.has(key)) {
         el.classList.add('shift-day');
         const badge = document.createElement('div');

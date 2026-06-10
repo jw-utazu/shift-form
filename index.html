@@ -970,7 +970,7 @@ function startGoogleLogin() {
 async function handleGASAuth(email, token, displayName) {
   showLoading('認証中...');
   try {
-    const resp = await fetch(GAS_URL + '?action=auth&email=' + encodeURIComponent(email));
+    const resp = await fetch(GAS_URL + '?action=auth&source=form&email=' + encodeURIComponent(email));
     const data = await resp.json();
     hideLoading();
 

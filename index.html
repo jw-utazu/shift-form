@@ -982,7 +982,8 @@ async function handleGASAuth(email, token, displayName) {
     }
 
     if (data.needsRegister) {
-      // 初回登録画面へ
+      // 一時セッションを保存（ページリロード後も登録画面に戻れるよう）
+      saveSession({ email, token, needsRegister: true, members: data.members });
       buildRegisterScreen(data.members, email, token, displayName);
       return;
     }
@@ -1685,6 +1686,11 @@ function esc(s) {
   // セッション復元を試みる
   const saved = loadSession();
   if (saved && saved.email) { // uidが空の管理者専用アカウントも復元できるようにemailのみチェック
+    if (saved.needsRegister) {
+      // 初回登録途中でリロードされた場合は登録画面へ
+      buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '');
+      return;
+    }
     SESSION = saved;
     await initApp();
     return;

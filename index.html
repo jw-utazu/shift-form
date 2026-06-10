@@ -345,7 +345,7 @@ body {
 .cal-day.other     { color: #d1d5db; }
 .cal-day.sat       { color: #2563eb; background: #eff6ff; }
 .cal-day.sun       { color: var(--danger); background: #fff1f2; }
-.cal-day.today     { background: var(--green); color: #fff; border-radius: 8px; }
+.cal-day.today     { outline: 2px solid #93c5fd; outline-offset: -2px; border-radius: 8px; }
 .cal-day.apply-day { background: #d1fae5; color: var(--green-dark); }
 .cal-day.deadline  { background: #fee2e2; color: var(--danger-dark); }
 .cal-day.open-day  { background: #eff6ff; color: #1d4ed8; }
@@ -834,12 +834,6 @@ body {
       </div>
     </div>
 
-    <!-- 自分のステータス -->
-    <div class="card">
-      <div class="card-title">👤 <span id="user-name-display">-</span></div>
-      <div class="role-badges" id="role-badges"></div>
-    </div>
-
     <!-- お知らせ -->
     <div class="card" id="notices-card" style="display:none;">
       <div class="card-title">📢 お知らせ</div>
@@ -858,7 +852,7 @@ body {
         <span class="nav-txt">シフト表を見る</span>
         <span class="nav-arr">›</span>
       </button>
-      <button class="btn-nav secondary" onclick="showScreen('request')">
+      <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')">
         <span class="nav-icon">💬</span>
         <span class="nav-txt">要望を送る</span>
         <span class="nav-arr">›</span>
@@ -1307,28 +1301,19 @@ async function initApp() {
 // ===== メイン画面構築 =====
 function buildMainScreen() {
   document.getElementById('main-title').textContent = 'PW';
-  document.getElementById('user-name-display').textContent = SESSION.name;
   document.title = 'PW';
 
   // バー右アイコン更新（全画面共通）
   updateAvatarUI();
 
-  // ロールバッジ
-  const rb = document.getElementById('role-badges');
-  rb.innerHTML = '';
-  if (SESSION.isAdmin && !SESSION.uid) {
-    // 管理アカウント（uidなし）はオーナーのみ
-    rb.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
-  } else {
-    if (SESSION.isResponsible) rb.innerHTML += '<span class="badge badge-resp">責任者</span>';
-    if (SESSION.isCart)        rb.innerHTML += '<span class="badge badge-cart">カート担当</span>';
-    if (!SESSION.isResponsible && !SESSION.isCart) rb.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
-    if (SESSION.isAdmin)       rb.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
-  }
+  // ロールバッジはポップアップのみ（カード削除のため不要だがポップアップ用に保持）
 
-  // 管理者アカウントはシフト希望送信ボタンを非表示
-  const btnForm = document.getElementById('btn-shift-form');
-  if (btnForm) btnForm.style.display = (SESSION.isAdmin && !SESSION.uid) ? 'none' : '';
+  // 管理者アカウントはシフト希望送信・要望ボタンを非表示
+  const isOwner = SESSION.isAdmin && !SESSION.uid;
+  const btnForm    = document.getElementById('btn-shift-form');
+  const btnRequest = document.getElementById('btn-request');
+  if (btnForm)    btnForm.style.display    = isOwner ? 'none' : '';
+  if (btnRequest) btnRequest.style.display = isOwner ? 'none' : '';
 
   // 受付状況
   const status   = APP_DATA.status || '準備中';
@@ -1339,14 +1324,14 @@ function buildMainScreen() {
 
   // 今日が締切日かどうか判定
   const today = new Date(); today.setHours(0,0,0,0);
-  const parseDate = str => {
+  const parseEventDate = str => {
     if (!str) return null;
     const p = str.split('/');
     const y = today.getFullYear();
     if (p.length === 2) return new Date(y, parseInt(p[0]) - 1, parseInt(p[1]));
     return null;
   };
-  const deadlineD = parseDate(ed['締切']);
+  const deadlineD = parseEventDate(ed['締切']);
   const isDeadlineToday = deadlineD && deadlineD.getTime() === today.getTime();
 
   if (isDeadlineToday) {
@@ -1371,9 +1356,9 @@ function buildMainScreen() {
     sd.textContent = '';
   }
 
-  // カレンダー描画（実際の今月を初期表示）
-  calDisplayYear  = today.getFullYear();
-  calDisplayMonth = today.getMonth() + 1;
+  // カレンダー描画（シフト希望当月を初期表示）
+  calDisplayYear  = YEAR  || today.getFullYear();
+  calDisplayMonth = MONTH || today.getMonth() + 1;
   buildCalendar();
 
   // 次のシフト表示
@@ -1400,16 +1385,26 @@ let calDisplayYear  = 0;
 let calDisplayMonth = 0;
 
 function calNavMonth(delta) {
-  const today = new Date();
-  const thisY = today.getFullYear();
-  const thisM = today.getMonth() + 1;
-  // 今月 or 先月のみ
-  const newM = calDisplayMonth + delta;
-  if (newM < thisM - 1 && thisY === calDisplayYear) return; // 先月より前は行かない
-  if (newM > thisM && thisY === calDisplayYear) return;     // 今月より先は行かない
-  calDisplayMonth += delta;
-  if (calDisplayMonth < 1) { calDisplayMonth = 12; calDisplayYear--; }
-  if (calDisplayMonth > 12){ calDisplayMonth = 1;  calDisplayYear++; }
+  // 移動先を計算
+  let newY = calDisplayYear;
+  let newM = calDisplayMonth + delta;
+  if (newM < 1)  { newM = 12; newY--; }
+  if (newM > 12) { newM = 1;  newY++; }
+
+  // シフト当月の1ヶ月前より前、またはシフト当月より後には移動しない
+  const shiftY = YEAR  || new Date().getFullYear();
+  const shiftM = MONTH || new Date().getMonth() + 1;
+  // 先月の年月を計算
+  let prevY = shiftY, prevM = shiftM - 1;
+  if (prevM < 1) { prevM = 12; prevY--; }
+
+  const targetVal = newY * 100 + newM;
+  const prevVal   = prevY * 100 + prevM;
+  const shiftVal  = shiftY * 100 + shiftM;
+  if (targetVal < prevVal || targetVal > shiftVal) return;
+
+  calDisplayYear  = newY;
+  calDisplayMonth = newM;
   buildCalendar();
 }
 
@@ -1422,15 +1417,20 @@ function buildCalendar() {
   const dispM = calDisplayMonth;
   document.getElementById('cal-title').textContent = dispY + '年' + dispM + '月';
 
-  // 今月/先月ナビボタンの活性制御
-  const today   = new Date(); today.setHours(0,0,0,0);
-  const thisY   = today.getFullYear();
-  const thisM   = today.getMonth() + 1;
-  const isPrevM = !(dispY === thisY && dispM === thisM); // 先月表示中か
+  // 実際の今日（ハイライト用）
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // 今月/先月ナビボタンの活性制御（シフト当月・先月基準）
+  const shiftY = YEAR  || new Date().getFullYear();
+  const shiftM = MONTH || new Date().getMonth() + 1;
+  let prevY = shiftY, prevM = shiftM - 1;
+  if (prevM < 1) { prevM = 12; prevY--; }
+  const isShiftMonth = (dispY === shiftY && dispM === shiftM);
+  const isPrevMonth  = (dispY === prevY  && dispM === prevM);
   const prevBtn = document.querySelector('.cal-nav-btn:first-child');
   const nextBtn = document.querySelector('.cal-nav-btn:last-child');
-  if (prevBtn) prevBtn.style.opacity = isPrevM ? '0.4' : '1';
-  if (nextBtn) nextBtn.style.opacity = isPrevM ? '1' : '0.4';
+  if (prevBtn) prevBtn.style.opacity = isPrevMonth ? '0.4' : '1';
+  if (nextBtn) nextBtn.style.opacity = isShiftMonth ? '0.4' : '1';
 
   const DOWS = ['月','火','水','木','金','土','日'];
   DOWS.forEach((d, i) => {
@@ -1504,7 +1504,7 @@ function buildCalendar() {
       const hasSub = isApply ? '申込' : isDeadline ? '締切' : isOpen ? '公開' : '';
       if (hasSub) el.innerHTML = day + '<span class="cal-sub">' + hasSub + '</span>';
 
-      if (shiftDays.has(key)) {
+      if (isShiftMonth && shiftDays.has(key)) {
         el.classList.add('shift-day');
         const badge = document.createElement('div');
         badge.className = myShiftDays.has(key) ? 'cal-badge my-shift' : 'cal-badge';

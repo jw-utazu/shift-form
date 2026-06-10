@@ -802,6 +802,62 @@ body {
   margin-bottom: 12px;
 }
 .req-textarea:focus { outline: none; border-color: var(--green); }
+
+/* ===== デバッグパネル（テストアカウント専用） ===== */
+#debug-panel {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  font-family: monospace;
+  font-size: 11px;
+  display: none;
+}
+#debug-toggle {
+  background: #1e293b;
+  color: #4ade80;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: monospace;
+  width: 100%;
+  text-align: left;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#debug-body {
+  background: rgba(15,23,42,0.95);
+  border-radius: 0 0 8px 8px;
+  padding: 8px 10px;
+  color: #e2e8f0;
+  max-height: 340px;
+  overflow-y: auto;
+  display: none;
+}
+#debug-body.open { display: block; }
+.dbg-section { margin-bottom: 7px; }
+.dbg-label {
+  color: #94a3b8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 3px;
+  padding-bottom: 2px;
+}
+.dbg-row { display: flex; gap: 4px; margin-bottom: 2px; }
+.dbg-key { color: #7dd3fc; min-width: 90px; flex-shrink: 0; }
+.dbg-val { color: #bbf7d0; word-break: break-all; }
+.dbg-val.bool-true  { color: #4ade80; font-weight: bold; }
+.dbg-val.bool-false { color: #f87171; }
+.dbg-api-ok  { color: #4ade80; }
+.dbg-api-err { color: #f87171; }
 </style>
 </head>
 <body>
@@ -1030,11 +1086,44 @@ body {
   </div>
 </div>
 
+<!-- ===== デバッグパネル（テストアカウント専用） ===== -->
+<div id="debug-panel">
+  <button id="debug-toggle" onclick="toggleDebugPanel()">
+    <span>🛠 DEBUG</span><span id="debug-arrow">▲</span>
+  </button>
+  <div id="debug-body">
+    <div class="dbg-section">
+      <div class="dbg-label">画面</div>
+      <div class="dbg-row">
+        <span class="dbg-key">currentScreen</span>
+        <span class="dbg-val" id="dbg-screen">—</span>
+      </div>
+    </div>
+    <div class="dbg-section">
+      <div class="dbg-label">SESSION</div>
+      <div class="dbg-row"><span class="dbg-key">uid</span><span class="dbg-val" id="dbg-uid">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">name</span><span class="dbg-val" id="dbg-name">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">email</span><span class="dbg-val" id="dbg-email">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">isAdmin</span><span class="dbg-val" id="dbg-isAdmin">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">isResponsible</span><span class="dbg-val" id="dbg-isResponsible">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">isCart</span><span class="dbg-val" id="dbg-isCart">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">proxyTargets</span><span class="dbg-val" id="dbg-proxy">—</span></div>
+    </div>
+    <div class="dbg-section">
+      <div class="dbg-label">最後のAPI呼び出し</div>
+      <div class="dbg-row"><span class="dbg-key">action</span><span class="dbg-val" id="dbg-api-action">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">status</span><span class="dbg-val" id="dbg-api-status">—</span></div>
+      <div class="dbg-row"><span class="dbg-key">response</span><span class="dbg-val" id="dbg-api-res" style="font-size:10px;max-height:60px;overflow-y:auto;display:block;">—</span></div>
+    </div>
+  </div>
+</div>
+
 <script>
-// ===== 定数 =====
+
 const GAS_URL    = "https://script.google.com/macros/s/AKfycbzbPBxl6S3VdSVF9RqXSI1VQkZNGJXwU_zePBM8e3UYed-RyxxA_PRom_Xw9v5rvUwScQ/exec";
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
+const TEST_EMAIL = "jw.utazu.test@gmail.com"; // デバッグ専用テストアカウント
 
 // ===== JSONP通信ユーティリティ（CORSを回避）=====
 // actionはGASのdoGetで受け付けるアクション名
@@ -1060,10 +1149,13 @@ function gasJsonp(action, params, extraQuery) {
       const start = text.indexOf('(');
       const end   = text.lastIndexOf(')');
       if (start === -1 || end === -1) throw new Error('レスポンス形式エラー');
-      return JSON.parse(text.slice(start + 1, end));
+      const result = JSON.parse(text.slice(start + 1, end));
+      dbgApiLog(action, result, null);
+      return result;
     })
     .catch(err => {
       clearTimeout(timer);
+      dbgApiLog(action, null, err);
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');
       throw new Error('通信エラー（GASへの接続に失敗）');
     });
@@ -1096,6 +1188,80 @@ function installPWA() {
   deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
 }
 
+// ===== デバッグパネル（テストアカウント専用）=====
+let _debugOpen = false;
+
+function dbgIsTest() {
+  return SESSION && SESSION.email && SESSION.email.toLowerCase() === TEST_EMAIL.toLowerCase();
+}
+
+function dbgShow() {
+  const panel = document.getElementById('debug-panel');
+  if (panel) panel.style.display = dbgIsTest() ? 'block' : 'none';
+}
+
+function toggleDebugPanel() {
+  _debugOpen = !_debugOpen;
+  const body  = document.getElementById('debug-body');
+  const arrow = document.getElementById('debug-arrow');
+  if (body)  body.classList.toggle('open', _debugOpen);
+  if (arrow) arrow.textContent = _debugOpen ? '▼' : '▲';
+  if (_debugOpen) dbgRefresh();
+}
+
+function dbgRefresh() {
+  if (!_debugOpen) return;
+  // SESSION情報
+  const boolEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val === undefined ? '—' : String(val);
+    el.className = 'dbg-val' + (val === true ? ' bool-true' : val === false ? ' bool-false' : '');
+  };
+  const textEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+
+  if (SESSION) {
+    textEl('dbg-uid',  SESSION.uid  || '（空）');
+    textEl('dbg-name', SESSION.name || '—');
+    textEl('dbg-email',SESSION.email|| '—');
+    boolEl('dbg-isAdmin',       SESSION.isAdmin);
+    boolEl('dbg-isResponsible', SESSION.isResponsible);
+    boolEl('dbg-isCart',        SESSION.isCart);
+    textEl('dbg-proxy', SESSION.proxyTargets && SESSION.proxyTargets.length > 0
+      ? SESSION.proxyTargets.join(', ') : '（なし）');
+  } else {
+    ['dbg-uid','dbg-name','dbg-email','dbg-isAdmin','dbg-isResponsible','dbg-isCart','dbg-proxy']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+  }
+}
+
+function dbgSetScreen(name) {
+  const el = document.getElementById('dbg-screen');
+  if (el) el.textContent = name || '—';
+}
+
+function dbgApiLog(action, result, err) {
+  if (!dbgIsTest()) return;
+  const elAction = document.getElementById('dbg-api-action');
+  const elStatus = document.getElementById('dbg-api-status');
+  const elRes    = document.getElementById('dbg-api-res');
+  if (elAction) elAction.textContent = action || '—';
+  if (err) {
+    if (elStatus) { elStatus.textContent = 'ERROR'; elStatus.className = 'dbg-val dbg-api-err'; }
+    if (elRes)    elRes.textContent = err.message || String(err);
+  } else {
+    const ok = result && result.ok !== false;
+    if (elStatus) { elStatus.textContent = ok ? 'ok' : 'ng'; elStatus.className = 'dbg-val ' + (ok ? 'dbg-api-ok' : 'dbg-api-err'); }
+    if (elRes) {
+      try {
+        const preview = JSON.stringify(result);
+        elRes.textContent = preview.length > 200 ? preview.slice(0, 200) + '…' : preview;
+      } catch (_) { elRes.textContent = String(result); }
+    }
+  }
+  if (_debugOpen) dbgRefresh();
+}
+
 
 // ===== ローディング =====
 function showLoading(msg) {
@@ -1125,6 +1291,9 @@ function showScreen(name) {
   });
   if (name === 'form')  initFormScreen();
   if (name === 'shift') initShiftScreen();
+  dbgSetScreen(name);
+  dbgShow();
+  if (_debugOpen) dbgRefresh();
 }
 
 // ===== sessionStorage =====
@@ -1365,6 +1534,8 @@ async function initApp() {
       return;
     }
     showScreen('main');
+    dbgShow();
+    dbgSetScreen('main');
   } catch (e) {
     hideLoading();
     console.error('initApp error:', e);

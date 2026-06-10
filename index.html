@@ -1669,15 +1669,12 @@ async function submitRequest() {
   }
 }
 
-// ===== 画面遷移（showScreen のオーバーライド） =====
-const _showScreen = showScreen;
+// ===== 画面遷移フック（initFormScreen / initShiftScreen の呼び出し） =====
+const _showScreenBase = showScreen;
 function showScreen(name) {
-  SCREENS.forEach(s => {
-    const el = document.getElementById('screen-' + s);
-    if (el) el.style.display = (s === name) ? '' : 'none';
-  });
-  if (name === 'form')    initFormScreen();
-  if (name === 'shift')   initShiftScreen();
+  _showScreenBase(name);
+  if (name === 'form')  initFormScreen();
+  if (name === 'shift') initShiftScreen();
 }
 
 // ===== エスケープ =====

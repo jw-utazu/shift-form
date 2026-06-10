@@ -875,6 +875,45 @@ const GAS_URL    = "https://script.google.com/macros/s/AKfycbx1SnmwmKJrrzcVyuJIF
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
 
+// ===== JSONP通信ユーティリティ（CORSを回避）=====
+// actionはGASのdoGetで受け付けるアクション名
+// paramsはオブジェクト（GASのparams()で受け取る）
+// extraQueryはURLに直接付加するオブジェクト（email等）
+function gasJsonp(action, params, extraQuery) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+    if (params) url += '&params=' + encodeURIComponent(JSON.stringify(params));
+    if (extraQuery) {
+      Object.entries(extraQuery).forEach(([k, v]) => {
+        url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
+      });
+    }
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return; done = true;
+      delete window[cbName];
+      reject(new Error('通信タイムアウト'));
+    }, 60000);
+    window[cbName] = d => {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if (sc.parentNode) sc.parentNode.removeChild(sc);
+      resolve(d);
+    };
+    const sc = document.createElement('script');
+    sc.onerror = () => {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      reject(new Error('通信エラー（GASへの接続に失敗）'));
+    };
+    sc.src = url;
+    document.head.appendChild(sc);
+  });
+}
+
 // ===== グローバル状態 =====
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
 let APP_DATA     = null; // GASから取得したデータ
@@ -973,8 +1012,7 @@ function startGoogleLogin() {
 async function handleGASAuth(email, token, displayName) {
   showLoading('認証中...');
   try {
-    const resp = await fetch(GAS_URL + '?action=auth&source=form&email=' + encodeURIComponent(email));
-    const data = await resp.json();
+    const data = await gasJsonp('auth', null, { source: 'form', email });
     hideLoading();
 
     if (!data.ok) {
@@ -1039,12 +1077,7 @@ async function doRegister() {
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
-    const resp = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'register', email, name })
-    });
-    const data = await resp.json();
+    const data = await gasJsonp('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
     SESSION = {
       uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
@@ -1074,8 +1107,8 @@ async function initApp() {
   showLoading('データを読み込み中...');
   try {
     const [formData, shiftData] = await Promise.all([
-      fetch(GAS_URL + '?action=data').then(r => r.json()),
-      fetch(GAS_URL + '?action=getShiftTable').then(r => r.json())
+      gasJsonp('data'),
+      gasJsonp('getShiftTable')
     ]);
     APP_DATA   = formData;
     SHIFT_DATA = shiftData;
@@ -1452,11 +1485,8 @@ async function submitForm() {
     checkedMap: cm, cartNgMap: ng, noteMap: Object.assign({}, formState.noteMap)
   };
   try {
-    await fetch(GAS_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const result = await gasJsonp('submitShift', payload);
+    if (result && result.ok === false) throw new Error(result.error || '送信失敗');
     const msg = document.getElementById('form-msg');
     msg.className = 'msg success';
     msg.textContent = '✅ 送信が完了しました！';
@@ -1617,11 +1647,7 @@ function openCancelInput(date, time) {
   const reason = prompt('中止理由を入力してください（空白でも可）:', '');
   if (reason === null) return; // キャンセル
   showLoading('中止情報を登録中...');
-  fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'cancelShift', date, time, reason, uid: SESSION.uid })
-  }).then(r => r.json()).then(data => {
+  gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(data => {
     hideLoading();
     if (data.ok) { alert('中止情報を登録しました。'); initApp().then(() => showScreen('shift')); }
     else alert('エラー: ' + data.error);
@@ -1635,11 +1661,7 @@ function openMemoEdit(date, time) {
   const memo = prompt('責任者メモを入力してください:', current);
   if (memo === null) return;
   showLoading('メモを保存中...');
-  fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'saveMemo', date, time, memo })
-  }).then(r => r.json()).then(data => {
+  gasJsonp('saveMemo', { date, time, memo }).then(data => {
     hideLoading();
     if (data.ok) { initApp().then(() => showScreen('shift')); }
     else alert('エラー: ' + data.error);
@@ -1654,12 +1676,7 @@ async function submitRequest() {
   if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
   btn.disabled = true; btn.textContent = '送信中...';
   try {
-    const resp = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'postRequest', uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() })
-    });
-    const data = await resp.json();
+    const data = await gasJsonp('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
     if (data.ok) {
       msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
       ta.value = '';

@@ -930,13 +930,13 @@ function showScreen(name) {
 
 // ===== sessionStorage =====
 function saveSession(s) {
-  try { sessionStorage.setItem(SS_KEY, JSON.stringify(s)); } catch (_) {}
+  try { localStorage.setItem(SS_KEY, JSON.stringify(s)); } catch (_) {}
 }
 function loadSession() {
-  try { return JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch (_) { return null; }
+  try { return JSON.parse(localStorage.getItem(SS_KEY) || 'null'); } catch (_) { return null; }
 }
 function clearSession() {
-  try { sessionStorage.removeItem(SS_KEY); } catch (_) {}
+  try { localStorage.removeItem(SS_KEY); } catch (_) {}
 }
 
 // ===== Google Identity Services ログイン =====
@@ -1080,11 +1080,18 @@ async function initApp() {
     YEAR       = formData.year  || 0;
     MONTH      = formData.month || 0;
     hideLoading();
-    buildMainScreen();
+    try {
+      buildMainScreen();
+    } catch (buildErr) {
+      console.error('buildMainScreen error:', buildErr);
+      alert('画面の構築に失敗しました: ' + buildErr.message);
+      return;
+    }
     showScreen('main');
   } catch (e) {
     hideLoading();
-    alert('データの読み込みに失敗しました。ページを再読み込みしてください。');
+    console.error('initApp error:', e);
+    alert('データの読み込みに失敗しました: ' + e.message);
   }
 }
 

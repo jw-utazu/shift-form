@@ -49,16 +49,16 @@ body {
   padding: 0 16px;
   height: 52px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(22,163,74,0.3);
 }
-.hdr-left  { display: flex; align-items: center; justify-content: flex-start; }
-.hdr h1    { font-size: 17px; font-weight: 700; text-align: center; }
-.hdr-right { display: flex; align-items: center; justify-content: flex-end; }
+.hdr-left  { display: flex; align-items: center; justify-content: flex-start; min-width: 0; }
+.hdr h1    { font-size: 17px; font-weight: 700; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-right { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
 
 /* バー右アイコン */
 .hdr-avatar {
@@ -147,6 +147,7 @@ body {
   justify-content: center;
   padding: 20px;
   background: var(--bg);
+  position: relative;
 }
 .login-card {
   background: #fff;
@@ -822,7 +823,7 @@ body {
 
 /* ログイン画面ヘルプ */
 .login-help-btn {
-  position: fixed;
+  position: absolute;
   top: 14px; left: 14px;
   width: 36px; height: 36px;
   border-radius: 50%;

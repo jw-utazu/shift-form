@@ -407,7 +407,7 @@ body {
   font-size: 14px; font-weight: 700; color: #6d28d9; margin-bottom: 8px;
 }
 .shift-time-item {
-  font-size: 14px; color: #4c1d95;
+  font-size: 16px; color: #4c1d95;
   padding: 5px 0;
   border-bottom: 1px solid #ddd6fe;
   display: flex; align-items: center; gap: 6px;
@@ -471,7 +471,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 12px 0;
+  padding: 14px 12px 10px;
   cursor: pointer;
   color: var(--green);
   font-weight: 700;
@@ -803,61 +803,141 @@ body {
 }
 .req-textarea:focus { outline: none; border-color: var(--green); }
 
-/* ===== デバッグパネル（テストアカウント専用） ===== */
-#debug-panel {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 9999;
-  width: 300px;
-  max-width: calc(100vw - 32px);
-  font-family: monospace;
-  font-size: 11px;
+/* 受付終了メッセージ */
+.status-closed-msg {
   display: none;
+  font-size: 14px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  line-height: 1.6;
 }
-#debug-toggle {
-  background: #1e293b;
-  color: #4ade80;
-  border: none;
-  border-radius: 8px 8px 0 0;
-  padding: 5px 12px;
+.status-closed-msg.show { display: block; }
+
+/* ヘッダーグリッド修正 */
+.hdr {
+  grid-template-columns: 44px 1fr 44px !important;
+}
+.hdr-left  { min-width: 0; }
+.hdr h1    { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-right { min-width: 0; }
+
+/* ヘルプボタン（ヘッダー内） */
+.help-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.7);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 11px;
-  font-family: monospace;
-  width: 100%;
-  text-align: left;
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s;
+  font-family: inherit;
+  line-height: 1;
+  padding: 0;
 }
-#debug-body {
-  background: rgba(15,23,42,0.95);
-  border-radius: 0 0 8px 8px;
-  padding: 8px 10px;
-  color: #e2e8f0;
-  max-height: 340px;
-  overflow-y: auto;
+.help-btn:active { background: rgba(255,255,255,0.4); }
+
+/* ログイン画面ヘルプボタン */
+#screen-login { position: relative; }
+.login-help-btn {
+  position: absolute;
+  top: 14px; left: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid rgba(255,255,255,0.7);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 150;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(22,163,74,0.3);
+  padding: 0;
+}
+
+/* ヘルプモーダル */
+#help-overlay {
   display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
 }
-#debug-body.open { display: block; }
-.dbg-section { margin-bottom: 7px; }
-.dbg-label {
-  color: #94a3b8;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border-bottom: 1px solid #334155;
-  margin-bottom: 3px;
-  padding-bottom: 2px;
+#help-overlay.show { display: flex; }
+#help-modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+  animation: helpSlideUp .25s ease;
 }
-.dbg-row { display: flex; gap: 4px; margin-bottom: 2px; }
-.dbg-key { color: #7dd3fc; min-width: 90px; flex-shrink: 0; }
-.dbg-val { color: #bbf7d0; word-break: break-all; }
-.dbg-val.bool-true  { color: #4ade80; font-weight: bold; }
-.dbg-val.bool-false { color: #f87171; }
-.dbg-api-ok  { color: #4ade80; }
-.dbg-api-err { color: #f87171; }
+@keyframes helpSlideUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.help-modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 2px solid var(--green-light);
+  flex-shrink: 0;
+}
+.help-modal-title {
+  font-size: 17px; font-weight: 700; color: var(--green);
+  display: flex; align-items: center; gap: 8px;
+}
+.help-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f3f4f6; border: none; cursor: pointer;
+  font-size: 18px; color: var(--sub);
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; padding: 0;
+}
+.help-modal-close:active { background: #e5e7eb; }
+.help-modal-body {
+  overflow-y: auto;
+  padding: 14px 18px 0;
+  flex: 1;
+}
+.help-section { margin-bottom: 18px; }
+.help-section-title {
+  font-size: 14px; font-weight: 700;
+  color: var(--green-dark);
+  background: var(--green-light);
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.help-item {
+  font-size: 14px; color: var(--text);
+  line-height: 1.75; padding: 4px 0;
+  display: flex; gap: 8px;
+}
+.help-item-icon { flex-shrink: 0; }
+.help-legend { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+.help-legend-row { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.5; }
+.help-legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.help-modal-footer {
+  flex-shrink: 0;
+  padding: 14px 18px 20px;
+  border-top: 1px solid var(--green-light);
+  text-align: center;
+  font-size: 13px; color: var(--sub); line-height: 1.7;
+}
 </style>
 </head>
 <body>
@@ -870,6 +950,7 @@ body {
 
 <!-- ===== ログイン画面 ===== -->
 <div id="screen-login">
+  <button class="login-help-btn" onclick="openHelp('login')">?</button>
   <div class="login-card">
     <div class="login-logo" style="background:transparent;width:80px;height:80px;">
       <img src="./logo.png" alt="宇多津会衆PWアプリ" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
@@ -902,7 +983,7 @@ body {
 <!-- ===== メイン画面 ===== -->
 <div id="screen-main">
   <div class="hdr">
-    <div class="hdr-left"></div>
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('main')">?</button></div>
     <h1 id="main-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
@@ -924,15 +1005,16 @@ body {
       <div class="status-label">受付情報</div>
       <div class="status-value" id="status-value">-</div>
       <div style="margin-top:8px;font-size:15px;" id="status-dates"></div>
+      <div class="status-closed-msg" id="status-closed-msg">⚠️ 希望の変更は区域係にご依頼ください</div>
     </div>
 
     <!-- カレンダー -->
     <div class="card">
       <div class="card-title">🗓️ カレンダー</div>
       <div class="cal-month-nav">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹ 先月</button>
+        <button class="cal-nav-btn" id="cal-prev-btn" onclick="calNavMonth(-1)">前の月</button>
         <span class="cal-month-label" id="cal-title"></span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">今月 ›</button>
+        <button class="cal-nav-btn" id="cal-next-btn" onclick="calNavMonth(1)">次の月</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
       <!-- 実施日クリック時の時間帯ボックス -->
@@ -998,7 +1080,7 @@ body {
 <!-- ===== フォーム画面 ===== -->
 <div id="screen-form">
   <div class="hdr">
-    <div class="hdr-left"></div>
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('form')">?</button></div>
     <h1 id="form-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
@@ -1045,7 +1127,7 @@ body {
 <!-- ===== シフト表画面 ===== -->
 <div id="screen-shift">
   <div class="hdr">
-    <div class="hdr-left"></div>
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('shift')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
@@ -1069,7 +1151,7 @@ body {
 <!-- ===== 要望画面 ===== -->
 <div id="screen-request">
   <div class="hdr">
-    <div class="hdr-left"></div>
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
@@ -1086,44 +1168,26 @@ body {
   </div>
 </div>
 
-<!-- ===== デバッグパネル（テストアカウント専用） ===== -->
-<div id="debug-panel">
-  <button id="debug-toggle" onclick="toggleDebugPanel()">
-    <span>🛠 DEBUG</span><span id="debug-arrow">▲</span>
-  </button>
-  <div id="debug-body">
-    <div class="dbg-section">
-      <div class="dbg-label">画面</div>
-      <div class="dbg-row">
-        <span class="dbg-key">currentScreen</span>
-        <span class="dbg-val" id="dbg-screen">—</span>
-      </div>
+
+<!-- ===== ヘルプモーダル ===== -->
+<div id="help-overlay" onclick="closeHelpOutside(event)">
+  <div id="help-modal">
+    <div class="help-modal-hdr">
+      <div class="help-modal-title">❓ <span id="help-modal-title-text">ヘルプ</span></div>
+      <button class="help-modal-close" onclick="closeHelp()">✕</button>
     </div>
-    <div class="dbg-section">
-      <div class="dbg-label">SESSION</div>
-      <div class="dbg-row"><span class="dbg-key">uid</span><span class="dbg-val" id="dbg-uid">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">name</span><span class="dbg-val" id="dbg-name">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">email</span><span class="dbg-val" id="dbg-email">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">isAdmin</span><span class="dbg-val" id="dbg-isAdmin">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">isResponsible</span><span class="dbg-val" id="dbg-isResponsible">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">isCart</span><span class="dbg-val" id="dbg-isCart">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">proxyTargets</span><span class="dbg-val" id="dbg-proxy">—</span></div>
-    </div>
-    <div class="dbg-section">
-      <div class="dbg-label">最後のAPI呼び出し</div>
-      <div class="dbg-row"><span class="dbg-key">action</span><span class="dbg-val" id="dbg-api-action">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">status</span><span class="dbg-val" id="dbg-api-status">—</span></div>
-      <div class="dbg-row"><span class="dbg-key">response</span><span class="dbg-val" id="dbg-api-res" style="font-size:10px;max-height:60px;overflow-y:auto;display:block;">—</span></div>
+    <div class="help-modal-body" id="help-modal-body"></div>
+    <div class="help-modal-footer">
+      解決しない場合は<strong>区域係にご連絡</strong>ください
     </div>
   </div>
 </div>
 
 <script>
-
+// ===== 定数 =====
 const GAS_URL    = "https://script.google.com/macros/s/AKfycbzbPBxl6S3VdSVF9RqXSI1VQkZNGJXwU_zePBM8e3UYed-RyxxA_PRom_Xw9v5rvUwScQ/exec";
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
-const TEST_EMAIL = "jw.utazu.test@gmail.com"; // デバッグ専用テストアカウント
 
 // ===== JSONP通信ユーティリティ（CORSを回避）=====
 // actionはGASのdoGetで受け付けるアクション名
@@ -1149,13 +1213,10 @@ function gasJsonp(action, params, extraQuery) {
       const start = text.indexOf('(');
       const end   = text.lastIndexOf(')');
       if (start === -1 || end === -1) throw new Error('レスポンス形式エラー');
-      const result = JSON.parse(text.slice(start + 1, end));
-      dbgApiLog(action, result, null);
-      return result;
+      return JSON.parse(text.slice(start + 1, end));
     })
     .catch(err => {
       clearTimeout(timer);
-      dbgApiLog(action, null, err);
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');
       throw new Error('通信エラー（GASへの接続に失敗）');
     });
@@ -1188,80 +1249,6 @@ function installPWA() {
   deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
 }
 
-// ===== デバッグパネル（テストアカウント専用）=====
-let _debugOpen = false;
-
-function dbgIsTest() {
-  return SESSION && SESSION.email && SESSION.email.toLowerCase() === TEST_EMAIL.toLowerCase();
-}
-
-function dbgShow() {
-  const panel = document.getElementById('debug-panel');
-  if (panel) panel.style.display = dbgIsTest() ? 'block' : 'none';
-}
-
-function toggleDebugPanel() {
-  _debugOpen = !_debugOpen;
-  const body  = document.getElementById('debug-body');
-  const arrow = document.getElementById('debug-arrow');
-  if (body)  body.classList.toggle('open', _debugOpen);
-  if (arrow) arrow.textContent = _debugOpen ? '▼' : '▲';
-  if (_debugOpen) dbgRefresh();
-}
-
-function dbgRefresh() {
-  if (!_debugOpen) return;
-  // SESSION情報
-  const boolEl = (id, val) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = val === undefined ? '—' : String(val);
-    el.className = 'dbg-val' + (val === true ? ' bool-true' : val === false ? ' bool-false' : '');
-  };
-  const textEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
-
-  if (SESSION) {
-    textEl('dbg-uid',  SESSION.uid  || '（空）');
-    textEl('dbg-name', SESSION.name || '—');
-    textEl('dbg-email',SESSION.email|| '—');
-    boolEl('dbg-isAdmin',       SESSION.isAdmin);
-    boolEl('dbg-isResponsible', SESSION.isResponsible);
-    boolEl('dbg-isCart',        SESSION.isCart);
-    textEl('dbg-proxy', SESSION.proxyTargets && SESSION.proxyTargets.length > 0
-      ? SESSION.proxyTargets.join(', ') : '（なし）');
-  } else {
-    ['dbg-uid','dbg-name','dbg-email','dbg-isAdmin','dbg-isResponsible','dbg-isCart','dbg-proxy']
-      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-  }
-}
-
-function dbgSetScreen(name) {
-  const el = document.getElementById('dbg-screen');
-  if (el) el.textContent = name || '—';
-}
-
-function dbgApiLog(action, result, err) {
-  if (!dbgIsTest()) return;
-  const elAction = document.getElementById('dbg-api-action');
-  const elStatus = document.getElementById('dbg-api-status');
-  const elRes    = document.getElementById('dbg-api-res');
-  if (elAction) elAction.textContent = action || '—';
-  if (err) {
-    if (elStatus) { elStatus.textContent = 'ERROR'; elStatus.className = 'dbg-val dbg-api-err'; }
-    if (elRes)    elRes.textContent = err.message || String(err);
-  } else {
-    const ok = result && result.ok !== false;
-    if (elStatus) { elStatus.textContent = ok ? 'ok' : 'ng'; elStatus.className = 'dbg-val ' + (ok ? 'dbg-api-ok' : 'dbg-api-err'); }
-    if (elRes) {
-      try {
-        const preview = JSON.stringify(result);
-        elRes.textContent = preview.length > 200 ? preview.slice(0, 200) + '…' : preview;
-      } catch (_) { elRes.textContent = String(result); }
-    }
-  }
-  if (_debugOpen) dbgRefresh();
-}
-
 
 // ===== ローディング =====
 function showLoading(msg) {
@@ -1291,9 +1278,6 @@ function showScreen(name) {
   });
   if (name === 'form')  initFormScreen();
   if (name === 'shift') initShiftScreen();
-  dbgSetScreen(name);
-  dbgShow();
-  if (_debugOpen) dbgRefresh();
 }
 
 // ===== sessionStorage =====
@@ -1534,8 +1518,6 @@ async function initApp() {
       return;
     }
     showScreen('main');
-    dbgShow();
-    dbgSetScreen('main');
   } catch (e) {
     hideLoading();
     console.error('initApp error:', e);
@@ -1635,6 +1617,7 @@ function buildMainScreen() {
   const sd = document.getElementById('status-dates');
   sv.className = 'status-value';
   sv.style.color = '';
+  document.getElementById('status-closed-msg').classList.remove('show');
 
   if (isDeadlineToday) {
     sv.textContent = '🔒 締切日';
@@ -1653,6 +1636,7 @@ function buildMainScreen() {
     sv.textContent = '🔒 受付終了';
     sv.classList.add('status-closed');
     sd.textContent = '';
+    document.getElementById('status-closed-msg').classList.add('show');
   }
 
   // カレンダー描画（今日が含まれる月を初期表示）
@@ -1690,30 +1674,20 @@ function calNavMonth(delta) {
   if (newM < 1)  { newM = 12; newY--; }
   if (newM > 12) { newM = 1;  newY++; }
 
-  // 移動可能範囲：今日の月の1ヶ月前〜シフト当月（どちらか遅い方まで）
+  // 移動可能範囲：今日の月〜シフト当月
   const shiftY = YEAR  || new Date().getFullYear();
   const shiftM = MONTH || new Date().getMonth() + 1;
   const realToday = new Date();
   const realY = realToday.getFullYear();
   const realM = realToday.getMonth() + 1;
 
-  // 下限：realM の1ヶ月前
-  let minY = realY, minM = realM - 1;
-  if (minM < 1) { minM = 12; minY--; }
-  // 上限：shiftM と realM のどちらか遅い方
-  const shiftVal = shiftY * 100 + shiftM;
-  const realVal  = realY  * 100 + realM;
-  let maxVal = Math.max(shiftVal, realVal);
-  const maxY = Math.floor(maxVal / 100);
-  const maxM = maxVal % 100;
-
+  const minVal = realY * 100 + realM;
+  const maxVal = Math.max(shiftY * 100 + shiftM, minVal);
   const targetVal = newY * 100 + newM;
-  const minVal    = minY * 100 + minM;
   if (targetVal < minVal || targetVal > maxVal) return;
 
   calDisplayYear  = newY;
   calDisplayMonth = newM;
-  // 月移動時に時間帯ボックスを閉じる
   _selectedShiftKey = null;
   const box = document.getElementById('shift-time-box');
   if (box) box.classList.remove('show');
@@ -1732,21 +1706,25 @@ function buildCalendar() {
   // 実際の今日（ハイライト用）
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // ナビボタンの活性制御（今日の月を基準に前後1ヶ月）
+  // ナビボタンの活性制御（今日の月〜シフト当月）
   const shiftY = YEAR  || new Date().getFullYear();
   const shiftM = MONTH || new Date().getMonth() + 1;
   const realToday2 = new Date();
   const realY2 = realToday2.getFullYear();
   const realM2 = realToday2.getMonth() + 1;
-  let minY2 = realY2, minM2 = realM2 - 1;
-  if (minM2 < 1) { minM2 = 12; minY2--; }
-  const maxVal2 = Math.max(shiftY * 100 + shiftM, realY2 * 100 + realM2);
-  const minVal2 = minY2 * 100 + minM2;
+  const minVal2 = realY2 * 100 + realM2;
+  const maxVal2 = Math.max(shiftY * 100 + shiftM, minVal2);
   const curVal2 = dispY * 100 + dispM;
-  const prevBtn = document.querySelector('.cal-nav-btn:first-child');
-  const nextBtn = document.querySelector('.cal-nav-btn:last-child');
-  if (prevBtn) prevBtn.style.opacity = curVal2 <= minVal2 ? '0.4' : '1';
-  if (nextBtn) nextBtn.style.opacity = curVal2 >= maxVal2 ? '0.4' : '1';
+  const prevBtn = document.getElementById('cal-prev-btn');
+  const nextBtn = document.getElementById('cal-next-btn');
+  if (prevBtn) {
+    prevBtn.style.opacity      = curVal2 <= minVal2 ? '0.35' : '1';
+    prevBtn.style.pointerEvents = curVal2 <= minVal2 ? 'none' : '';
+  }
+  if (nextBtn) {
+    nextBtn.style.opacity      = curVal2 >= maxVal2 ? '0.35' : '1';
+    nextBtn.style.pointerEvents = curVal2 >= maxVal2 ? 'none' : '';
+  }
 
   const DOWS = ['月','火','水','木','金','土','日'];
   DOWS.forEach((d, i) => {
@@ -2361,6 +2339,196 @@ async function submitRequest() {
 }
 
 
+
+// ===== ヘルプ =====
+const HELP_CONTENTS = {
+  login: {
+    title: 'アプリについて',
+    sections: [
+      {
+        title: 'このアプリでできること',
+        items: [
+          { icon: '📝', text: 'シフト希望を送る（参加できる時間帯を申告）' },
+          { icon: '📋', text: 'シフト表を確認する（公開後に閲覧可能）' },
+          { icon: '💬', text: '区域係への要望・ご意見を送る' },
+        ]
+      },
+      {
+        title: 'ログイン方法',
+        items: [
+          { icon: '①', text: '「Googleでログイン」ボタンをタップ' },
+          { icon: '②', text: 'アクセス許可されたGoogleアカウントを選択' },
+          { icon: '③', text: '初回のみ、名前の選択・登録が必要です' },
+          { icon: '④', text: '次回からは自動でログインされます' },
+        ]
+      },
+      {
+        title: 'ログインできない場合',
+        items: [
+          { icon: '⚠️', text: 'アクセス許可されていないアカウントではログインできません。区域係にご連絡ください。' },
+        ]
+      }
+    ]
+  },
+  main: {
+    title: 'メイン画面の見方',
+    sections: [
+      {
+        title: 'カレンダーの色の意味',
+        legend: [
+          { color: '#ede9fe', border: '#c4b5fd', label: '実施日（タップで時間帯を確認できます）' },
+          { color: '#f59e0b', border: '#f59e0b', round: true, label: '自分のシフトが入っている日' },
+          { color: '#f97316', border: '#f97316', label: '申込期間（横線で表示）' },
+          { color: '#d1fae5', border: '#a7f3d0', label: '申込開始日' },
+          { color: '#fee2e2', border: '#fca5a5', label: '締切日' },
+          { color: '#eff6ff', border: '#bfdbfe', label: 'シフト公開予定日' },
+        ]
+      },
+      {
+        title: '各ボタンの説明',
+        items: [
+          { icon: '📝', text: '「シフト希望を送る」：受付中のみ利用可。参加できる時間帯を選んで送信します。' },
+          { icon: '📋', text: '「シフト表を見る」：シフト公開後に全員のシフト表を確認できます。' },
+          { icon: '💬', text: '「要望を送る」：区域係へのご意見・要望を送ることができます。' },
+        ]
+      }
+    ]
+  },
+  form: {
+    title: 'シフト希望の送り方',
+    sections: [
+      {
+        title: '基本的な使い方',
+        items: [
+          { icon: '①', text: '参加できる時間帯の行をタップするとチェックが入ります' },
+          { icon: '②', text: 'もう一度タップするとチェックが外れます' },
+          { icon: '③', text: '複数の時間帯を選択することができます' },
+          { icon: '④', text: '選択が終わったら「送信する」ボタンを押してください' },
+        ]
+      },
+      {
+        title: 'カート担当不可について',
+        items: [
+          { icon: '🛒', text: 'カート担当に指定されている方のみ表示される項目です' },
+          { icon: '⚠️', text: 'その時間帯にカート担当ができない場合はチェックを入れてください' },
+        ]
+      },
+      {
+        title: '備考欄について',
+        items: [
+          { icon: '📝', text: '「途中から参加」「早退あり」などの場合は備考欄に記入してください' },
+          { icon: '例', text: '「10:00から」「14:00まで」など' },
+        ]
+      },
+      {
+        title: '先月と同じにする',
+        items: [
+          { icon: '🔄', text: '先月の回答がある場合に表示されます。ONにすると先月と同じ時間帯が自動で選択されます。' },
+        ]
+      }
+    ]
+  },
+  shift: {
+    title: 'シフト表の見方',
+    sections: [
+      {
+        title: 'セルのハイライト色',
+        legend: [
+          { color: '#fde68a', border: '#f59e0b', label: '自分（奉仕者）' },
+          { color: '#fca5a5', border: '#ef4444', label: '自分（責任者）' },
+          { color: '#a5b4fc', border: '#6366f1', label: '自分（カート担当）' },
+        ]
+      },
+      {
+        title: '各エリアの見方',
+        items: [
+          { icon: '🔵', text: '北口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: '🟠', text: '南口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: '🛒', text: 'カート欄：持込・持帰担当者とカート番号' },
+        ]
+      },
+      {
+        title: 'その他の表示',
+        items: [
+          { icon: '⛔', text: '赤いバナーが表示されている日は「中止」です' },
+          { icon: '📝', text: '責任者メモが表示されている場合は内容を確認してください' },
+          { icon: '（見守り）', text: '見守り担当として配置されていることを示します' },
+        ]
+      }
+    ]
+  },
+  request: {
+    title: '要望・ご意見の送り方',
+    sections: [
+      {
+        title: '使い方',
+        items: [
+          { icon: '①', text: 'テキストエリアにご意見・要望・質問などを入力してください' },
+          { icon: '②', text: '「送信する」ボタンを押すと区域係に届きます' },
+          { icon: '③', text: '送信後はメイン画面に戻ります' },
+        ]
+      },
+      {
+        title: '注意事項',
+        items: [
+          { icon: '⚠️', text: 'このフォームはシフト希望の変更には使用できません。シフト希望の変更は直接区域係にご連絡ください。' },
+        ]
+      }
+    ]
+  }
+};
+
+function openHelp(screen) {
+  const content = HELP_CONTENTS[screen] || HELP_CONTENTS['main'];
+  document.getElementById('help-modal-title-text').textContent = content.title;
+  const body = document.getElementById('help-modal-body');
+  body.innerHTML = '';
+  content.sections.forEach(sec => {
+    const secEl = document.createElement('div');
+    secEl.className = 'help-section';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'help-section-title';
+    titleEl.textContent = sec.title;
+    secEl.appendChild(titleEl);
+    if (sec.legend) {
+      const legendEl = document.createElement('div');
+      legendEl.className = 'help-legend';
+      sec.legend.forEach(row => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'help-legend-row';
+        const dot = document.createElement('div');
+        dot.className = 'help-legend-dot';
+        dot.style.background = row.color;
+        dot.style.border = '1.5px solid ' + row.border;
+        if (row.round) dot.style.borderRadius = '50%';
+        const label = document.createElement('span');
+        label.textContent = row.label;
+        rowEl.appendChild(dot);
+        rowEl.appendChild(label);
+        legendEl.appendChild(rowEl);
+      });
+      secEl.appendChild(legendEl);
+    }
+    if (sec.items) {
+      sec.items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'help-item';
+        itemEl.innerHTML = '<span class="help-item-icon">' + item.icon + '</span><span>' + item.text + '</span>';
+        secEl.appendChild(itemEl);
+      });
+    }
+    body.appendChild(secEl);
+  });
+  document.getElementById('help-overlay').classList.add('show');
+}
+
+function closeHelp() {
+  document.getElementById('help-overlay').classList.remove('show');
+}
+
+function closeHelpOutside(e) {
+  if (e.target === document.getElementById('help-overlay')) closeHelp();
+}
 
 // ===== エスケープ =====
 function esc(s) {

@@ -8,9 +8,9 @@
 <link rel="icon" href="./logo.png" type="image/png">
 <link rel="apple-touch-icon" href="./logo.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PWアプリ">
-<title>PWアプリ</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
+<title>宇多津会衆PWアプリ</title>
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleLogin()"></script>
 <style>
 :root {
   --green:       #16a34a;
@@ -345,7 +345,7 @@ body {
 .cal-day.other     { color: #d1d5db; }
 .cal-day.sat       { color: #2563eb; background: #eff6ff; }
 .cal-day.sun       { color: var(--danger); background: #fff1f2; }
-.cal-day.today     { background: #16a34a; color: #fff !important; border-radius: 50%; font-weight: 700; }
+.cal-day.today     { background: #3b82f6; color: #fff !important; border-radius: 50%; font-weight: 700; }
 .cal-day.apply-day { background: #d1fae5; color: var(--green-dark); }
 .cal-day.deadline  { background: #fee2e2; color: var(--danger-dark); }
 .cal-day.open-day  { background: #eff6ff; color: #1d4ed8; }
@@ -764,14 +764,12 @@ body {
 <div id="screen-login">
   <div class="login-card">
     <div class="login-logo" style="background:transparent;width:80px;height:80px;">
-      <img src="./logo.png" alt="PW" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
+      <img src="./logo.png" alt="宇多津会衆PWアプリ" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
     </div>
-    <div class="login-title">PWアプリ</div>
+    <div class="login-title">宇多津会衆PWアプリ</div>
     <div class="login-sub">Googleアカウントでログインしてください</div>
-    <button class="g-signin-btn" onclick="startGoogleLogin()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
-      Googleでログイン
-    </button>
+    <!-- Google公式ボタン（Android Chrome対応） -->
+    <div id="g-btn-container" style="margin:16px auto 0;display:flex;justify-content:center;min-height:44px;"></div>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -797,7 +795,7 @@ body {
 <div id="screen-main">
   <div class="hdr">
     <div class="hdr-left"></div>
-    <h1 id="main-title">PWアプリ</h1>
+    <h1 id="main-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
         <span class="hdr-avatar-fallback">👤</span>
@@ -887,7 +885,7 @@ body {
 <div id="screen-form">
   <div class="hdr">
     <div class="hdr-left"></div>
-    <h1 id="form-title">PWアプリ</h1>
+    <h1 id="form-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
@@ -934,7 +932,7 @@ body {
 <div id="screen-shift">
   <div class="hdr">
     <div class="hdr-left"></div>
-    <h1>PWアプリ</h1>
+    <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
@@ -958,7 +956,7 @@ body {
 <div id="screen-request">
   <div class="hdr">
     <div class="hdr-left"></div>
-    <h1>PWアプリ</h1>
+    <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
@@ -1086,68 +1084,44 @@ function clearSession() {
   try { localStorage.removeItem(SS_KEY); } catch (_) {}
 }
 
-// ===== Google Identity Services ログイン（One Tap / Sign In With Google）=====
-function startGoogleLogin() {
-  showLoading('Googleにログイン中...');
+// ===== Google Identity Services 初期化 =====
+// GISライブラリ読み込み後に自動で呼ばれるコールバック
+function initGoogleLogin() {
   try {
     google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: onGoogleCredential,
       auto_select: false,
       cancel_on_tap_outside: false,
+      ux_mode: 'popup',        // リダイレクトではなくポップアップ
     });
-    google.accounts.id.prompt(notification => {
-      // One Tapが表示できない場合（ブラウザ制限など）はrenderButtonで対処
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        hideLoading();
-        // フォールバック：ボタン方式で再表示
-        _showGoogleButton();
-      }
-    });
+    const btnDiv = document.getElementById('g-btn-container');
+    if (btnDiv) {
+      google.accounts.id.renderButton(btnDiv, {
+        type: 'standard',
+        theme: 'filled_green',
+        size: 'large',
+        width: 280,
+        text: 'signin_with',
+        locale: 'ja',
+      });
+    }
+    // One Tapも試みる（サポートされている環境のみ）
+    google.accounts.id.prompt();
   } catch (e) {
-    hideLoading();
-    showLoginError('Googleログインの初期化に失敗しました。ページを再読み込みしてください。');
+    // GISが未ロードなら何もしない（ボタンはHTMLに既にある）
+    console.warn('GIS init error:', e);
   }
-}
-
-function _showGoogleButton() {
-  // カスタムボタンからgoogle.accounts.id.renderButtonを使う
-  const loginBtn = document.querySelector('.g-signin-btn');
-  if (loginBtn) {
-    loginBtn.style.display = 'none';
-  }
-  let btnDiv = document.getElementById('g-btn-container');
-  if (!btnDiv) {
-    btnDiv = document.createElement('div');
-    btnDiv.id = 'g-btn-container';
-    btnDiv.style.marginTop = '12px';
-    const loginCard = document.querySelector('.login-card');
-    if (loginCard) loginCard.appendChild(btnDiv);
-  }
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: onGoogleCredential,
-  });
-  google.accounts.id.renderButton(btnDiv, {
-    type: 'standard',
-    theme: 'filled_green',
-    size: 'large',
-    width: 280,
-    text: 'signin_with',
-    locale: 'ja',
-  });
 }
 
 async function onGoogleCredential(response) {
   showLoading('認証中...');
   try {
-    // JWTのペイロードをデコードしてユーザー情報を取得
     const parts   = response.credential.split('.');
     const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
     const email   = payload.email   || '';
     const name    = payload.name    || '';
     const picture = payload.picture || '';
-    // tokenの代わりにcredential（JWT）を渡す
     await handleGASAuth(email, response.credential, name, picture);
   } catch (e) {
     hideLoading();
@@ -1295,8 +1269,13 @@ function closeProfilePopup() {
 function logout() {
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null;
+  closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
+  // ボタンを再描画
+  setTimeout(() => {
+    try { initGoogleLogin(); } catch(_) {}
+  }, 100);
 }
 
 // ===== アプリ初期化 =====
@@ -1333,10 +1312,10 @@ async function initApp() {
 // ===== メイン画面構築 =====
 function buildMainScreen() {
   // バー年月表示
-  const yearMonthLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月' : 'PWアプリ';
+  const yearMonthLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月' : '宇多津会衆PWアプリ';
   document.getElementById('main-title').textContent = yearMonthLabel;
   document.getElementById('form-title') && (document.getElementById('form-title').textContent = yearMonthLabel);
-  document.title = 'PWアプリ';
+  document.title = '宇多津会衆PWアプリ';
 
   // バー右アイコン更新
   updateAvatarUI();
@@ -1361,11 +1340,25 @@ function buildMainScreen() {
   const isOpenDateSet  = !!openD;
   const isOpenPassed   = openD && openD.getTime() <= today.getTime();
 
-  // ── シフト希望ボタン：受付中（締切日含む）のみ表示、管理者は常に非表示 ──
+  // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
   const btnForm = document.getElementById('btn-shift-form');
   if (btnForm) {
-    const showForm = !isOwner && (status === '受付中');
-    btnForm.style.display = showForm ? '' : 'none';
+    if (isOwner) {
+      btnForm.style.display = 'none';
+    } else if (status === '受付中') {
+      btnForm.disabled = false;
+      btnForm.style.opacity = '';
+      btnForm.style.cursor  = '';
+      btnForm.onclick = () => showScreen('form');
+      btnForm.style.display = '';
+    } else {
+      // 準備中・受付終了はグレーアウト
+      btnForm.disabled = true;
+      btnForm.style.opacity = '0.5';
+      btnForm.style.cursor  = 'default';
+      btnForm.onclick = null;
+      btnForm.style.display = '';
+    }
   }
 
   // ── シフト表ボタン：公開日以降のみ有効、未設定はグレーアウト＋文言変更 ──
@@ -1428,9 +1421,10 @@ function buildMainScreen() {
     sd.textContent = '';
   }
 
-  // ── カレンダー（シフト当月を初期表示）──
-  calDisplayYear  = YEAR  || today.getFullYear();
-  calDisplayMonth = MONTH || today.getMonth() + 1;
+  // カレンダー描画（今日が含まれる月を初期表示）
+  const todayForCal = new Date();
+  calDisplayYear  = todayForCal.getFullYear();
+  calDisplayMonth = todayForCal.getMonth() + 1;
   buildCalendar();
 
   // ── 次のシフト ──
@@ -1457,23 +1451,31 @@ let calDisplayYear  = 0;
 let calDisplayMonth = 0;
 
 function calNavMonth(delta) {
-  // 移動先を計算
   let newY = calDisplayYear;
   let newM = calDisplayMonth + delta;
   if (newM < 1)  { newM = 12; newY--; }
   if (newM > 12) { newM = 1;  newY++; }
 
-  // シフト当月の1ヶ月前より前、またはシフト当月より後には移動しない
+  // 移動可能範囲：今日の月の1ヶ月前〜シフト当月（どちらか遅い方まで）
   const shiftY = YEAR  || new Date().getFullYear();
   const shiftM = MONTH || new Date().getMonth() + 1;
-  // 先月の年月を計算
-  let prevY = shiftY, prevM = shiftM - 1;
-  if (prevM < 1) { prevM = 12; prevY--; }
+  const realToday = new Date();
+  const realY = realToday.getFullYear();
+  const realM = realToday.getMonth() + 1;
+
+  // 下限：realM の1ヶ月前
+  let minY = realY, minM = realM - 1;
+  if (minM < 1) { minM = 12; minY--; }
+  // 上限：shiftM と realM のどちらか遅い方
+  const shiftVal = shiftY * 100 + shiftM;
+  const realVal  = realY  * 100 + realM;
+  let maxVal = Math.max(shiftVal, realVal);
+  const maxY = Math.floor(maxVal / 100);
+  const maxM = maxVal % 100;
 
   const targetVal = newY * 100 + newM;
-  const prevVal   = prevY * 100 + prevM;
-  const shiftVal  = shiftY * 100 + shiftM;
-  if (targetVal < prevVal || targetVal > shiftVal) return;
+  const minVal    = minY * 100 + minM;
+  if (targetVal < minVal || targetVal > maxVal) return;
 
   calDisplayYear  = newY;
   calDisplayMonth = newM;
@@ -1492,17 +1494,21 @@ function buildCalendar() {
   // 実際の今日（ハイライト用）
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // 今月/先月ナビボタンの活性制御（シフト当月・先月基準）
+  // ナビボタンの活性制御（今日の月を基準に前後1ヶ月）
   const shiftY = YEAR  || new Date().getFullYear();
   const shiftM = MONTH || new Date().getMonth() + 1;
-  let prevY = shiftY, prevM = shiftM - 1;
-  if (prevM < 1) { prevM = 12; prevY--; }
-  const isShiftMonth = (dispY === shiftY && dispM === shiftM);
-  const isPrevMonth  = (dispY === prevY  && dispM === prevM);
+  const realToday2 = new Date();
+  const realY2 = realToday2.getFullYear();
+  const realM2 = realToday2.getMonth() + 1;
+  let minY2 = realY2, minM2 = realM2 - 1;
+  if (minM2 < 1) { minM2 = 12; minY2--; }
+  const maxVal2 = Math.max(shiftY * 100 + shiftM, realY2 * 100 + realM2);
+  const minVal2 = minY2 * 100 + minM2;
+  const curVal2 = dispY * 100 + dispM;
   const prevBtn = document.querySelector('.cal-nav-btn:first-child');
   const nextBtn = document.querySelector('.cal-nav-btn:last-child');
-  if (prevBtn) prevBtn.style.opacity = isPrevMonth ? '0.4' : '1';
-  if (nextBtn) nextBtn.style.opacity = isShiftMonth ? '0.4' : '1';
+  if (prevBtn) prevBtn.style.opacity = curVal2 <= minVal2 ? '0.4' : '1';
+  if (nextBtn) nextBtn.style.opacity = curVal2 >= maxVal2 ? '0.4' : '1';
 
   const DOWS = ['月','火','水','木','金','土','日'];
   DOWS.forEach((d, i) => {
@@ -1576,7 +1582,7 @@ function buildCalendar() {
       const hasSub = isApply ? '申込' : isDeadline ? '締切' : isOpen ? '公開' : '';
       if (hasSub) el.innerHTML = day + '<span class="cal-sub">' + hasSub + '</span>';
 
-      if (isShiftMonth && shiftDays.has(key)) {
+      if (shiftDays.has(key)) {
         el.classList.add('shift-day');
         const badge = document.createElement('div');
         badge.className = myShiftDays.has(key) ? 'cal-badge my-shift' : 'cal-badge';
@@ -1634,7 +1640,7 @@ function initFormScreen() {
   isCartUser      = SESSION.isCart;
   lastMonthOn     = false;
   document.getElementById('toggle-track').classList.remove('on');
-  document.title = 'PWアプリ';
+  document.title = '宇多津会衆PWアプリ';
 
   // 代理送信
   const proxyArea = document.getElementById('proxy-area');

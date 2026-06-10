@@ -1679,7 +1679,7 @@ function esc(s) {
 (async function init() {
   // セッション復元を試みる
   const saved = loadSession();
-  if (saved && saved.uid && saved.email) {
+  if (saved && saved.email) { // uidが空の管理者専用アカウントも復元できるようにemailのみチェック
     SESSION = saved;
     await initApp();
     return;

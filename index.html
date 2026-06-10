@@ -8,8 +8,8 @@
 <link rel="icon" href="./logo.png" type="image/png">
 <link rel="apple-touch-icon" href="./logo.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PW">
-<title>PW</title>
+<meta name="apple-mobile-web-app-title" content="PWアプリ">
+<title>PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
@@ -48,17 +48,17 @@ body {
   color: #fff;
   padding: 0 16px;
   height: 52px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(22,163,74,0.3);
 }
-.hdr-left  { display: flex; align-items: center; gap: 10px; }
-.hdr h1    { font-size: 18px; font-weight: 700; }
-.hdr-right { display: flex; align-items: center; }
+.hdr-left  { display: flex; align-items: center; justify-content: flex-start; }
+.hdr h1    { font-size: 17px; font-weight: 700; text-align: center; }
+.hdr-right { display: flex; align-items: center; justify-content: flex-end; }
 
 /* バー右アイコン */
 .hdr-avatar {
@@ -345,7 +345,7 @@ body {
 .cal-day.other     { color: #d1d5db; }
 .cal-day.sat       { color: #2563eb; background: #eff6ff; }
 .cal-day.sun       { color: var(--danger); background: #fff1f2; }
-.cal-day.today     { outline: 2px solid #93c5fd; outline-offset: -2px; border-radius: 8px; }
+.cal-day.today     { background: #16a34a; color: #fff !important; border-radius: 50%; font-weight: 700; }
 .cal-day.apply-day { background: #d1fae5; color: var(--green-dark); }
 .cal-day.deadline  { background: #fee2e2; color: var(--danger-dark); }
 .cal-day.open-day  { background: #eff6ff; color: #1d4ed8; }
@@ -447,16 +447,18 @@ body {
 /* スロット */
 .date-group { margin-bottom: 14px; }
 .date-label {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--sub);
+  color: var(--green-dark);
   margin-bottom: 8px;
-  padding: 5px 10px;
+  padding: 8px 10px;
   background: var(--green-light);
   border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
 }
 .week-badge {
   font-size: 11px;
@@ -764,7 +766,7 @@ body {
     <div class="login-logo" style="background:transparent;width:80px;height:80px;">
       <img src="./logo.png" alt="PW" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
     </div>
-    <div class="login-title">PW</div>
+    <div class="login-title">PWアプリ</div>
     <div class="login-sub">Googleアカウントでログインしてください</div>
     <button class="g-signin-btn" onclick="startGoogleLogin()">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
@@ -794,9 +796,8 @@ body {
 <!-- ===== メイン画面 ===== -->
 <div id="screen-main">
   <div class="hdr">
-    <div class="hdr-left">
-      <h1 id="main-title">PW</h1>
-    </div>
+    <div class="hdr-left"></div>
+    <h1 id="main-title">PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
         <span class="hdr-avatar-fallback">👤</span>
@@ -847,9 +848,9 @@ body {
         <span class="nav-txt">シフト希望を送る</span>
         <span class="nav-arr">›</span>
       </button>
-      <button class="btn-nav" onclick="showScreen('shift')">
+      <button class="btn-nav" id="btn-shift-view" onclick="showScreen('shift')">
         <span class="nav-icon">📋</span>
-        <span class="nav-txt">シフト表を見る</span>
+        <span class="nav-txt" id="btn-shift-view-txt">シフト表を見る</span>
         <span class="nav-arr">›</span>
       </button>
       <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')">
@@ -885,9 +886,10 @@ body {
 <!-- ===== フォーム画面 ===== -->
 <div id="screen-form">
   <div class="hdr">
-    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-left"></div>
+    <h1 id="form-title">PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback" id="form-hdr-avatar-inner">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
   </div>
   <div class="container">
@@ -931,7 +933,8 @@ body {
 <!-- ===== シフト表画面 ===== -->
 <div id="screen-shift">
   <div class="hdr">
-    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-left"></div>
+    <h1>PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
@@ -954,7 +957,8 @@ body {
 <!-- ===== 要望画面 ===== -->
 <div id="screen-request">
   <div class="hdr">
-    <div class="hdr-left"><h1>PW</h1></div>
+    <div class="hdr-left"></div>
+    <h1>PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
@@ -1082,45 +1086,72 @@ function clearSession() {
   try { localStorage.removeItem(SS_KEY); } catch (_) {}
 }
 
-// ===== Google Identity Services ログイン =====
+// ===== Google Identity Services ログイン（One Tap / Sign In With Google）=====
 function startGoogleLogin() {
   showLoading('Googleにログイン中...');
   try {
-    const client = google.accounts.oauth2.initTokenClient({
+    google.accounts.id.initialize({
       client_id: CLIENT_ID,
-      scope: 'email profile openid',
-      callback: async (resp) => {
-        if (resp.error) {
-          hideLoading();
-          showLoginError('ログインに失敗しました: ' + resp.error);
-          return;
-        }
-        // userinfo を取得（リトライ付き）
-        let user = null;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
-            const userResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: { Authorization: 'Bearer ' + resp.access_token }
-            });
-            if (!userResp.ok) throw new Error('status ' + userResp.status);
-            user = await userResp.json();
-            break;
-          } catch (fe) {
-            if (attempt === 2) {
-              hideLoading();
-              showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてお試しください。');
-              return;
-            }
-          }
-        }
-        await handleGASAuth(user.email, resp.access_token, user.name, user.picture || '');
+      callback: onGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: false,
+    });
+    google.accounts.id.prompt(notification => {
+      // One Tapが表示できない場合（ブラウザ制限など）はrenderButtonで対処
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        hideLoading();
+        // フォールバック：ボタン方式で再表示
+        _showGoogleButton();
       }
     });
-    client.requestAccessToken();
   } catch (e) {
     hideLoading();
     showLoginError('Googleログインの初期化に失敗しました。ページを再読み込みしてください。');
+  }
+}
+
+function _showGoogleButton() {
+  // カスタムボタンからgoogle.accounts.id.renderButtonを使う
+  const loginBtn = document.querySelector('.g-signin-btn');
+  if (loginBtn) {
+    loginBtn.style.display = 'none';
+  }
+  let btnDiv = document.getElementById('g-btn-container');
+  if (!btnDiv) {
+    btnDiv = document.createElement('div');
+    btnDiv.id = 'g-btn-container';
+    btnDiv.style.marginTop = '12px';
+    const loginCard = document.querySelector('.login-card');
+    if (loginCard) loginCard.appendChild(btnDiv);
+  }
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: onGoogleCredential,
+  });
+  google.accounts.id.renderButton(btnDiv, {
+    type: 'standard',
+    theme: 'filled_green',
+    size: 'large',
+    width: 280,
+    text: 'signin_with',
+    locale: 'ja',
+  });
+}
+
+async function onGoogleCredential(response) {
+  showLoading('認証中...');
+  try {
+    // JWTのペイロードをデコードしてユーザー情報を取得
+    const parts   = response.credential.split('.');
+    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email   = payload.email   || '';
+    const name    = payload.name    || '';
+    const picture = payload.picture || '';
+    // tokenの代わりにcredential（JWT）を渡す
+    await handleGASAuth(email, response.credential, name, picture);
+  } catch (e) {
+    hideLoading();
+    showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてください。');
   }
 }
 
@@ -1231,13 +1262,14 @@ function updateAvatarUI() {
   if (ppRoles) {
     ppRoles.innerHTML = '';
     if (SESSION.isAdmin && !SESSION.uid) {
-      // 管理アカウント：オーナーのみ
+      // 管理アカウント（uidなし）：オーナーのみ
       ppRoles.innerHTML = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
     } else {
+      // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
+      ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
       if (SESSION.isResponsible) ppRoles.innerHTML += '<span class="badge badge-resp">責任者</span>';
       if (SESSION.isCart)        ppRoles.innerHTML += '<span class="badge badge-cart">カート担当</span>';
-      if (!SESSION.isResponsible && !SESSION.isCart) ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
-      if (SESSION.isAdmin) ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+      if (SESSION.isAdmin)       ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
     }
   }
 }
@@ -1300,39 +1332,82 @@ async function initApp() {
 
 // ===== メイン画面構築 =====
 function buildMainScreen() {
-  document.getElementById('main-title').textContent = 'PW';
-  document.title = 'PW';
+  // バー年月表示
+  const yearMonthLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月' : 'PWアプリ';
+  document.getElementById('main-title').textContent = yearMonthLabel;
+  document.getElementById('form-title') && (document.getElementById('form-title').textContent = yearMonthLabel);
+  document.title = 'PWアプリ';
 
-  // バー右アイコン更新（全画面共通）
+  // バー右アイコン更新
   updateAvatarUI();
 
-  // ロールバッジはポップアップのみ（カード削除のため不要だがポップアップ用に保持）
-
-  // 管理者アカウントはシフト希望送信・要望ボタンを非表示
   const isOwner = SESSION.isAdmin && !SESSION.uid;
-  const btnForm    = document.getElementById('btn-shift-form');
-  const btnRequest = document.getElementById('btn-request');
-  if (btnForm)    btnForm.style.display    = isOwner ? 'none' : '';
-  if (btnRequest) btnRequest.style.display = isOwner ? 'none' : '';
+  const ed      = APP_DATA.eventDates || {};
+  const status  = APP_DATA.status || '準備中';
+  const today   = new Date(); today.setHours(0,0,0,0);
 
-  // 受付状況
-  const status   = APP_DATA.status || '準備中';
-  const sv       = document.getElementById('status-value');
-  const sd       = document.getElementById('status-dates');
-  sv.className   = 'status-value';
-  const ed       = APP_DATA.eventDates || {};
-
-  // 今日が締切日かどうか判定
-  const today = new Date(); today.setHours(0,0,0,0);
+  // 今日が締切日か判定
   const parseEventDate = str => {
     if (!str) return null;
     const p = str.split('/');
-    const y = today.getFullYear();
-    if (p.length === 2) return new Date(y, parseInt(p[0]) - 1, parseInt(p[1]));
-    return null;
+    if (p.length !== 2) return null;
+    // 年をYEARから取得（シフト当月の年）
+    const y = YEAR || today.getFullYear();
+    return new Date(y, parseInt(p[0]) - 1, parseInt(p[1]));
   };
-  const deadlineD = parseEventDate(ed['締切']);
+  const deadlineD      = parseEventDate(ed['締切']);
   const isDeadlineToday = deadlineD && deadlineD.getTime() === today.getTime();
+  const openD          = parseEventDate(ed['シフト公開']);
+  const isOpenDateSet  = !!openD;
+  const isOpenPassed   = openD && openD.getTime() <= today.getTime();
+
+  // ── シフト希望ボタン：受付中（締切日含む）のみ表示、管理者は常に非表示 ──
+  const btnForm = document.getElementById('btn-shift-form');
+  if (btnForm) {
+    const showForm = !isOwner && (status === '受付中');
+    btnForm.style.display = showForm ? '' : 'none';
+  }
+
+  // ── シフト表ボタン：公開日以降のみ有効、未設定はグレーアウト＋文言変更 ──
+  const btnShiftView    = document.getElementById('btn-shift-view');
+  const btnShiftViewTxt = document.getElementById('btn-shift-view-txt');
+  if (btnShiftView && btnShiftViewTxt) {
+    if (!isOpenDateSet) {
+      // 公開日未設定
+      btnShiftView.disabled = true;
+      btnShiftView.style.opacity = '0.5';
+      btnShiftView.style.cursor  = 'default';
+      btnShiftView.onclick = null;
+      btnShiftViewTxt.textContent = '現在公開日は未定です。区域係に問い合わせてください';
+      btnShiftViewTxt.style.fontSize = '13px';
+    } else if (!isOpenPassed) {
+      // 公開日が未来
+      btnShiftView.disabled = true;
+      btnShiftView.style.opacity = '0.5';
+      btnShiftView.style.cursor  = 'default';
+      btnShiftView.onclick = null;
+      btnShiftViewTxt.textContent = 'シフト表を見る（公開日: ' + ed['シフト公開'] + '）';
+      btnShiftViewTxt.style.fontSize = '';
+    } else {
+      // 公開済み
+      btnShiftView.disabled = false;
+      btnShiftView.style.opacity = '';
+      btnShiftView.style.cursor  = '';
+      btnShiftView.onclick = () => showScreen('shift');
+      btnShiftViewTxt.textContent = 'シフト表を見る';
+      btnShiftViewTxt.style.fontSize = '';
+    }
+  }
+
+  // ── 要望ボタン：管理者は非表示 ──
+  const btnRequest = document.getElementById('btn-request');
+  if (btnRequest) btnRequest.style.display = isOwner ? 'none' : '';
+
+  // ── 受付状況 ──
+  const sv = document.getElementById('status-value');
+  const sd = document.getElementById('status-dates');
+  sv.className = 'status-value';
+  sv.style.color = '';
 
   if (isDeadlineToday) {
     sv.textContent = '🔒 締切日';
@@ -1342,29 +1417,26 @@ function buildMainScreen() {
   } else if (status === '受付中') {
     sv.textContent = '✅ 受付中';
     sv.classList.add('status-open');
-    sv.style.color = '';
     sd.innerHTML = '申込開始: ' + (ed['申込開始'] || '-') + '&nbsp;&nbsp;締切: <span class="deadline-red">' + (ed['締切'] || '-') + '</span>';
   } else if (status === '準備中') {
     sv.textContent = '⏳ 受付準備中';
     sv.classList.add('status-prep');
-    sv.style.color = '';
     sd.textContent = ed['申込開始'] ? '申込開始: ' + ed['申込開始'] : '';
   } else {
     sv.textContent = '🔒 受付終了';
     sv.classList.add('status-closed');
-    sv.style.color = '';
     sd.textContent = '';
   }
 
-  // カレンダー描画（シフト希望当月を初期表示）
+  // ── カレンダー（シフト当月を初期表示）──
   calDisplayYear  = YEAR  || today.getFullYear();
   calDisplayMonth = MONTH || today.getMonth() + 1;
   buildCalendar();
 
-  // 次のシフト表示
+  // ── 次のシフト ──
   buildNextShift();
 
-  // お知らせ
+  // ── お知らせ ──
   const notices = APP_DATA.notices || [];
   if (notices.length > 0) {
     const nc = document.getElementById('notices-container');
@@ -1562,7 +1634,7 @@ function initFormScreen() {
   isCartUser      = SESSION.isCart;
   lastMonthOn     = false;
   document.getElementById('toggle-track').classList.remove('on');
-  document.title = 'PW';
+  document.title = 'PWアプリ';
 
   // 代理送信
   const proxyArea = document.getElementById('proxy-area');

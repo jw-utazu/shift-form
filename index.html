@@ -927,6 +927,8 @@ function showScreen(name) {
     const el = document.getElementById('screen-' + s);
     el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
   });
+  if (name === 'form')  initFormScreen();
+  if (name === 'shift') initShiftScreen();
 }
 
 // ===== sessionStorage =====
@@ -1669,13 +1671,7 @@ async function submitRequest() {
   }
 }
 
-// ===== 画面遷移フック（initFormScreen / initShiftScreen の呼び出し） =====
-const _showScreenBase = showScreen;
-function showScreen(name) {
-  _showScreenBase(name);
-  if (name === 'form')  initFormScreen();
-  if (name === 'shift') initShiftScreen();
-}
+
 
 // ===== エスケープ =====
 function esc(s) {

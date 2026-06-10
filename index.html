@@ -348,7 +348,10 @@ body {
 .cal-day.apply-day { background: #d1fae5; color: var(--green-dark); }
 .cal-day.deadline  { background: #fee2e2; color: var(--danger-dark); }
 .cal-day.open-day  { background: #eff6ff; color: #1d4ed8; }
-.cal-day.shift-day { font-weight: 700; }
+.cal-day.shift-day { background: #ede9fe; color: #6d28d9; font-weight: 700; cursor: pointer; }
+.cal-day.shift-day:active { background: #ddd6fe; }
+.cal-day.shift-day.selected { background: #7c3aed; color: #fff; }
+.cal-day.shift-day.selected .today-circle { background: #fff; color: #7c3aed; }
 /* today: 日付数字をspan.today-circleで囲んで真円表示 */
 .today-circle {
   display: inline-flex;
@@ -370,12 +373,13 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green);
+  background: #7c3aed;
 }
 .cal-badge.my-shift { background: #f59e0b; }
 .cal-sub { font-size: 10px; opacity: .8; margin-top: 1px; }
+.cal-count { font-size: 10px; margin-top: 2px; opacity: .85; }
 
-/* 申込期間バー */
+/* 申込期間バー（オレンジ） */
 .cal-period-bar {
   position: absolute;
   bottom: 4px;
@@ -384,10 +388,31 @@ body {
   height: 4px;
   border-radius: 2px;
 }
-.cal-period-bar.apply-bar  { background: #16a34a; }
-.cal-period-bar.apply-bar.bar-start { left: 50%; border-radius: 2px 2px 2px 2px; }
+.cal-period-bar.apply-bar  { background: #f97316; }
+.cal-period-bar.apply-bar.bar-start { left: 50%; }
 .cal-period-bar.apply-bar.bar-end   { right: 50%; }
 .cal-period-bar.apply-bar.bar-mid   { border-radius: 0; }
+
+/* 実施日時間帯ボックス */
+#shift-time-box {
+  display: none;
+  margin-top: 10px;
+  background: #f5f3ff;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+#shift-time-box.show { display: block; }
+.shift-time-box-date {
+  font-size: 14px; font-weight: 700; color: #6d28d9; margin-bottom: 8px;
+}
+.shift-time-item {
+  font-size: 14px; color: #4c1d95;
+  padding: 5px 0;
+  border-bottom: 1px solid #ddd6fe;
+  display: flex; align-items: center; gap: 6px;
+}
+.shift-time-item:last-child { border-bottom: none; }
 
 /* お知らせ */
 .notice-item {
@@ -854,9 +879,15 @@ body {
         <button class="cal-nav-btn" onclick="calNavMonth(1)">今月 ›</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
+      <!-- 実施日クリック時の時間帯ボックス -->
+      <div id="shift-time-box">
+        <div class="shift-time-box-date" id="shift-time-box-date"></div>
+        <div id="shift-time-box-list"></div>
+      </div>
       <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--amber);display:inline-block;"></span>自分のシフト</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;"></span>実施日</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:#ede9fe;border:1px solid #c4b5fd;display:inline-block;"></span>実施日</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>自分のシフト</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;border-radius:2px;background:#f97316;display:inline-block;"></span>申込期間</span>
       </div>
     </div>
 
@@ -1049,6 +1080,7 @@ let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, i
 let APP_DATA     = null; // GASから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
+let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;
 let currentFormName = '';
@@ -1296,7 +1328,7 @@ function closeProfilePopup() {
 // ===== ログアウト =====
 function logout() {
   clearSession();
-  SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = [];
+  SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
@@ -1322,6 +1354,14 @@ async function initApp() {
     YEAR        = formData.year  || 0;
     MONTH       = formData.month || 0;
     SHIFT_DATES = formData.shiftDates || []; // 実施日一覧（'m/d'形式）
+
+    // 実施日→時間帯マップを構築（GASのshiftSlotsを使用）
+    SHIFT_DATES_MAP = {};
+    (formData.shiftSlots || []).forEach(s => {
+      const key = s.m + '_' + s.d;
+      if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
+      if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
+    });
     hideLoading();
     try {
       buildMainScreen();
@@ -1390,25 +1430,25 @@ function buildMainScreen() {
     }
   }
 
-  // ── シフト表ボタン：公開日以降のみ有効、未設定はグレーアウト＋文言変更 ──
+  // ── シフト表ボタン：公開予定日以降のみ有効、未設定はグレーアウト＋文言変更 ──
   const btnShiftView    = document.getElementById('btn-shift-view');
   const btnShiftViewTxt = document.getElementById('btn-shift-view-txt');
   if (btnShiftView && btnShiftViewTxt) {
     if (!isOpenDateSet) {
-      // 公開日未設定
+      // 公開予定日未設定
       btnShiftView.disabled = true;
       btnShiftView.style.opacity = '0.5';
       btnShiftView.style.cursor  = 'default';
       btnShiftView.onclick = null;
-      btnShiftViewTxt.textContent = '現在公開日は未定です。区域係に問い合わせてください';
+      btnShiftViewTxt.textContent = '現在公開予定日は未定です。区域係に問い合わせてください';
       btnShiftViewTxt.style.fontSize = '13px';
     } else if (!isOpenPassed) {
-      // 公開日が未来
+      // 公開予定日が未来
       btnShiftView.disabled = true;
       btnShiftView.style.opacity = '0.5';
       btnShiftView.style.cursor  = 'default';
       btnShiftView.onclick = null;
-      btnShiftViewTxt.textContent = 'シフト表を見る（公開日: ' + ed['シフト公開'] + '）';
+      btnShiftViewTxt.textContent = 'シフト表を見る（公開予定日: ' + ed['シフト公開'] + '）';
       btnShiftViewTxt.style.fontSize = '';
     } else {
       // 公開済み
@@ -1508,6 +1548,10 @@ function calNavMonth(delta) {
 
   calDisplayYear  = newY;
   calDisplayMonth = newM;
+  // 月移動時に時間帯ボックスを閉じる
+  _selectedShiftKey = null;
+  const box = document.getElementById('shift-time-box');
+  if (box) box.classList.remove('show');
   buildCalendar();
 }
 
@@ -1630,16 +1674,22 @@ function buildCalendar() {
       }
       dayLabel.textContent = day;
 
-      // サブラベル（申込/締切/公開）
-      const hasSub = isApply ? '申込' : isDeadline ? '締切' : isOpen ? '公開' : '';
+      // 実施日かどうか（サブラベルより先に判定）
+      const key      = dispM + '_' + day;
+      const isShift  = shiftDays.has(key);
+
+      // サブラベル：実施日優先、次に申込/締切/公開予定
+      const hasSub = isShift ? null  // 実施日は件数をcal-countで別途表示
+                   : isApply    ? '申込'
+                   : isDeadline ? '締切'
+                   : isOpen     ? '公開予定'
+                   : '';
+      el.appendChild(dayLabel);
       if (hasSub) {
-        el.appendChild(dayLabel);
         const sub = document.createElement('span');
         sub.className   = 'cal-sub';
         sub.textContent = hasSub;
         el.appendChild(sub);
-      } else {
-        el.appendChild(dayLabel);
       }
 
       // 申込期間バー（申込開始〜締切の期間中）
@@ -1647,7 +1697,7 @@ function buildCalendar() {
         const bar = document.createElement('div');
         bar.className = 'cal-period-bar apply-bar';
         if (thisT === applyStart && thisT === applyEnd) {
-          // 1日だけの場合
+          // 1日だけの場合（バー全幅）
         } else if (thisT === applyStart) {
           bar.classList.add('bar-start');
         } else if (thisT === applyEnd) {
@@ -1658,17 +1708,78 @@ function buildCalendar() {
         el.appendChild(bar);
       }
 
-      // 実施日バッジ
-      const key = dispM + '_' + day;
-      if (shiftDays.has(key)) {
+      // 実施日：件数表示＋クリックイベント
+      if (isShift) {
         el.classList.add('shift-day');
-        const badge = document.createElement('div');
-        badge.className = myShiftDays.has(key) ? 'cal-badge my-shift' : 'cal-badge';
-        el.appendChild(badge);
+
+        // 件数（SHIFT_DATESから同日のスロット数を算出）
+        const count = (SHIFT_DATES_MAP[key] || []).length;
+        if (count > 0) {
+          const countEl = document.createElement('span');
+          countEl.className   = 'cal-count';
+          countEl.textContent = count + '件';
+          el.appendChild(countEl);
+        }
+
+        // 自分のシフトバッジ
+        if (myShiftDays.has(key)) {
+          const badge = document.createElement('div');
+          badge.className = 'cal-badge my-shift';
+          el.appendChild(badge);
+        }
+
+        // クリックで時間帯ボックスを表示/非表示
+        el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day));
       }
     }
     grid.appendChild(el);
   }
+}
+
+// ===== カレンダー実施日クリック：時間帯ボックス表示 =====
+let _selectedShiftKey = null;
+
+function toggleShiftTimeBox(key, y, m, d) {
+  const box      = document.getElementById('shift-time-box');
+  const boxDate  = document.getElementById('shift-time-box-date');
+  const boxList  = document.getElementById('shift-time-box-list');
+
+  // 同じセルを再クリックで閉じる
+  if (_selectedShiftKey === key) {
+    _selectedShiftKey = null;
+    box.classList.remove('show');
+    // 選択状態を解除
+    document.querySelectorAll('.cal-day.shift-day.selected').forEach(el => el.classList.remove('selected'));
+    return;
+  }
+
+  _selectedShiftKey = key;
+
+  // 選択状態の更新
+  document.querySelectorAll('.cal-day.shift-day.selected').forEach(el => el.classList.remove('selected'));
+  // クリックされたセルにselectedを付与（イベントのターゲット経由で探す）
+  document.querySelectorAll('.cal-day.shift-day').forEach(el => {
+    const dayEl = el.querySelector('span');
+    if (dayEl && parseInt(dayEl.textContent) === d) el.classList.add('selected');
+  });
+
+  const DAY_NAMES = ['日','月','火','水','木','金','土'];
+  const dt = new Date(y, m - 1, d);
+  boxDate.textContent = m + '月' + d + '日（' + DAY_NAMES[dt.getDay()] + '）の時間帯';
+
+  const times = SHIFT_DATES_MAP[key] || [];
+  boxList.innerHTML = '';
+  if (times.length === 0) {
+    boxList.innerHTML = '<div class="shift-time-item">時間帯情報がありません</div>';
+  } else {
+    times.forEach(t => {
+      const item = document.createElement('div');
+      item.className   = 'shift-time-item';
+      item.innerHTML   = '🕐 ' + esc(t);
+      boxList.appendChild(item);
+    });
+  }
+  box.classList.add('show');
 }
 
 function isMyCellInDate(dateObj) {

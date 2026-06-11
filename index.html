@@ -1336,6 +1336,12 @@ async function onGoogleCredential(response) {
   }
 }
 
+// テストアカウント（自動ログイン・セッション保存を行わないアカウント）
+const TEST_ACCOUNTS = ['jw.utazu.test@gmail.com'];
+function isTestAccount(email) {
+  return TEST_ACCOUNTS.includes((email || '').toLowerCase());
+}
+
 async function handleGASAuth(email, token, displayName, picture) {
   showLoading('認証中...');
   try {
@@ -1348,6 +1354,22 @@ async function handleGASAuth(email, token, displayName, picture) {
       } else {
         showLoginError('認証エラーが発生しました: ' + (data.reason || ''));
       }
+      return;
+    }
+
+    // テストアカウントは常に初回登録画面を表示（セッション保存しない）
+    // getMemberList でメール未紐づけのメンバーを取得して登録画面を表示する
+    if (isTestAccount(email)) {
+      let members = [];
+      try {
+        const listData = await gasJsonp('getMemberList', null, {});
+        if (listData.ok && listData.members) {
+          members = listData.members
+            .filter(m => !m.email)
+            .map(m => ({ name: m.name, furigana: m.furigana, gender: m.gender }));
+        }
+      } catch (_) {}
+      buildRegisterScreen(members, email, token, displayName, picture || '');
       return;
     }
 
@@ -1403,6 +1425,28 @@ async function doRegister() {
   if (!name) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = '登録中...';
+
+  // テストアカウントは実際の登録処理をスキップし、authデータを再取得して遷移
+  if (isTestAccount(email)) {
+    try {
+      const data = await gasJsonp('auth', null, { source: 'form', email });
+      if (!data.ok) throw new Error('認証に失敗しました');
+      SESSION = {
+        uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
+        isAdmin: data.isAdmin, isResponsible: data.isResponsible,
+        isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+        picture: sel.dataset.picture || ''
+      };
+      // テストアカウントはセッションを保存しない
+      await initApp();
+    } catch (e) {
+      const msg = document.getElementById('register-msg');
+      msg.className = 'msg error';
+      msg.textContent = '⚠️ ' + e.message;
+      btn.disabled = false; btn.textContent = '登録する';
+    }
+    return;
+  }
   try {
     const data = await gasJsonp('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
@@ -2540,6 +2584,12 @@ function esc(s) {
   // セッション復元を試みる
   const saved = loadSession();
   if (saved && saved.email) {
+    // テストアカウントのセッションが残っていた場合は削除してログイン画面へ
+    if (isTestAccount(saved.email)) {
+      clearSession();
+      showScreen('login');
+      return;
+    }
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');

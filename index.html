@@ -201,7 +201,7 @@ body {
 }
 .login-err.show { display: block; }
 #loading-overlay {
-  display: none;
+  display: flex;
   position: fixed;
   inset: 0;
   background: rgba(255,255,255,0.85);
@@ -212,8 +212,14 @@ body {
   gap: 14px;
   font-size: 16px;
   color: var(--sub);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
-#loading-overlay.show { display: flex; }
+#loading-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
 #loading-progress-wrap {
   display: flex;
   align-items: center;
@@ -1337,14 +1343,15 @@ function showLoading(msg) {
 }
 
 function hideLoading() {
-  // 100%に一瞬ジャンプしてから非表示
   _setProgress(100);
   clearInterval(_progressTimer);
   _progressTimer = null;
+  // 100%を見せてから400ms後にフェードアウト開始（transitionが0.4s）
   setTimeout(() => {
     document.getElementById('loading-overlay').classList.remove('show');
-    _setProgress(0);
-  }, 250);
+    // フェードアウト完了後にプログレスをリセット
+    setTimeout(() => { _setProgress(0); }, 400);
+  }, 400);
 }
 
 function _setProgress(pct) {

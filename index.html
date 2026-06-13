@@ -2178,10 +2178,18 @@ function initFormState(uid) {
   if (LAST_MONTH[uid]) {
     SLOTS.forEach(slot => {
       const sk = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
-      if (LAST_MONTH[uid][sk]) {
+      const entry = LAST_MONTH[uid][sk];
+      if (entry && entry.checked) {
         const gk = slot.week + ' ' + slot.dateLabel;
         if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
         formState.checkedMap[gk].add(slot.time);
+        const comment = entry.comment || '';
+        if (comment.includes('カート不可')) {
+          if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set();
+          formState.cartNgMap[gk].add(slot.time);
+        }
+        const noteContent = comment.replace('カート不可', '').trim();
+        if (noteContent) formState.noteMap[sk] = noteContent;
       }
     });
   }
@@ -2265,11 +2273,19 @@ function toggleLastMonth() {
     track.classList.add('on');
     if (LAST_MONTH[currentFormUid]) {
       SLOTS.forEach(slot => {
-        const sk = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
-        if (LAST_MONTH[currentFormUid][sk]) {
+        const sk    = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
+        const entry = LAST_MONTH[currentFormUid][sk];
+        if (entry && entry.checked) {
           const gk = slot.week + ' ' + slot.dateLabel;
           if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
           formState.checkedMap[gk].add(slot.time);
+          const comment = entry.comment || '';
+          if (comment.includes('カート不可')) {
+            if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set();
+            formState.cartNgMap[gk].add(slot.time);
+          }
+          const noteContent = comment.replace('カート不可', '').trim();
+          if (noteContent) formState.noteMap[sk] = noteContent;
         }
       });
     }
@@ -2289,7 +2305,8 @@ async function submitForm() {
   const payload = {
     uid:  currentFormUid,
     name: currentFormName,
-    checkedMap: cm, cartNgMap: ng, noteMap: Object.assign({}, formState.noteMap)
+    checkedMap: cm, cartNgMap: ng, noteMap: Object.assign({}, formState.noteMap),
+    proxyFromUid: (currentFormUid !== SESSION.uid) ? SESSION.uid : ''
   };
   try {
     const result = await gasJsonp('submitShift', payload);

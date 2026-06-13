@@ -1271,6 +1271,7 @@ let isCartUser = false;
 let lastMonthOn = false;
 const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
 let deferredPrompt = null;
+let shouldShowOneTap = false; // セッションなしの時だけtrueにしてOne Tapを表示
 let shiftViewingDate = null; // 現在表示中のシフト日付
 
 // ===== PWA =====
@@ -1349,8 +1350,10 @@ function initGoogleLogin() {
         locale: 'ja',
       });
     }
-    // One Tapも試みる（サポートされている環境のみ）
-    google.accounts.id.prompt();
+    // One Tap：セッションなし（未ログイン）の時だけ表示
+    if (shouldShowOneTap) {
+      google.accounts.id.prompt();
+    }
   } catch (e) {
     // GISが未ロードなら何もしない（ボタンはHTMLに既にある）
     console.warn('GIS init error:', e);
@@ -1401,6 +1404,9 @@ async function handleGASAuth(email, token, displayName, picture) {
       picture: picture || ''
     };
     saveSession(SESSION);
+    // One Tapが表示中なら閉じる
+    shouldShowOneTap = false;
+    try { google.accounts.id.cancel(); } catch(_) {}
     await initApp();
   } catch (e) {
     hideLoading();
@@ -1515,7 +1521,8 @@ function logout() {
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
-  // ボタンを再描画
+  // ログアウト後はOne Tapを表示してよい状態にしてからGISを再初期化
+  shouldShowOneTap = true;
   setTimeout(() => {
     try { initGoogleLogin(); } catch(_) {}
   }, 100);
@@ -2701,7 +2708,14 @@ function esc(s) {
     await initApp();
     return;
   }
-  // 未ログイン
+  // 未ログイン：One Tapを許可してからログイン画面を表示
+  shouldShowOneTap = true;
+  // GISがすでに初期化済みなら直接prompt()を呼ぶ
+  try {
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt();
+    }
+  } catch(_) {}
   showScreen('login');
 })();
 </script>

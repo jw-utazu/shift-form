@@ -214,6 +214,36 @@ body {
   color: var(--sub);
 }
 #loading-overlay.show { display: flex; }
+#loading-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 220px;
+  position: absolute;
+  bottom: 20vh;
+}
+#loading-progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--green-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+#loading-progress-bar {
+  height: 8px;
+  width: 0%;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  flex: 1;
+}
+#loading-progress-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  min-width: 36px;
+  text-align: right;
+}
 .spinner {
   width: 40px; height: 40px;
   border: 4px solid var(--green-light);
@@ -946,6 +976,12 @@ body {
 <div id="loading-overlay">
   <div class="spinner"></div>
   <span id="loading-text">読み込み中...</span>
+  <div id="loading-progress-wrap">
+    <div id="loading-progress-bar-bg">
+      <div id="loading-progress-bar"></div>
+    </div>
+    <span id="loading-progress-pct">0%</span>
+  </div>
 </div>
 
 <!-- ===== ログイン画面 ===== -->
@@ -1288,13 +1324,47 @@ function installPWA() {
 
 
 // ===== ローディング =====
+let _progressTimer = null;
+
 function showLoading(msg) {
   const el = document.getElementById('loading-overlay');
   document.getElementById('loading-text').textContent = msg || '読み込み中...';
+  // プログレスバーをリセット
+  _setProgress(0);
   el.classList.add('show');
+  // 疑似プログレス：0%→80%を約4秒かけてアニメーション
+  _startProgress();
 }
+
 function hideLoading() {
-  document.getElementById('loading-overlay').classList.remove('show');
+  // 100%に一瞬ジャンプしてから非表示
+  _setProgress(100);
+  clearInterval(_progressTimer);
+  _progressTimer = null;
+  setTimeout(() => {
+    document.getElementById('loading-overlay').classList.remove('show');
+    _setProgress(0);
+  }, 250);
+}
+
+function _setProgress(pct) {
+  const bar = document.getElementById('loading-progress-bar');
+  const txt = document.getElementById('loading-progress-pct');
+  if (bar) bar.style.width = pct + '%';
+  if (txt) txt.textContent = pct + '%';
+}
+
+function _startProgress() {
+  clearInterval(_progressTimer);
+  let current = 0;
+  // 目標80%まで段階的に増加（増加量は残り量に比例してだんだん遅くなる）
+  _progressTimer = setInterval(() => {
+    if (current >= 80) { clearInterval(_progressTimer); return; }
+    const remaining = 80 - current;
+    const step = Math.max(0.5, remaining * 0.04);
+    current = Math.min(80, current + step);
+    _setProgress(Math.round(current));
+  }, 100);
 }
 
 // ===== 画面切替 =====
@@ -1313,8 +1383,51 @@ function showScreen(name) {
     const el = document.getElementById('screen-' + s);
     el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
   });
-  if (name === 'form')  initFormScreen();
-  if (name === 'shift') initShiftScreen();
+  if (name === 'form')  _showFormScreen();
+  if (name === 'shift') _showShiftScreen();
+}
+
+// フォーム画面：SLOTSが未取得なら getFormDetail を取得してから表示
+async function _showFormScreen() {
+  if (SLOTS && SLOTS.length > 0) {
+    // キャッシュ済み → 即表示
+    initFormScreen();
+    return;
+  }
+  showLoading('フォームデータを読み込み中...');
+  try {
+    const detail = await gasJsonp('getFormDetail');
+    SLOTS      = detail.slots      || [];
+    LAST_MONTH = detail.lastMonthData || {};
+    // thisMonthDataはdataMini取得済みだが、getFormDetailが最新値を返すので上書き
+    if (detail.thisMonthData) THIS_MONTH = detail.thisMonthData;
+    // staffJSONをAPP_DATAに統合
+    if (APP_DATA) APP_DATA.staffJSON = detail.staffJSON || [];
+    hideLoading();
+    initFormScreen();
+  } catch (e) {
+    hideLoading();
+    alert('フォームデータの読み込みに失敗しました: ' + e.message);
+  }
+}
+
+// シフト表画面：SHIFT_DATAが未取得なら getShiftTable を取得してから表示
+async function _showShiftScreen() {
+  if (SHIFT_DATA) {
+    // キャッシュ済み（BG取得済み含む）→ 即表示
+    initShiftScreen();
+    return;
+  }
+  showLoading('シフト表を読み込み中...');
+  try {
+    const shiftData = await gasJsonp('getShiftTable');
+    SHIFT_DATA = shiftData;
+    hideLoading();
+    initShiftScreen();
+  } catch (e) {
+    hideLoading();
+    alert('シフト表の読み込みに失敗しました: ' + e.message);
+  }
 }
 
 // ===== sessionStorage =====
@@ -1518,6 +1631,7 @@ function closeProfilePopup() {
 function logout() {
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
+  SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
@@ -1532,20 +1646,14 @@ function logout() {
 async function initApp() {
   showLoading('データを読み込み中...');
   try {
-    const [formData, shiftData] = await Promise.all([
-      gasJsonp('data'),
-      gasJsonp('getShiftTable')
-    ]);
+    const formData = await gasJsonp('dataMini');
     APP_DATA    = formData;
-    SHIFT_DATA  = shiftData;
-    SLOTS       = formData.slots || [];
-    LAST_MONTH  = formData.lastMonthData || {};
+    SLOTS       = [];           // フォーム画面を開いたときに取得
+    LAST_MONTH  = {};           // フォーム画面を開いたときに取得
     THIS_MONTH  = formData.thisMonthData || {};
     YEAR        = formData.year  || 0;
     MONTH       = formData.month || 0;
-    SHIFT_DATES = formData.shiftDates || []; // 実施日一覧（'m/d'形式）
-
-    // 実施日→時間帯マップを構築（GASのshiftSlotsを使用）
+    SHIFT_DATES = formData.shiftDates || [];
     SHIFT_DATES_MAP = {};
     (formData.shiftSlots || []).forEach(s => {
       const key = s.m + '_' + s.d;
@@ -1561,10 +1669,52 @@ async function initApp() {
       return;
     }
     showScreen('main');
+
+    // シフト公開済みならバックグラウンドでgetShiftTableを取得
+    const today = new Date(); today.setHours(0,0,0,0);
+    const ed = formData.eventDates || {};
+    const openStr = ed['シフト公開'];
+    if (openStr) {
+      const p = openStr.split('/');
+      if (p.length === 2) {
+        const openD = new Date(YEAR || today.getFullYear(), parseInt(p[0]) - 1, parseInt(p[1]));
+        if (openD.getTime() <= today.getTime()) {
+          _fetchShiftTableBackground();
+        }
+      }
+    }
   } catch (e) {
     hideLoading();
     console.error('initApp error:', e);
     alert('データの読み込みに失敗しました: ' + e.message);
+  }
+}
+
+// バックグラウンドでシフト表を取得し、完了後にメイン画面の関連部分を更新
+async function _fetchShiftTableBackground() {
+  try {
+    const shiftData = await gasJsonp('getShiftTable');
+    SHIFT_DATA = shiftData;
+    // メイン画面が表示中なら次のシフトと確定シフト一覧を再描画
+    const mainEl = document.getElementById('screen-main');
+    if (mainEl && mainEl.style.display !== 'none') {
+      buildNextShift();
+      const today2 = new Date(); today2.setHours(0,0,0,0);
+      const ed2 = APP_DATA ? (APP_DATA.eventDates || {}) : {};
+      const openStr2 = ed2['シフト公開'];
+      let isOpenPassed2 = false;
+      if (openStr2) {
+        const p2 = openStr2.split('/');
+        if (p2.length === 2) {
+          const openD2 = new Date(YEAR || today2.getFullYear(), parseInt(p2[0]) - 1, parseInt(p2[1]));
+          isOpenPassed2 = openD2.getTime() <= today2.getTime();
+        }
+      }
+      buildWishListBox(APP_DATA ? (APP_DATA.status || '準備中') : '準備中', isOpenPassed2);
+    }
+  } catch (e) {
+    // バックグラウンド取得失敗は無視（シフト表ボタン押下時に再取得される）
+    console.warn('BG getShiftTable failed:', e.message);
   }
 }
 
@@ -2064,6 +2214,10 @@ function buildWishListBox(status, isOpenPassed) {
 
   // 希望スロット一覧
   let items = [];
+  if (SLOTS.length === 0) {
+    // SLOTS未取得時はスロット詳細なしで表示
+    items.push('<div style="font-size:14px;color:var(--sub);padding:6px 0;">（詳細はシフト希望フォームを開くと表示されます）</div>');
+  } else {
   SLOTS.forEach(slot => {
     const gk = slot.week + ' ' + slot.dateLabel;
     const checked = myData.checkedMap[gk] && myData.checkedMap[gk].includes(slot.time);
@@ -2080,6 +2234,7 @@ function buildWishListBox(status, isOpenPassed) {
       badges + '</div>'
     );
   });
+  }
 
   let editBtn = '';
   if (status === '受付中') {

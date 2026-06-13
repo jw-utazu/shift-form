@@ -2076,7 +2076,7 @@ function buildWishListBox(status, isOpenPassed) {
 
   let editBtn = '';
   if (status === '受付中') {
-    editBtn = '<button onclick="showScreen('form')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
+    editBtn = '<button onclick="showScreen(\'form\')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
   }
 
   body.innerHTML = tsHtml + (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') + editBtn;

@@ -214,7 +214,7 @@ body {
   color: var(--sub);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.6s ease;
 }
 #loading-overlay.show {
   opacity: 1;
@@ -1346,12 +1346,12 @@ function hideLoading() {
   _setProgress(100);
   clearInterval(_progressTimer);
   _progressTimer = null;
-  // 100%を見せてから400ms後にフェードアウト開始（transitionが0.4s）
+  // 100%を見せてから600ms後にフェードアウト開始（transitionが0.6s）
   setTimeout(() => {
     document.getElementById('loading-overlay').classList.remove('show');
     // フェードアウト完了後にプログレスをリセット
-    setTimeout(() => { _setProgress(0); }, 400);
-  }, 400);
+    setTimeout(() => { _setProgress(0); }, 600);
+  }, 600);
 }
 
 function _setProgress(pct) {
@@ -1651,7 +1651,13 @@ function logout() {
 
 // ===== アプリ初期化 =====
 async function initApp() {
-  showLoading('データを読み込み中...');
+  // すでにローディング中（auth引き継ぎ）の場合はメッセージだけ更新、そうでなければ新規表示
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay && overlay.classList.contains('show')) {
+    document.getElementById('loading-text').textContent = 'データを読み込み中...';
+  } else {
+    showLoading('データを読み込み中...');
+  }
   try {
     const formData = await gasJsonp('dataMini');
     APP_DATA    = formData;
@@ -2872,8 +2878,8 @@ function esc(s) {
     showLoading('認証中...');
     try {
       const data = await gasJsonp('auth', null, { source: 'form', email: saved.email });
-      hideLoading();
       if (!data.ok) {
+        hideLoading();
         clearSession();
         shouldShowOneTap = true;
         try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
@@ -2881,6 +2887,7 @@ function esc(s) {
         return;
       }
       if (data.needsRegister) {
+        hideLoading();
         buildRegisterScreen(data.members || [], saved.email, saved.token || '', '', saved.picture || '');
         return;
       }
@@ -2890,6 +2897,7 @@ function esc(s) {
         isCart: data.isCart, proxyTargets: data.proxyTargets || [],
         picture: saved.picture || ''
       };
+      // hideLoadingせずそのままinitAppへ（ローディングはinitApp内で引き継ぎ）
       await initApp();
       return;
     } catch(e) {

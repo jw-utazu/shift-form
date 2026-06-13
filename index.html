@@ -1330,28 +1330,63 @@ function installPWA() {
 
 
 // ===== ローディング =====
-let _progressTimer = null;
+let _progressTimer  = null;
+let _progressCurrent = 0;
+let _hideResolve    = null; // hideLoading()が呼ばれたときに解決するPromise
 
 function showLoading(msg) {
   const el = document.getElementById('loading-overlay');
   document.getElementById('loading-text').textContent = msg || '読み込み中...';
-  // プログレスバーをリセット
-  _setProgress(0);
-  el.classList.add('show');
-  // 疑似プログレス：0%→80%を約4秒かけてアニメーション
-  _startProgress();
+  if (!el.classList.contains('show')) {
+    // 新規表示のときだけリセットして疑似プログレス開始
+    _progressCurrent = 0;
+    _setProgress(0);
+    el.classList.add('show');
+    _startProgress();
+  } else {
+    // すでに表示中はメッセージだけ更新（プログレスはそのまま継続）
+  }
 }
 
+// hideLoading()はPromiseを返す。await hideLoading()で完全消滅を待てる
 function hideLoading() {
-  _setProgress(100);
-  clearInterval(_progressTimer);
-  _progressTimer = null;
-  // 100%を見せてから600ms後にフェードアウト開始（transitionが0.6s）
-  setTimeout(() => {
-    document.getElementById('loading-overlay').classList.remove('show');
-    // フェードアウト完了後にプログレスをリセット
-    setTimeout(() => { _setProgress(0); }, 600);
-  }, 600);
+  return new Promise(resolve => {
+    clearInterval(_progressTimer);
+    _progressTimer = null;
+    // 現在値から100%までゆっくり上げてからフェードアウト
+    _animateTo100(() => {
+      setTimeout(() => {
+        document.getElementById('loading-overlay').classList.remove('show');
+        setTimeout(() => {
+          _setProgress(0);
+          _progressCurrent = 0;
+          resolve();
+        }, 600);
+      }, 600); // 100%表示後600ms待機
+    });
+  });
+}
+
+// 現在値→100%までアニメーション（約600msかけて滑らかに）
+function _animateTo100(callback) {
+  const startPct  = _progressCurrent;
+  const startTime = performance.now();
+  const duration  = 600; // ms
+  function step(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // easeOutCubic
+    const eased = 1 - Math.pow(1 - t, 3);
+    const pct = Math.round(startPct + (100 - startPct) * eased);
+    _setProgress(pct);
+    _progressCurrent = pct;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      if (callback) callback();
+    }
+  }
+  requestAnimationFrame(step);
 }
 
 function _setProgress(pct) {
@@ -1363,15 +1398,17 @@ function _setProgress(pct) {
 
 function _startProgress() {
   clearInterval(_progressTimer);
-  let current = 0;
-  // 目標80%まで段階的に増加（増加量は残り量に比例してだんだん遅くなる）
+  _progressCurrent = 0;
+  // 0%→80%をランダム性のある速度で進める
   _progressTimer = setInterval(() => {
-    if (current >= 80) { clearInterval(_progressTimer); return; }
-    const remaining = 80 - current;
-    const step = Math.max(0.5, remaining * 0.04);
-    current = Math.min(80, current + step);
-    _setProgress(Math.round(current));
-  }, 100);
+    if (_progressCurrent >= 80) { clearInterval(_progressTimer); return; }
+    const remaining = 80 - _progressCurrent;
+    // ランダム係数（0.02〜0.07）で速度にばらつきを持たせる
+    const randFactor = 0.02 + Math.random() * 0.05;
+    const step = Math.max(0.3, remaining * randFactor);
+    _progressCurrent = Math.min(80, _progressCurrent + step);
+    _setProgress(Math.round(_progressCurrent));
+  }, 120);
 }
 
 // ===== 画面切替 =====
@@ -1410,7 +1447,7 @@ async function _showFormScreen() {
     if (detail.thisMonthData) THIS_MONTH = detail.thisMonthData;
     // staffJSONをAPP_DATAに統合
     if (APP_DATA) APP_DATA.staffJSON = detail.staffJSON || [];
-    hideLoading();
+    await hideLoading();
     initFormScreen();
   } catch (e) {
     hideLoading();
@@ -1429,7 +1466,7 @@ async function _showShiftScreen() {
   try {
     const shiftData = await gasJsonp('getShiftTable');
     SHIFT_DATA = shiftData;
-    hideLoading();
+    await hideLoading();
     initShiftScreen();
   } catch (e) {
     hideLoading();
@@ -1652,12 +1689,7 @@ function logout() {
 // ===== アプリ初期化 =====
 async function initApp() {
   // すでにローディング中（auth引き継ぎ）の場合はメッセージだけ更新、そうでなければ新規表示
-  const overlay = document.getElementById('loading-overlay');
-  if (overlay && overlay.classList.contains('show')) {
-    document.getElementById('loading-text').textContent = 'データを読み込み中...';
-  } else {
-    showLoading('データを読み込み中...');
-  }
+  showLoading('データを読み込み中...');
   try {
     const formData = await gasJsonp('dataMini');
     APP_DATA    = formData;
@@ -1673,14 +1705,16 @@ async function initApp() {
       if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
       if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
     });
-    hideLoading();
+    // メイン画面を先に構築してからフェードアウト完了を待って表示
     try {
       buildMainScreen();
     } catch (buildErr) {
       console.error('buildMainScreen error:', buildErr);
+      await hideLoading();
       alert('画面の構築に失敗しました: ' + buildErr.message);
       return;
     }
+    await hideLoading();
     showScreen('main');
 
     // シフト公開済みならバックグラウンドでgetShiftTableを取得

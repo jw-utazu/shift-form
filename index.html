@@ -1107,7 +1107,7 @@ body {
 
     <!-- 代理送信 -->
     <div class="proxy-sel" id="proxy-area" style="display:none;">
-      <label>📤 代理送信</label>
+      <label for="sel-proxy">📤 代理送信</label>
       <select id="sel-proxy" onchange="onProxyChange()">
         <option value="">自分（<span id="proxy-my-name"></span>）</option>
       </select>
@@ -1403,7 +1403,7 @@ async function handleGASAuth(email, token, displayName, picture) {
       isCart: data.isCart, proxyTargets: data.proxyTargets || [],
       picture: picture || ''
     };
-    saveSession(SESSION);
+    saveSession({ email, token, picture: picture || '' });
     // One Tapが表示中なら閉じる
     shouldShowOneTap = false;
     try { google.accounts.id.cancel(); } catch(_) {}
@@ -1454,7 +1454,7 @@ async function doRegister() {
       isCart: data.isCart, proxyTargets: data.proxyTargets || [],
       picture: sel.dataset.picture || ''
     };
-    saveSession(SESSION);
+    saveSession({ email, token: sel.dataset.token, picture: sel.dataset.picture || '' });
     await initApp();
   } catch (e) {
     const msg = document.getElementById('register-msg');
@@ -2136,7 +2136,7 @@ function initFormScreen() {
       opt.dataset.name = member.name;
       proxySel.appendChild(opt);
     });
-    proxyArea.style.display = '';
+    proxyArea.style.display = 'block';
   } else {
     proxyArea.style.display = 'none';
   }
@@ -2145,7 +2145,7 @@ function initFormScreen() {
   renderSlots(currentFormUid);
 
   const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
-  document.getElementById('last-month-card').style.display = hasLast ? '' : 'none';
+  document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
   document.getElementById('form-msg').innerHTML = '';
 }
 
@@ -2163,7 +2163,7 @@ function onProxyChange() {
   initFormState(currentFormUid);
   renderSlots(currentFormUid);
   const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
-  document.getElementById('last-month-card').style.display = hasLast ? '' : 'none';
+  document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
 }
 
 function initFormState(uid) {
@@ -2695,7 +2695,7 @@ function esc(s) {
 
 // ===== 起動処理 =====
 (async function init() {
-  // セッション復元を試みる
+  // セッション復元を試みる（email/tokenのみ保存、権限は毎回GASから再取得）
   const saved = loadSession();
   if (saved && saved.email) {
     if (saved.needsRegister) {
@@ -2703,10 +2703,39 @@ function esc(s) {
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
       return;
     }
-    // uid有り（一般メンバー）またはuid無し（管理者）どちらもセッション復元
-    SESSION = saved;
-    await initApp();
-    return;
+    // email+tokenがあればGASに再認証して最新データを取得
+    showLoading('認証中...');
+    try {
+      const data = await gasJsonp('auth', null, { source: 'form', email: saved.email });
+      hideLoading();
+      if (!data.ok) {
+        clearSession();
+        shouldShowOneTap = true;
+        try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
+        showScreen('login');
+        return;
+      }
+      if (data.needsRegister) {
+        buildRegisterScreen(data.members || [], saved.email, saved.token || '', '', saved.picture || '');
+        return;
+      }
+      SESSION = {
+        uid: data.uid, name: data.name, email: saved.email, token: saved.token,
+        isAdmin: data.isAdmin, isResponsible: data.isResponsible,
+        isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+        picture: saved.picture || ''
+      };
+      await initApp();
+      return;
+    } catch(e) {
+      hideLoading();
+      // 通信エラー時はログイン画面へ
+      clearSession();
+      shouldShowOneTap = true;
+      try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
+      showScreen('login');
+      return;
+    }
   }
   // 未ログイン：One Tapを許可してからログイン画面を表示
   shouldShowOneTap = true;

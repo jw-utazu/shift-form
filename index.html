@@ -1008,6 +1008,12 @@ body {
       <div class="status-closed-msg" id="status-closed-msg">⚠️ 希望の変更は区域係にご依頼ください</div>
     </div>
 
+    <!-- 希望一覧ボックス -->
+    <div class="card" id="wish-list-card" style="display:none;">
+      <div class="card-title" id="wish-list-title">📋 送信済みのシフト希望</div>
+      <div id="wish-list-body"></div>
+    </div>
+
     <!-- カレンダー -->
     <div class="card">
       <div class="card-title">🗓️ カレンダー</div>
@@ -1038,13 +1044,23 @@ body {
     <!-- ナビゲーション -->
     <div class="nav-buttons">
       <button class="btn-nav" id="btn-shift-form" onclick="showScreen('form')">
-        <span class="nav-icon">📝</span>
-        <span class="nav-txt">シフト希望を送る</span>
+        <span class="nav-icon" id="btn-shift-form-icon">📝</span>
+        <span class="nav-txt" id="btn-shift-form-txt">シフト希望を送る</span>
         <span class="nav-arr">›</span>
       </button>
       <button class="btn-nav" id="btn-shift-view" onclick="showScreen('shift')">
         <span class="nav-icon">📋</span>
         <span class="nav-txt" id="btn-shift-view-txt">シフト表を見る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-road-permit" onclick="openPhotoModal('road')">
+        <span class="nav-icon">🗺</span>
+        <span class="nav-txt">道路使用許可書を閲覧する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-accounting" onclick="openAccountingSheet()">
+        <span class="nav-icon">💰</span>
+        <span class="nav-txt">会計情報を閲覧する</span>
         <span class="nav-arr">›</span>
       </button>
       <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')">
@@ -1169,6 +1185,25 @@ body {
 </div>
 
 
+<!-- ===== 写真閲覧モーダル ===== -->
+<div id="photo-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;padding:0 12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:10px;">
+      <span id="photo-modal-title" style="color:#fff;font-size:16px;font-weight:700;"></span>
+      <button onclick="closePhotoModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="photo-modal-img-wrap" style="width:100%;display:flex;align-items:center;justify-content:center;min-height:200px;">
+      <div id="photo-modal-loading" style="color:#fff;font-size:14px;">読み込み中...</div>
+      <img id="photo-modal-img" src="" alt="" style="display:none;max-width:100%;max-height:70vh;border-radius:10px;object-fit:contain;">
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:14px;">
+      <button id="photo-prev-btn" onclick="photoNav(-1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:44px;height:44px;border-radius:50%;cursor:pointer;">‹</button>
+      <span id="photo-modal-counter" style="color:#fff;font-size:14px;min-width:60px;text-align:center;"></span>
+      <button id="photo-next-btn" onclick="photoNav(1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:44px;height:44px;border-radius:50%;cursor:pointer;">›</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== ヘルプモーダル ===== -->
 <div id="help-overlay" onclick="closeHelpOutside(event)">
   <div id="help-modal">
@@ -1231,6 +1266,7 @@ let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜1
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;
 let currentFormName = '';
+let currentFormUid  = '';
 let isCartUser = false;
 let lastMonthOn = false;
 const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
@@ -1336,12 +1372,6 @@ async function onGoogleCredential(response) {
   }
 }
 
-// テストアカウント（自動ログイン・セッション保存を行わないアカウント）
-const TEST_ACCOUNTS = ['jw.utazu.test@gmail.com'];
-function isTestAccount(email) {
-  return TEST_ACCOUNTS.includes((email || '').toLowerCase());
-}
-
 async function handleGASAuth(email, token, displayName, picture) {
   showLoading('認証中...');
   try {
@@ -1354,22 +1384,6 @@ async function handleGASAuth(email, token, displayName, picture) {
       } else {
         showLoginError('認証エラーが発生しました: ' + (data.reason || ''));
       }
-      return;
-    }
-
-    // テストアカウントは常に初回登録画面を表示（セッション保存しない）
-    // getMemberList でメール未紐づけのメンバーを取得して登録画面を表示する
-    if (isTestAccount(email)) {
-      let members = [];
-      try {
-        const listData = await gasJsonp('getMemberList', null, {});
-        if (listData.ok && listData.members) {
-          members = listData.members
-            .filter(m => !m.email)
-            .map(m => ({ name: m.name, furigana: m.furigana, gender: m.gender }));
-        }
-      } catch (_) {}
-      buildRegisterScreen(members, email, token, displayName, picture || '');
       return;
     }
 
@@ -1425,28 +1439,6 @@ async function doRegister() {
   if (!name) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = '登録中...';
-
-  // テストアカウントは実際の登録処理をスキップし、authデータを再取得して遷移
-  if (isTestAccount(email)) {
-    try {
-      const data = await gasJsonp('auth', null, { source: 'form', email });
-      if (!data.ok) throw new Error('認証に失敗しました');
-      SESSION = {
-        uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
-        isAdmin: data.isAdmin, isResponsible: data.isResponsible,
-        isCart: data.isCart, proxyTargets: data.proxyTargets || [],
-        picture: sel.dataset.picture || ''
-      };
-      // テストアカウントはセッションを保存しない
-      await initApp();
-    } catch (e) {
-      const msg = document.getElementById('register-msg');
-      msg.className = 'msg error';
-      msg.textContent = '⚠️ ' + e.message;
-      btn.disabled = false; btn.textContent = '登録する';
-    }
-    return;
-  }
   try {
     const data = await gasJsonp('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
@@ -1601,7 +1593,13 @@ function buildMainScreen() {
   const isOpenPassed   = openD && openD.getTime() <= today.getTime();
 
   // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
-  const btnForm = document.getElementById('btn-shift-form');
+  const btnForm    = document.getElementById('btn-shift-form');
+  const btnFormTxt = document.getElementById('btn-shift-form-txt');
+  const btnFormIco = document.getElementById('btn-shift-form-icon');
+  // 自分（またはオーナー以外）の今月送信済みデータ確認
+  const myUid = SESSION ? SESSION.uid : '';
+  const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
+    Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
   if (btnForm) {
     if (isOwner) {
       btnForm.style.display = 'none';
@@ -1611,6 +1609,14 @@ function buildMainScreen() {
       btnForm.style.cursor  = '';
       btnForm.onclick = () => showScreen('form');
       btnForm.style.display = '';
+      if (hasSentThisMonth) {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を編集する';
+        if (btnFormIco) btnFormIco.textContent = '✏️';
+        btnForm.style.background = '';
+      } else {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
+        if (btnFormIco) btnFormIco.textContent = '📝';
+      }
     } else {
       // 準備中・受付終了はグレーアウト
       btnForm.disabled = true;
@@ -1618,8 +1624,13 @@ function buildMainScreen() {
       btnForm.style.cursor  = 'default';
       btnForm.onclick = null;
       btnForm.style.display = '';
+      if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
+      if (btnFormIco) btnFormIco.textContent = '📝';
     }
   }
+
+  // ── 希望一覧ボックスを構築 ──
+  buildWishListBox(status, isOpenPassed);
 
   // ── シフト表ボタン：公開予定日以降のみ有効、未設定はグレーアウト＋文言変更 ──
   const btnShiftView    = document.getElementById('btn-shift-view');
@@ -1987,6 +1998,91 @@ function isSameDayJS(a, b) {
          a.getDate()     === b.getDate();
 }
 
+// ===== 希望一覧ボックス構築 =====
+function buildWishListBox(status, isOpenPassed) {
+  const card  = document.getElementById('wish-list-card');
+  const title = document.getElementById('wish-list-title');
+  const body  = document.getElementById('wish-list-body');
+  if (!card || !body) return;
+
+  const myUid  = SESSION ? SESSION.uid : '';
+  const myName = SESSION ? SESSION.name : '';
+
+  // 準備中は非表示
+  if (status === '準備中') { card.style.display = 'none'; return; }
+
+  // シフト公開済み：確定シフト一覧を表示
+  if (isOpenPassed && SHIFT_DATA && SHIFT_DATA.published) {
+    const myShifts = [];
+    (SHIFT_DATA.dates || []).forEach(d => {
+      if (!isMyCellInDate(d)) return;
+      let role = '奉仕者';
+      if ((d.responsible || []).includes(myName)) role = '責任者';
+      else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === myName)) role = 'カート担当';
+      myShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role });
+    });
+    title.textContent = '✅ 確定シフト一覧';
+    if (myShifts.length === 0) {
+      body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">確定シフトはありません</div>';
+    } else {
+      body.innerHTML = myShifts.map(s =>
+        '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+        '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
+        ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
+        ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
+        '</div>'
+      ).join('');
+    }
+    card.style.display = '';
+    return;
+  }
+
+  // 受付中・受付終了：送信済み希望一覧を表示
+  const myData = THIS_MONTH[myUid];
+  if (!myData || Object.keys(myData.checkedMap || {}).length === 0) {
+    title.textContent = '📋 シフト希望';
+    body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">まだ送信されていません</div>';
+    card.style.display = (status === '受付終了') ? '' : ''; // 受付終了でも表示
+    return;
+  }
+
+  // 送信済みデータを表示
+  title.textContent = '📋 送信済みのシフト希望';
+  // タイムスタンプ（最終送信日時）
+  const ts = myData.timestamp || '';
+  let tsHtml = '';
+  if (ts) {
+    tsHtml = '<div style="font-size:12px;color:var(--sub);margin-bottom:8px;">最終送信：' + esc(ts) + '</div>';
+  }
+
+  // 希望スロット一覧
+  let items = [];
+  SLOTS.forEach(slot => {
+    const gk = slot.week + ' ' + slot.dateLabel;
+    const checked = myData.checkedMap[gk] && myData.checkedMap[gk].includes(slot.time);
+    if (!checked) return;
+    const cartNg = myData.cartNgMap[gk] && myData.cartNgMap[gk].includes(slot.time);
+    const note   = myData.noteMap ? (myData.noteMap[gk + ' ' + slot.time] || '') : '';
+    let badges = '';
+    if (cartNg) badges += '<span style="font-size:11px;background:#fee2e2;color:var(--danger);padding:2px 5px;border-radius:4px;margin-left:4px;">カート不可</span>';
+    if (note)   badges += '<div style="font-size:12px;color:var(--sub);margin-top:2px;padding-left:4px;">備考: ' + esc(note) + '</div>';
+    items.push(
+      '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+      '<span style="font-weight:700;color:var(--green);">' + esc(slot.dateLabel) + '</span>' +
+      ' <span style="color:var(--sub);">' + esc(slot.time) + '</span>' +
+      badges + '</div>'
+    );
+  });
+
+  let editBtn = '';
+  if (status === '受付中') {
+    editBtn = '<button onclick="showScreen('form')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
+  }
+
+  body.innerHTML = tsHtml + (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') + editBtn;
+  card.style.display = '';
+}
+
 function buildNextShift() {
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -2013,6 +2109,7 @@ function buildNextShift() {
 // ===== フォーム画面 =====
 function initFormScreen() {
   currentFormName = SESSION.name;
+  currentFormUid  = SESSION.uid;
   isCartUser      = SESSION.isCart;
   lastMonthOn     = false;
   document.getElementById('toggle-track').classList.remove('on');
@@ -2026,9 +2123,10 @@ function initFormScreen() {
     proxySel.innerHTML = '<option value="">自分（' + SESSION.name + '）</option>';
     // メンバー名を取得するためにAPP_DATAを使用
     targets.forEach(uid => {
-      const member = (APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid };
+      const member = (APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid, uid: uid };
       const opt = document.createElement('option');
-      opt.value = member.name; opt.textContent = member.name + ' の代わりに送信';
+      opt.value = uid; opt.textContent = member.name + ' の代わりに送信';
+      opt.dataset.name = member.name;
       proxySel.appendChild(opt);
     });
     proxyArea.style.display = '';
@@ -2036,38 +2134,44 @@ function initFormScreen() {
     proxyArea.style.display = 'none';
   }
 
-  initFormState(currentFormName);
-  renderSlots(currentFormName);
+  initFormState(currentFormUid);
+  renderSlots(currentFormUid);
 
-  const hasLast = LAST_MONTH[currentFormName] && Object.keys(LAST_MONTH[currentFormName]).length > 0;
+  const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
   document.getElementById('last-month-card').style.display = hasLast ? '' : 'none';
   document.getElementById('form-msg').innerHTML = '';
 }
 
 function onProxyChange() {
   const sel = document.getElementById('sel-proxy');
-  currentFormName = sel.value || SESSION.name;
+  if (sel.value) {
+    currentFormUid  = sel.value;
+    currentFormName = sel.options[sel.selectedIndex].dataset.name || sel.value;
+  } else {
+    currentFormUid  = SESSION.uid;
+    currentFormName = SESSION.name;
+  }
   lastMonthOn = false;
   document.getElementById('toggle-track').classList.remove('on');
-  initFormState(currentFormName);
-  renderSlots(currentFormName);
-  const hasLast = LAST_MONTH[currentFormName] && Object.keys(LAST_MONTH[currentFormName]).length > 0;
+  initFormState(currentFormUid);
+  renderSlots(currentFormUid);
+  const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
   document.getElementById('last-month-card').style.display = hasLast ? '' : 'none';
 }
 
-function initFormState(name) {
+function initFormState(uid) {
   formState.checkedMap = {}; formState.cartNgMap = {}; formState.noteMap = {};
-  if (THIS_MONTH[name]) {
-    const d = THIS_MONTH[name];
+  if (THIS_MONTH[uid]) {
+    const d = THIS_MONTH[uid];
     Object.entries(d.checkedMap || {}).forEach(([k, arr]) => { formState.checkedMap[k] = new Set(arr); });
     Object.entries(d.cartNgMap  || {}).forEach(([k, arr]) => { formState.cartNgMap[k]  = new Set(arr); });
     Object.entries(d.noteMap    || {}).forEach(([k, v])   => { formState.noteMap[k] = v; });
     return;
   }
-  if (LAST_MONTH[name]) {
+  if (LAST_MONTH[uid]) {
     SLOTS.forEach(slot => {
       const sk = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
-      if (LAST_MONTH[name][sk]) {
+      if (LAST_MONTH[uid][sk]) {
         const gk = slot.week + ' ' + slot.dateLabel;
         if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
         formState.checkedMap[gk].add(slot.time);
@@ -2086,7 +2190,7 @@ function groupSlots(slots) {
   return g;
 }
 
-function renderSlots(name) {
+function renderSlots(uid) {
   const container = document.getElementById('slots-container');
   const grouped   = groupSlots(SLOTS);
   if (grouped.length === 0) { container.innerHTML = '<p class="empty-note">スロットがありません</p>'; return; }
@@ -2099,7 +2203,7 @@ function renderSlots(name) {
     g.times.forEach(time => {
       const slotKey       = groupKey + ' ' + time;
       const isChecked     = !!(formState.checkedMap[groupKey] && formState.checkedMap[groupKey].has(time));
-      const isLast        = !!(LAST_MONTH[name] && LAST_MONTH[name][slotKey]);
+      const isLast        = !!(LAST_MONTH[uid] && LAST_MONTH[uid][slotKey]);
       const cartNgChecked = !!(formState.cartNgMap[groupKey] && formState.cartNgMap[groupKey].has(time));
       const noteVal       = formState.noteMap[slotKey] || '';
       const row = document.createElement('div');
@@ -2152,10 +2256,10 @@ function toggleLastMonth() {
   const track = document.getElementById('toggle-track');
   if (lastMonthOn) {
     track.classList.add('on');
-    if (LAST_MONTH[currentFormName]) {
+    if (LAST_MONTH[currentFormUid]) {
       SLOTS.forEach(slot => {
         const sk = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
-        if (LAST_MONTH[currentFormName][sk]) {
+        if (LAST_MONTH[currentFormUid][sk]) {
           const gk = slot.week + ' ' + slot.dateLabel;
           if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
           formState.checkedMap[gk].add(slot.time);
@@ -2166,7 +2270,7 @@ function toggleLastMonth() {
     track.classList.remove('on');
     formState.checkedMap = {}; formState.cartNgMap = {}; formState.noteMap = {};
   }
-  renderSlots(currentFormName);
+  renderSlots(currentFormUid);
 }
 
 async function submitForm() {
@@ -2176,6 +2280,7 @@ async function submitForm() {
   Object.entries(formState.checkedMap).forEach(([k, s]) => { cm[k] = [...s]; });
   Object.entries(formState.cartNgMap).forEach(([k, s])  => { ng[k] = [...s]; });
   const payload = {
+    uid:  currentFormUid,
     name: currentFormName,
     checkedMap: cm, cartNgMap: ng, noteMap: Object.assign({}, formState.noteMap)
   };
@@ -2286,6 +2391,8 @@ function buildShiftDetail(d) {
       });
       html += '</div>';
     }
+    // 展示内容写真ボタン
+    html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
   }
 
   // 奉仕者テーブル
@@ -2584,12 +2691,6 @@ function esc(s) {
   // セッション復元を試みる
   const saved = loadSession();
   if (saved && saved.email) {
-    // テストアカウントのセッションが残っていた場合は削除してログイン画面へ
-    if (isTestAccount(saved.email)) {
-      clearSession();
-      showScreen('login');
-      return;
-    }
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
@@ -2605,4 +2706,77 @@ function esc(s) {
 })();
 </script>
 </body>
-</html>
+</html><script>
+// ===== 写真閲覧モーダル =====
+const ACCOUNTING_URL = 'https://docs.google.com/spreadsheets/d/1_eacoOvEoj2k6SjuoTJnM8_QBRGxzhogWkhjZkP1Vyk/edit';
+
+let _photoList    = [];
+let _photoCurrent = 0;
+
+async function openPhotoModal(category) {
+  const overlay = document.getElementById('photo-modal-overlay');
+  const titleEl = document.getElementById('photo-modal-title');
+  const imgEl   = document.getElementById('photo-modal-img');
+  const loadEl  = document.getElementById('photo-modal-loading');
+  const counter = document.getElementById('photo-modal-counter');
+
+  overlay.style.display = 'flex';
+  titleEl.textContent   = category === 'road' ? '🗺 道路使用許可書' : '🖼 カート展示内容';
+  imgEl.style.display   = 'none';
+  loadEl.style.display  = 'block';
+  counter.textContent   = '';
+  _photoList    = [];
+  _photoCurrent = 0;
+
+  try {
+    const res = await gasJsonp('getPhotos', { category, year: YEAR || new Date().getFullYear(), month: MONTH || (new Date().getMonth() + 1) });
+    _photoList = (res && res.photos) || [];
+    if (_photoList.length === 0) {
+      loadEl.textContent = '写真が登録されていません';
+      return;
+    }
+    loadEl.style.display = 'none';
+    showPhoto(0);
+  } catch(e) {
+    loadEl.textContent = '読み込みに失敗しました';
+  }
+}
+
+function showPhoto(idx) {
+  const imgEl   = document.getElementById('photo-modal-img');
+  const loadEl  = document.getElementById('photo-modal-loading');
+  const counter = document.getElementById('photo-modal-counter');
+  const prevBtn = document.getElementById('photo-prev-btn');
+  const nextBtn = document.getElementById('photo-next-btn');
+  if (!_photoList.length) return;
+  _photoCurrent = Math.max(0, Math.min(idx, _photoList.length - 1));
+  imgEl.style.display  = 'none';
+  loadEl.style.display = 'block';
+  loadEl.textContent   = '読み込み中...';
+  const url = _photoList[_photoCurrent].url;
+  imgEl.onload = () => { loadEl.style.display = 'none'; imgEl.style.display = 'block'; };
+  imgEl.onerror = () => { loadEl.textContent = '画像を読み込めませんでした'; };
+  imgEl.src = url;
+  counter.textContent = (_photoCurrent + 1) + ' / ' + _photoList.length;
+  prevBtn.style.opacity = _photoCurrent === 0 ? '0.3' : '1';
+  nextBtn.style.opacity = _photoCurrent === _photoList.length - 1 ? '0.3' : '1';
+}
+
+function photoNav(delta) {
+  showPhoto(_photoCurrent + delta);
+}
+
+function closePhotoModal() {
+  document.getElementById('photo-modal-overlay').style.display = 'none';
+  _photoList = []; _photoCurrent = 0;
+}
+
+function openAccountingSheet() {
+  window.open(ACCOUNTING_URL, '_blank');
+}
+
+// ===== シフト表詳細：カート展示写真ボタン =====
+function openExhibitPhotoFromShift() {
+  openPhotoModal('exhibit');
+}
+</script>

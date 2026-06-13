@@ -1367,11 +1367,11 @@ function hideLoading() {
   });
 }
 
-// 現在値→100%までアニメーション（約600msかけて滑らかに）
+// 現在値→100%までアニメーション（800msかけて滑らかに）
 function _animateTo100(callback) {
   const startPct  = _progressCurrent;
   const startTime = performance.now();
-  const duration  = 600; // ms
+  const duration  = 800;
   function step(now) {
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
@@ -1399,14 +1399,20 @@ function _setProgress(pct) {
 function _startProgress() {
   clearInterval(_progressTimer);
   _progressCurrent = 0;
-  // 0%→80%をランダム性のある速度で進める
   _progressTimer = setInterval(() => {
-    if (_progressCurrent >= 80) { clearInterval(_progressTimer); return; }
-    const remaining = 80 - _progressCurrent;
-    // ランダム係数（0.02〜0.07）で速度にばらつきを持たせる
-    const randFactor = 0.02 + Math.random() * 0.05;
-    const step = Math.max(0.3, remaining * randFactor);
-    _progressCurrent = Math.min(80, _progressCurrent + step);
+    if (_progressCurrent >= 99) { clearInterval(_progressTimer); return; }
+    let randFactor;
+    if (_progressCurrent < 80) {
+      // 0%→80%：ランダム性のある速度で進める
+      randFactor = 0.02 + Math.random() * 0.05;
+    } else {
+      // 80%→99%：処理中はごくゆっくり上げ続ける
+      randFactor = 0.003 + Math.random() * 0.005;
+    }
+    const ceiling  = _progressCurrent < 80 ? 80 : 99;
+    const remaining = ceiling - _progressCurrent;
+    const step = Math.max(0.1, remaining * randFactor);
+    _progressCurrent = Math.min(ceiling, _progressCurrent + step);
     _setProgress(Math.round(_progressCurrent));
   }, 120);
 }

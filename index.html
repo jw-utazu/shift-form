@@ -2144,9 +2144,10 @@ function initFormScreen() {
   initFormState(currentFormUid);
   renderSlots(currentFormUid);
 
-  const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
+  const hasLast = LAST_MONTH[currentFormUid] &&
+                Object.keys(LAST_MONTH[currentFormUid]).length > 0 &&
+                !THIS_MONTH[currentFormUid];
   document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
-  document.getElementById('form-msg').innerHTML = '';
 }
 
 function onProxyChange() {
@@ -2162,7 +2163,9 @@ function onProxyChange() {
   document.getElementById('toggle-track').classList.remove('on');
   initFormState(currentFormUid);
   renderSlots(currentFormUid);
-  const hasLast = LAST_MONTH[currentFormUid] && Object.keys(LAST_MONTH[currentFormUid]).length > 0;
+  const hasLast = LAST_MONTH[currentFormUid] &&
+                Object.keys(LAST_MONTH[currentFormUid]).length > 0 &&
+                !THIS_MONTH[currentFormUid];
   document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
 }
 
@@ -2175,24 +2178,7 @@ function initFormState(uid) {
     Object.entries(d.noteMap    || {}).forEach(([k, v])   => { formState.noteMap[k] = v; });
     return;
   }
-  if (LAST_MONTH[uid]) {
-    SLOTS.forEach(slot => {
-      const sk = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
-      const entry = LAST_MONTH[uid][sk];
-      if (entry && entry.checked) {
-        const gk = slot.week + ' ' + slot.dateLabel;
-        if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
-        formState.checkedMap[gk].add(slot.time);
-        const comment = entry.comment || '';
-        if (comment.includes('カート不可')) {
-          if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set();
-          formState.cartNgMap[gk].add(slot.time);
-        }
-        const noteContent = comment.replace('カート不可', '').trim();
-        if (noteContent) formState.noteMap[sk] = noteContent;
-      }
-    });
-  }
+  // 先月データは「先月と同じ」ボタンON時のみ適用するため、ここでは何もしない
 }
 
 function groupSlots(slots) {

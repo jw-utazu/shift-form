@@ -767,4 +767,2265 @@ body {
 .area-section { margin-bottom: 12px; }
 .area-title {
   font-size: 13px;
-  
+  font-weight: 700;
+  background: var(--green-light);
+  color: var(--green-dark);
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.slot-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.slot-table th {
+  background: #f9fafb;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sub);
+  border: 1px solid #e5e7eb;
+}
+.slot-table td {
+  padding: 7px 5px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.slot-table td.time-col { font-weight: 700; color: var(--sub); font-size: 12px; white-space: nowrap; }
+.slot-table td.my-cell-staff { background: var(--amber); }
+.slot-table td.my-cell-resp  { background: #fca5a5; }
+.slot-table td.my-cell-cart  { background: var(--purple); }
+.slot-table td.my-cell-both  { background: #fca5a5; box-shadow: inset 0 0 0 3px var(--purple-dark); }
+.watch-mark { font-size: 10px; color: var(--sub); display: block; }
+
+/* メモ */
+.memo-box {
+  background: #fefce8;
+  border: 1.5px solid #fde047;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.memo-box label { font-size: 12px; font-weight: 700; color: #713f12; display: block; margin-bottom: 4px; }
+
+/* 管理者向け操作 */
+.edit-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.btn-small {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+}
+.btn-small:active { opacity: .7; }
+.btn-cancel-input { background: #fee2e2; color: var(--danger-dark); }
+.btn-memo-edit    { background: #fef9c3; color: #713f12; }
+
+/* ===================== 要望画面 ===================== */
+#screen-request { display: none; }
+.req-textarea {
+  width: 100%;
+  font-size: 16px;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  min-height: 160px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+.req-textarea:focus { outline: none; border-color: var(--green); }
+
+/* 受付終了メッセージ */
+.status-closed-msg {
+  display: none;
+  font-size: 14px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.status-closed-msg.show { display: block; }
+
+/* ヘッダーグリッド修正 */
+.hdr {
+  grid-template-columns: 44px 1fr 44px !important;
+}
+.hdr-left  { min-width: 0; }
+.hdr h1    { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-right { min-width: 0; }
+
+/* ヘルプボタン（ヘッダー内） */
+.help-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.7);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s;
+  font-family: inherit;
+  line-height: 1;
+  padding: 0;
+}
+.help-btn:active { background: rgba(255,255,255,0.4); }
+
+/* ログイン画面ヘルプボタン */
+#screen-login { position: relative; }
+.login-help-btn {
+  position: absolute;
+  top: 14px; left: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid rgba(255,255,255,0.7);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 150;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(22,163,74,0.3);
+  padding: 0;
+}
+
+/* ヘルプモーダル */
+#help-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
+}
+#help-overlay.show { display: flex; }
+#help-modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+  animation: helpSlideUp .25s ease;
+}
+@keyframes helpSlideUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.help-modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 2px solid var(--green-light);
+  flex-shrink: 0;
+}
+.help-modal-title {
+  font-size: 17px; font-weight: 700; color: var(--green);
+  display: flex; align-items: center; gap: 8px;
+}
+.help-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f3f4f6; border: none; cursor: pointer;
+  font-size: 18px; color: var(--sub);
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; padding: 0;
+}
+.help-modal-close:active { background: #e5e7eb; }
+.help-modal-body {
+  overflow-y: auto;
+  padding: 14px 18px 0;
+  flex: 1;
+}
+.help-section { margin-bottom: 18px; }
+.help-section-title {
+  font-size: 14px; font-weight: 700;
+  color: var(--green-dark);
+  background: var(--green-light);
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.help-item {
+  font-size: 14px; color: var(--text);
+  line-height: 1.75; padding: 4px 0;
+  display: flex; gap: 8px;
+}
+.help-item-icon { flex-shrink: 0; }
+.help-legend { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+.help-legend-row { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.5; }
+.help-legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.help-modal-footer {
+  flex-shrink: 0;
+  padding: 14px 18px 20px;
+  border-top: 1px solid var(--green-light);
+  text-align: center;
+  font-size: 13px; color: var(--sub); line-height: 1.7;
+}
+</style>
+</head>
+<body>
+
+<!-- ローディングオーバーレイ -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <span id="loading-text">読み込み中...</span>
+  <div id="loading-progress-wrap">
+    <div id="loading-progress-bar-bg">
+      <div id="loading-progress-bar"></div>
+    </div>
+    <span id="loading-progress-pct">0%</span>
+  </div>
+</div>
+
+<!-- ===== ログイン画面 ===== -->
+<div id="screen-login">
+  <button class="login-help-btn" onclick="openHelp('login')">?</button>
+  <div class="login-card">
+    <div class="login-logo" style="background:transparent;width:80px;height:80px;">
+      <img src="./logo.png" alt="宇多津会衆PWアプリ" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
+    </div>
+    <div class="login-title">宇多津会衆PWアプリ</div>
+    <div class="login-sub">Googleアカウントでログインしてください</div>
+    <!-- Google公式ボタン（Android Chrome対応） -->
+    <div id="g-btn-container" style="margin:16px auto 0;display:flex;justify-content:center;min-height:44px;"></div>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ===== 初回登録画面 ===== -->
+<div id="screen-register">
+  <div style="padding: 16px;">
+    <div class="register-card">
+      <div class="register-title">👤 初回登録</div>
+      <div class="register-sub">あなたの名前を選択してください。一度登録すると次回から自動でログインできます。</div>
+      <div class="select-wrap">
+        <select id="sel-register-name">
+          <option value="">-- 選択してください --</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="btn-register" onclick="doRegister()">登録する</button>
+      <div class="msg" id="register-msg" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== メイン画面 ===== -->
+<div id="screen-main">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('main')">?</button></div>
+    <h1 id="main-title">宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
+        <span class="hdr-avatar-fallback">👤</span>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <!-- 次のシフト -->
+    <div class="next-shift-card" id="next-shift-card" style="display:none;">
+      <div class="next-shift-label">📅 次のシフト</div>
+      <div class="next-shift-date" id="next-shift-date">-</div>
+      <div class="next-shift-role" id="next-shift-role"></div>
+    </div>
+
+    <!-- 受付状況 -->
+    <div class="card status-card">
+      <div class="card-title">📬 シフト希望受付</div>
+      <div class="status-label">受付情報</div>
+      <div class="status-value" id="status-value">-</div>
+      <div style="margin-top:8px;font-size:15px;" id="status-dates"></div>
+      <div class="status-closed-msg" id="status-closed-msg">⚠️ 希望の変更は区域係にご依頼ください</div>
+    </div>
+
+    <!-- 希望一覧ボックス -->
+    <div class="card" id="wish-list-card" style="display:none;">
+      <div class="card-title" id="wish-list-title">📋 送信済みのシフト希望</div>
+      <div id="wish-list-body"></div>
+    </div>
+
+    <!-- カレンダー -->
+    <div class="card">
+      <div class="card-title">🗓️ カレンダー</div>
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" id="cal-prev-btn" onclick="calNavMonth(-1)">前の月</button>
+        <span class="cal-month-label" id="cal-title"></span>
+        <button class="cal-nav-btn" id="cal-next-btn" onclick="calNavMonth(1)">次の月</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <!-- 実施日クリック時の時間帯ボックス -->
+      <div id="shift-time-box">
+        <div class="shift-time-box-date" id="shift-time-box-date"></div>
+        <div id="shift-time-box-list"></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:#ede9fe;border:1px solid #c4b5fd;display:inline-block;"></span>実施日</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>自分のシフト</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;border-radius:2px;background:#f97316;display:inline-block;"></span>申込期間</span>
+      </div>
+    </div>
+
+    <!-- お知らせ -->
+    <div class="card" id="notices-card" style="display:none;">
+      <div class="card-title">📢 お知らせ</div>
+      <div id="notices-container"></div>
+    </div>
+
+    <!-- ナビゲーション -->
+    <div class="nav-buttons">
+      <button class="btn-nav" id="btn-shift-form" onclick="showScreen('form')">
+        <span class="nav-icon" id="btn-shift-form-icon">📝</span>
+        <span class="nav-txt" id="btn-shift-form-txt">シフト希望を送る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav" id="btn-shift-view" onclick="showScreen('shift')">
+        <span class="nav-icon">📋</span>
+        <span class="nav-txt" id="btn-shift-view-txt">シフト表を見る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-road-permit" onclick="openPhotoModal('road')">
+        <span class="nav-icon">🗺</span>
+        <span class="nav-txt">道路使用許可書を閲覧する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-accounting" onclick="openAccountingSheet()">
+        <span class="nav-icon">💰</span>
+        <span class="nav-txt">会計情報を閲覧する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')">
+        <span class="nav-icon">💬</span>
+        <span class="nav-txt">要望を送る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
+        <span class="nav-icon">📲</span>
+        <span class="nav-txt">アプリとしてインストール</span>
+        <span class="nav-arr">›</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- プロフィールポップアップ -->
+<div id="profile-overlay" onclick="closeProfilePopup()"></div>
+<div id="profile-popup">
+  <div class="pp-header">
+    <div class="pp-avatar" id="pp-avatar">
+      <span style="font-size:22px;">👤</span>
+    </div>
+    <div>
+      <div class="pp-name" id="pp-name">-</div>
+      <div class="pp-email" id="pp-email">-</div>
+    </div>
+  </div>
+  <div class="pp-roles" id="pp-roles"></div>
+  <button class="pp-logout" onclick="logout()">ログアウト</button>
+</div>
+
+<!-- ===== フォーム画面 ===== -->
+<div id="screen-form">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('form')">?</button></div>
+    <h1 id="form-title">宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
+
+    <!-- 代理送信 -->
+    <div class="proxy-sel" id="proxy-area" style="display:none;">
+      <label for="sel-proxy">📤 代理送信</label>
+      <select id="sel-proxy" onchange="onProxyChange()">
+        <option value="">自分（<span id="proxy-my-name"></span>）</option>
+      </select>
+    </div>
+
+    <div id="last-month-card" class="card" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#92400e;">📋 先月と同じにする</div>
+          <div style="font-size:13px;color:#78350f;margin-top:3px;">ONにすると先月の回答を自動で反映します</div>
+        </div>
+        <div class="toggle-wrap" onclick="toggleLastMonth()">
+          <div class="toggle-track" id="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="form-body">
+      <div class="card">
+        <div class="card-title">📅 参加希望の時間帯</div>
+        <div id="slots-container"></div>
+      </div>
+      <div class="card">
+        <div id="form-msg"></div>
+        <button class="btn-primary" id="btn-submit" onclick="submitForm()">送信する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== シフト表画面 ===== -->
+<div id="screen-shift">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('shift')">?</button></div>
+    <h1>宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="back-bar" id="shift-back-btn" onclick="shiftBack()">‹ 戻る</div>
+
+    <!-- 日付一覧 -->
+    <div id="shift-date-list">
+      <div id="shift-dates-container" class="shift-dates"></div>
+    </div>
+
+    <!-- 個別シフト表 -->
+    <div id="shift-detail-view" class="shift-detail">
+      <div id="shift-detail-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 要望画面 ===== -->
+<div id="screen-request">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
+    <h1>宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
+    <div class="card">
+      <div class="card-title">💬 要望・ご意見</div>
+      <textarea class="req-textarea" id="req-textarea" placeholder="ご自由にご記入ください"></textarea>
+      <div id="req-msg"></div>
+      <button class="btn-primary" id="btn-req-submit" onclick="submitRequest()">送信する</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 写真閲覧モーダル ===== -->
+<div id="photo-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;padding:0 12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:10px;">
+      <span id="photo-modal-title" style="color:#fff;font-size:16px;font-weight:700;"></span>
+      <button onclick="closePhotoModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="photo-modal-img-wrap" style="width:100%;display:flex;align-items:center;justify-content:center;min-height:200px;">
+      <div id="photo-modal-loading" style="color:#fff;font-size:14px;">読み込み中...</div>
+      <img id="photo-modal-img" src="" alt="" style="display:none;max-width:100%;max-height:70vh;border-radius:10px;object-fit:contain;">
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:14px;">
+      <button id="photo-prev-btn" onclick="photoNav(-1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:44px;height:44px;border-radius:50%;cursor:pointer;">‹</button>
+      <span id="photo-modal-counter" style="color:#fff;font-size:14px;min-width:60px;text-align:center;"></span>
+      <button id="photo-next-btn" onclick="photoNav(1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:44px;height:44px;border-radius:50%;cursor:pointer;">›</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ヘルプモーダル ===== -->
+<div id="help-overlay" onclick="closeHelpOutside(event)">
+  <div id="help-modal">
+    <div class="help-modal-hdr">
+      <div class="help-modal-title">❓ <span id="help-modal-title-text">ヘルプ</span></div>
+      <button class="help-modal-close" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="help-modal-body" id="help-modal-body"></div>
+    <div class="help-modal-footer">
+      解決しない場合は<strong>区域係にご連絡</strong>ください
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 定数 =====
+const GAS_URL    = "https://script.google.com/macros/s/AKfycbzbPBxl6S3VdSVF9RqXSI1VQkZNGJXwU_zePBM8e3UYed-RyxxA_PRom_Xw9v5rvUwScQ/exec";
+const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
+const SS_KEY     = "shiftapp_session";
+
+// ===== JSONP通信ユーティリティ（CORSを回避）=====
+// actionはGASのdoGetで受け付けるアクション名
+// paramsはオブジェクト（GASのparams()で受け取る）
+// extraQueryはURLに直接付加するオブジェクト（email等）
+// fetch方式（リダイレクト追従対応・Android Chrome対応）
+function gasJsonp(action, params, extraQuery) {
+  const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+  if (params) url += '&params=' + encodeURIComponent(JSON.stringify(params));
+  if (extraQuery) {
+    Object.entries(extraQuery).forEach(([k, v]) => {
+      url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
+    });
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  return fetch(url, { redirect: 'follow', signal: controller.signal })
+    .then(r => r.text())
+    .then(text => {
+      clearTimeout(timer);
+      // "cbName({...})" 形式からJSONを取り出す
+      const start = text.indexOf('(');
+      const end   = text.lastIndexOf(')');
+      if (start === -1 || end === -1) throw new Error('レスポンス形式エラー');
+      return JSON.parse(text.slice(start + 1, end));
+    })
+    .catch(err => {
+      clearTimeout(timer);
+      if (err.name === 'AbortError') throw new Error('通信タイムアウト');
+      throw new Error('通信エラー（GASへの接続に失敗）');
+    });
+}
+
+// ===== グローバル状態 =====
+let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
+let APP_DATA     = null; // GASから取得したデータ
+let SHIFT_DATA   = null; // シフト表データ
+let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
+let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
+let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
+let YEAR = 0, MONTH = 0;
+let currentFormName = '';
+let currentFormUid  = '';
+let isCartUser = false;
+let lastMonthOn = false;
+const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
+let deferredPrompt = null;
+let shouldShowOneTap = false; // セッションなしの時だけtrueにしてOne Tapを表示
+let shiftViewingDate = null; // 現在表示中のシフト日付
+
+// ===== PWA =====
+window.addEventListener('beforeinstallprompt', e => {
+  deferredPrompt = e;
+  const b = document.getElementById('btn-install');
+  if (b) b.style.display = 'flex';
+});
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+}
+
+
+// ===== ローディング =====
+let _progressTimer  = null;
+let _progressCurrent = 0;
+let _hideResolve    = null; // hideLoading()が呼ばれたときに解決するPromise
+
+function showLoading(msg) {
+  const el = document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent = msg || '読み込み中...';
+  if (!el.classList.contains('show')) {
+    // 新規表示のときだけリセットして疑似プログレス開始
+    _progressCurrent = 0;
+    _setProgress(0);
+    el.classList.add('show');
+    _startProgress();
+  } else {
+    // すでに表示中はメッセージだけ更新（プログレスはそのまま継続）
+  }
+}
+
+// hideLoading()はPromiseを返す。await hideLoading()で完全消滅を待てる
+function hideLoading() {
+  return new Promise(resolve => {
+    clearInterval(_progressTimer);
+    _progressTimer = null;
+    // 現在値から100%までゆっくり上げてからフェードアウト
+    _animateTo100(() => {
+      setTimeout(() => {
+        document.getElementById('loading-overlay').classList.remove('show');
+        setTimeout(() => {
+          _setProgress(0);
+          _progressCurrent = 0;
+          resolve();
+        }, 600);
+      }, 600); // 100%表示後600ms待機
+    });
+  });
+}
+
+// 現在値→100%までアニメーション（800msかけて滑らかに）
+function _animateTo100(callback) {
+  const startPct  = _progressCurrent;
+  const startTime = performance.now();
+  const duration  = 800;
+  function step(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // easeOutCubic
+    const eased = 1 - Math.pow(1 - t, 3);
+    const pct = Math.round(startPct + (100 - startPct) * eased);
+    _setProgress(pct);
+    _progressCurrent = pct;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      if (callback) callback();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function _setProgress(pct) {
+  const bar = document.getElementById('loading-progress-bar');
+  const txt = document.getElementById('loading-progress-pct');
+  if (bar) bar.style.width = pct + '%';
+  if (txt) txt.textContent = pct + '%';
+}
+
+function _startProgress() {
+  clearInterval(_progressTimer);
+  _progressCurrent = 0;
+  _progressTimer = setInterval(() => {
+    if (_progressCurrent >= 99) { clearInterval(_progressTimer); return; }
+    let randFactor;
+    if (_progressCurrent < 80) {
+      // 0%→80%：ランダム性のある速度で進める
+      randFactor = 0.02 + Math.random() * 0.05;
+    } else {
+      // 80%→99%：処理中はごくゆっくり上げ続ける
+      randFactor = 0.003 + Math.random() * 0.005;
+    }
+    const ceiling  = _progressCurrent < 80 ? 80 : 99;
+    const remaining = ceiling - _progressCurrent;
+    const step = Math.max(0.1, remaining * randFactor);
+    _progressCurrent = Math.min(ceiling, _progressCurrent + step);
+    _setProgress(Math.round(_progressCurrent));
+  }, 120);
+}
+
+// ===== 画面切替 =====
+const SCREENS = ['login','register','main','form','shift','request'];
+// 画面ごとの display 値
+const SCREEN_DISPLAY = {
+  login:    'flex',
+  register: 'flex',
+  main:     'block',
+  form:     'block',
+  shift:    'block',
+  request:  'block'
+};
+function showScreen(name) {
+  SCREENS.forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
+  });
+  if (name === 'form')  _showFormScreen();
+  if (name === 'shift') _showShiftScreen();
+}
+
+// フォーム画面：SLOTSが未取得なら getFormDetail を取得してから表示
+async function _showFormScreen() {
+  if (SLOTS && SLOTS.length > 0) {
+    // キャッシュ済み → 即表示
+    initFormScreen();
+    return;
+  }
+  showLoading('フォームデータを読み込み中...');
+  try {
+    const detail = await gasJsonp('getFormDetail');
+    SLOTS      = detail.slots      || [];
+    LAST_MONTH = detail.lastMonthData || {};
+    // thisMonthDataはdataMini取得済みだが、getFormDetailが最新値を返すので上書き
+    if (detail.thisMonthData) THIS_MONTH = detail.thisMonthData;
+    // staffJSONをAPP_DATAに統合
+    if (APP_DATA) APP_DATA.staffJSON = detail.staffJSON || [];
+    await hideLoading();
+    initFormScreen();
+  } catch (e) {
+    hideLoading();
+    alert('フォームデータの読み込みに失敗しました: ' + e.message);
+  }
+}
+
+// シフト表画面：SHIFT_DATAが未取得なら getShiftTable を取得してから表示
+async function _showShiftScreen() {
+  if (SHIFT_DATA) {
+    // キャッシュ済み（BG取得済み含む）→ 即表示
+    initShiftScreen();
+    return;
+  }
+  showLoading('シフト表を読み込み中...');
+  try {
+    const shiftData = await gasJsonp('getShiftTable');
+    SHIFT_DATA = shiftData;
+    await hideLoading();
+    initShiftScreen();
+  } catch (e) {
+    hideLoading();
+    alert('シフト表の読み込みに失敗しました: ' + e.message);
+  }
+}
+
+// ===== sessionStorage =====
+function saveSession(s) {
+  try { localStorage.setItem(SS_KEY, JSON.stringify(s)); } catch (_) {}
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SS_KEY) || 'null'); } catch (_) { return null; }
+}
+function clearSession() {
+  try { localStorage.removeItem(SS_KEY); } catch (_) {}
+}
+
+// ===== Google Identity Services 初期化 =====
+// GISライブラリ読み込み後に自動で呼ばれるコールバック
+function initGoogleLogin() {
+  try {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: onGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: false,
+      ux_mode: 'popup',        // リダイレクトではなくポップアップ
+    });
+    const btnDiv = document.getElementById('g-btn-container');
+    if (btnDiv) {
+      google.accounts.id.renderButton(btnDiv, {
+        type: 'standard',
+        theme: 'filled_green',
+        size: 'large',
+        width: 280,
+        text: 'signin_with',
+        locale: 'ja',
+      });
+    }
+    // One Tap：セッションなし（未ログイン）の時だけ表示
+    if (shouldShowOneTap) {
+      google.accounts.id.prompt();
+    }
+  } catch (e) {
+    // GISが未ロードなら何もしない（ボタンはHTMLに既にある）
+    console.warn('GIS init error:', e);
+  }
+}
+
+async function onGoogleCredential(response) {
+  showLoading('認証中...');
+  try {
+    const parts   = response.credential.split('.');
+    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email   = payload.email   || '';
+    const name    = payload.name    || '';
+    const picture = payload.picture || '';
+    await handleGASAuth(email, response.credential, name, picture);
+  } catch (e) {
+    hideLoading();
+    showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてください。');
+  }
+}
+
+async function handleGASAuth(email, token, displayName, picture) {
+  showLoading('認証中...');
+  try {
+    const data = await gasJsonp('auth', null, { source: 'form', email });
+    hideLoading();
+
+    if (!data.ok) {
+      if (data.reason === 'unauthorized') {
+        showLoginError('このアカウントはアクセス許可されていません。\n管理者にお問い合わせください。');
+      } else {
+        showLoginError('認証エラーが発生しました: ' + (data.reason || ''));
+      }
+      return;
+    }
+
+    if (data.needsRegister) {
+      saveSession({ email, token, needsRegister: true, members: data.members, picture: picture || '' });
+      buildRegisterScreen(data.members, email, token, displayName, picture || '');
+      return;
+    }
+
+    // ログイン成功
+    SESSION = {
+      uid: data.uid, name: data.name, email: email, token: token,
+      isAdmin: data.isAdmin, isResponsible: data.isResponsible,
+      isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+      picture: picture || ''
+    };
+    saveSession({ email, token, picture: picture || '' });
+    // One Tapが表示中なら閉じる
+    shouldShowOneTap = false;
+    try { google.accounts.id.cancel(); } catch(_) {}
+    await initApp();
+  } catch (e) {
+    hideLoading();
+    showLoginError('通信エラーが発生しました。ページを再読み込みしてください。');
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.classList.add('show');
+  showScreen('login');
+}
+
+// ===== 初回登録 =====
+function buildRegisterScreen(members, email, token, displayName, picture) {
+  const sel = document.getElementById('sel-register-name');
+  sel.innerHTML = '<option value="">-- 選択してください --</option>';
+  members.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  // メタ情報を一時保存
+  sel.dataset.email   = email;
+  sel.dataset.token   = token;
+  sel.dataset.picture = picture || '';
+  showScreen('register');
+}
+
+async function doRegister() {
+  const sel   = document.getElementById('sel-register-name');
+  const name  = sel.value;
+  const email = sel.dataset.email;
+  if (!name) { alert('名前を選択してください。'); return; }
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = '登録中...';
+  try {
+    const data = await gasJsonp('register', { email, name });
+    if (!data.ok) throw new Error(data.error || '登録に失敗しました');
+    SESSION = {
+      uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
+      isAdmin: data.isAdmin, isResponsible: data.isResponsible,
+      isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+      picture: sel.dataset.picture || ''
+    };
+    saveSession({ email, token: sel.dataset.token, picture: sel.dataset.picture || '' });
+    await initApp();
+  } catch (e) {
+    const msg = document.getElementById('register-msg');
+    msg.className = 'msg error';
+    msg.textContent = '⚠️ ' + e.message;
+    btn.disabled = false; btn.textContent = '登録する';
+  }
+}
+
+// ===== プロフィールポップアップ =====
+function updateAvatarUI() {
+  if (!SESSION) return;
+  const pic = SESSION.picture || '';
+  // すべての画面のアバターを更新（idなし要素も含めクラスで全取得）
+  document.querySelectorAll('.hdr-avatar').forEach(el => {
+    if (pic) {
+      el.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
+    }
+  });
+  // ポップアップアバターを更新
+  const ppAvatar = document.getElementById('pp-avatar');
+  if (ppAvatar) {
+    if (pic) {
+      ppAvatar.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
+    }
+  }
+  // ポップアップ内情報
+  const ppName  = document.getElementById('pp-name');
+  const ppEmail = document.getElementById('pp-email');
+  const ppRoles = document.getElementById('pp-roles');
+  if (ppName)  ppName.textContent  = SESSION.name;
+  if (ppEmail) ppEmail.textContent = SESSION.email;
+  if (ppRoles) {
+    ppRoles.innerHTML = '';
+    if (SESSION.isAdmin && !SESSION.uid) {
+      // 管理アカウント（uidなし）：オーナーのみ
+      ppRoles.innerHTML = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
+    } else {
+      // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
+      ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
+      if (SESSION.isResponsible) ppRoles.innerHTML += '<span class="badge badge-resp">責任者</span>';
+      if (SESSION.isCart)        ppRoles.innerHTML += '<span class="badge badge-cart">カート担当</span>';
+      if (SESSION.isAdmin)       ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+    }
+  }
+}
+function toggleProfilePopup() {
+  const popup   = document.getElementById('profile-popup');
+  const overlay = document.getElementById('profile-overlay');
+  const isOpen  = popup.classList.contains('show');
+  if (isOpen) {
+    popup.classList.remove('show');
+    overlay.classList.remove('show');
+  } else {
+    updateAvatarUI();
+    popup.classList.add('show');
+    overlay.classList.add('show');
+  }
+}
+function closeProfilePopup() {
+  document.getElementById('profile-popup').classList.remove('show');
+  document.getElementById('profile-overlay').classList.remove('show');
+}
+
+// ===== ログアウト =====
+function logout() {
+  clearSession();
+  SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
+  SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
+  closeProfilePopup();
+  google.accounts.id.disableAutoSelect();
+  showScreen('login');
+  // ログアウト後はOne Tapを表示してよい状態にしてからGISを再初期化
+  shouldShowOneTap = true;
+  setTimeout(() => {
+    try { initGoogleLogin(); } catch(_) {}
+  }, 100);
+}
+
+// ===== アプリ初期化 =====
+async function initApp() {
+  // すでにローディング中（auth引き継ぎ）の場合はメッセージだけ更新、そうでなければ新規表示
+  showLoading('データを読み込み中...');
+  try {
+    const formData = await gasJsonp('dataMini');
+    APP_DATA    = formData;
+    SLOTS       = [];           // フォーム画面を開いたときに取得
+    LAST_MONTH  = {};           // フォーム画面を開いたときに取得
+    THIS_MONTH  = formData.thisMonthData || {};
+    YEAR        = formData.year  || 0;
+    MONTH       = formData.month || 0;
+    SHIFT_DATES = formData.shiftDates || [];
+    SHIFT_DATES_MAP = {};
+    (formData.shiftSlots || []).forEach(s => {
+      const key = s.m + '_' + s.d;
+      if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
+      if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
+    });
+    // メイン画面を先に構築してからフェードアウト完了を待って表示
+    try {
+      buildMainScreen();
+    } catch (buildErr) {
+      console.error('buildMainScreen error:', buildErr);
+      await hideLoading();
+      alert('画面の構築に失敗しました: ' + buildErr.message);
+      return;
+    }
+    await hideLoading();
+    showScreen('main');
+
+    // シフト公開済みならバックグラウンドでgetShiftTableを取得
+    const today = new Date(); today.setHours(0,0,0,0);
+    const ed = formData.eventDates || {};
+    const openStr = ed['シフト公開'];
+    if (openStr) {
+      const p = openStr.split('/');
+      if (p.length === 2) {
+        const openD = new Date(YEAR || today.getFullYear(), parseInt(p[0]) - 1, parseInt(p[1]));
+        if (openD.getTime() <= today.getTime()) {
+          _fetchShiftTableBackground();
+        }
+      }
+    }
+  } catch (e) {
+    hideLoading();
+    console.error('initApp error:', e);
+    alert('データの読み込みに失敗しました: ' + e.message);
+  }
+}
+
+// バックグラウンドでシフト表を取得し、完了後にメイン画面の関連部分を更新
+async function _fetchShiftTableBackground() {
+  try {
+    const shiftData = await gasJsonp('getShiftTable');
+    SHIFT_DATA = shiftData;
+    // メイン画面が表示中なら次のシフトと確定シフト一覧を再描画
+    const mainEl = document.getElementById('screen-main');
+    if (mainEl && mainEl.style.display !== 'none') {
+      buildNextShift();
+      const today2 = new Date(); today2.setHours(0,0,0,0);
+      const ed2 = APP_DATA ? (APP_DATA.eventDates || {}) : {};
+      const openStr2 = ed2['シフト公開'];
+      let isOpenPassed2 = false;
+      if (openStr2) {
+        const p2 = openStr2.split('/');
+        if (p2.length === 2) {
+          const openD2 = new Date(YEAR || today2.getFullYear(), parseInt(p2[0]) - 1, parseInt(p2[1]));
+          isOpenPassed2 = openD2.getTime() <= today2.getTime();
+        }
+      }
+      buildWishListBox(APP_DATA ? (APP_DATA.status || '準備中') : '準備中', isOpenPassed2);
+    }
+  } catch (e) {
+    // バックグラウンド取得失敗は無視（シフト表ボタン押下時に再取得される）
+    console.warn('BG getShiftTable failed:', e.message);
+  }
+}
+
+// ===== メイン画面構築 =====
+function buildMainScreen() {
+  // バー年月表示
+  const yearMonthLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月' : '宇多津会衆PWアプリ';
+  document.getElementById('main-title').textContent = yearMonthLabel;
+  document.getElementById('form-title') && (document.getElementById('form-title').textContent = yearMonthLabel);
+  document.title = '宇多津会衆PWアプリ';
+
+  // バー右アイコン更新
+  updateAvatarUI();
+
+  const isOwner = SESSION.isAdmin && !SESSION.uid;
+  const ed      = APP_DATA.eventDates || {};
+  const status  = APP_DATA.status || '準備中';
+  const today   = new Date(); today.setHours(0,0,0,0);
+
+  // 今日が締切日か判定
+  const parseEventDate = str => {
+    if (!str) return null;
+    const p = str.split('/');
+    if (p.length !== 2) return null;
+    // 年をYEARから取得（シフト当月の年）
+    const y = YEAR || today.getFullYear();
+    return new Date(y, parseInt(p[0]) - 1, parseInt(p[1]));
+  };
+  const deadlineD      = parseEventDate(ed['締切']);
+  const isDeadlineToday = deadlineD && deadlineD.getTime() === today.getTime();
+  const openD          = parseEventDate(ed['シフト公開']);
+  const isOpenDateSet  = !!openD;
+  const isOpenPassed   = openD && openD.getTime() <= today.getTime();
+
+  // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
+  const btnForm    = document.getElementById('btn-shift-form');
+  const btnFormTxt = document.getElementById('btn-shift-form-txt');
+  const btnFormIco = document.getElementById('btn-shift-form-icon');
+  // 自分（またはオーナー以外）の今月送信済みデータ確認
+  const myUid = SESSION ? SESSION.uid : '';
+  const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
+    Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
+  if (btnForm) {
+    if (isOwner) {
+      btnForm.style.display = 'none';
+    } else if (status === '受付中') {
+      btnForm.disabled = false;
+      btnForm.style.opacity = '';
+      btnForm.style.cursor  = '';
+      btnForm.onclick = () => showScreen('form');
+      btnForm.style.display = '';
+      if (hasSentThisMonth) {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を編集する';
+        if (btnFormIco) btnFormIco.textContent = '✏️';
+        btnForm.style.background = '';
+      } else {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
+        if (btnFormIco) btnFormIco.textContent = '📝';
+      }
+    } else {
+      // 準備中・受付終了はグレーアウト
+      btnForm.disabled = true;
+      btnForm.style.opacity = '0.5';
+      btnForm.style.cursor  = 'default';
+      btnForm.onclick = null;
+      btnForm.style.display = '';
+      if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
+      if (btnFormIco) btnFormIco.textContent = '📝';
+    }
+  }
+
+  // ── 希望一覧ボックスを構築 ──
+  buildWishListBox(status, isOpenPassed);
+
+  // ── シフト表ボタン：公開予定日以降のみ有効、未設定はグレーアウト＋文言変更 ──
+  const btnShiftView    = document.getElementById('btn-shift-view');
+  const btnShiftViewTxt = document.getElementById('btn-shift-view-txt');
+  if (btnShiftView && btnShiftViewTxt) {
+    if (!isOpenDateSet) {
+      // 公開予定日未設定
+      btnShiftView.disabled = true;
+      btnShiftView.style.opacity = '0.5';
+      btnShiftView.style.cursor  = 'default';
+      btnShiftView.onclick = null;
+      btnShiftViewTxt.textContent = '現在公開予定日は未定です。区域係に問い合わせてください';
+      btnShiftViewTxt.style.fontSize = '13px';
+    } else if (!isOpenPassed) {
+      // 公開予定日が未来
+      btnShiftView.disabled = true;
+      btnShiftView.style.opacity = '0.5';
+      btnShiftView.style.cursor  = 'default';
+      btnShiftView.onclick = null;
+      btnShiftViewTxt.textContent = 'シフト表を見る（公開予定日: ' + ed['シフト公開'] + '）';
+      btnShiftViewTxt.style.fontSize = '';
+    } else {
+      // 公開済み
+      btnShiftView.disabled = false;
+      btnShiftView.style.opacity = '';
+      btnShiftView.style.cursor  = '';
+      btnShiftView.onclick = () => showScreen('shift');
+      btnShiftViewTxt.textContent = 'シフト表を見る';
+      btnShiftViewTxt.style.fontSize = '';
+    }
+  }
+
+  // ── 要望ボタン：管理者は非表示 ──
+  const btnRequest = document.getElementById('btn-request');
+  if (btnRequest) btnRequest.style.display = isOwner ? 'none' : '';
+
+  // ── 受付状況 ──
+  const sv = document.getElementById('status-value');
+  const sd = document.getElementById('status-dates');
+  sv.className = 'status-value';
+  sv.style.color = '';
+  document.getElementById('status-closed-msg').classList.remove('show');
+
+  if (isDeadlineToday) {
+    sv.textContent = '🔒 締切日';
+    sv.classList.add('status-closed');
+    sv.style.color = 'var(--danger)';
+    sd.innerHTML = '';
+  } else if (status === '受付中') {
+    sv.textContent = '✅ 受付中';
+    sv.classList.add('status-open');
+    sd.innerHTML = '';
+  } else if (status === '準備中') {
+    sv.textContent = '⏳ 受付準備中';
+    sv.classList.add('status-prep');
+    sd.textContent = '';
+  } else {
+    sv.textContent = '🔒 受付終了';
+    sv.classList.add('status-closed');
+    sd.textContent = '';
+    document.getElementById('status-closed-msg').classList.add('show');
+  }
+
+  // カレンダー描画（今日が含まれる月を初期表示）
+  const todayForCal = new Date();
+  calDisplayYear  = todayForCal.getFullYear();
+  calDisplayMonth = todayForCal.getMonth() + 1;
+  buildCalendar();
+
+  // ── 次のシフト ──
+  buildNextShift();
+
+  // ── お知らせ ──
+  const notices = APP_DATA.notices || [];
+  if (notices.length > 0) {
+    const nc = document.getElementById('notices-container');
+    nc.innerHTML = '';
+    notices.forEach(n => {
+      nc.innerHTML += `<div class="notice-item">
+        <div class="notice-date">${n.date}</div>
+        <div class="notice-title">${esc(n.title)}</div>
+        <div class="notice-body">${esc(n.body)}</div>
+      </div>`;
+    });
+    document.getElementById('notices-card').style.display = '';
+  }
+}
+
+// カレンダー表示中の年月（実際の今月 or 先月）
+let calDisplayYear  = 0;
+let calDisplayMonth = 0;
+
+function calNavMonth(delta) {
+  let newY = calDisplayYear;
+  let newM = calDisplayMonth + delta;
+  if (newM < 1)  { newM = 12; newY--; }
+  if (newM > 12) { newM = 1;  newY++; }
+
+  // 移動可能範囲：今日の月〜シフト当月
+  const shiftY = YEAR  || new Date().getFullYear();
+  const shiftM = MONTH || new Date().getMonth() + 1;
+  const realToday = new Date();
+  const realY = realToday.getFullYear();
+  const realM = realToday.getMonth() + 1;
+
+  const minVal = realY * 100 + realM;
+  const maxVal = Math.max(shiftY * 100 + shiftM, minVal);
+  const targetVal = newY * 100 + newM;
+  if (targetVal < minVal || targetVal > maxVal) return;
+
+  calDisplayYear  = newY;
+  calDisplayMonth = newM;
+  _selectedShiftKey = null;
+  const box = document.getElementById('shift-time-box');
+  if (box) box.classList.remove('show');
+  buildCalendar();
+}
+
+function buildCalendar() {
+  const ed     = APP_DATA.eventDates || {};
+  const grid   = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const dispY = calDisplayYear;
+  const dispM = calDisplayMonth;
+  document.getElementById('cal-title').textContent = dispY + '年' + dispM + '月';
+
+  // 実際の今日（ハイライト用）
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // ナビボタンの活性制御（今日の月〜シフト当月）
+  const shiftY = YEAR  || new Date().getFullYear();
+  const shiftM = MONTH || new Date().getMonth() + 1;
+  const realToday2 = new Date();
+  const realY2 = realToday2.getFullYear();
+  const realM2 = realToday2.getMonth() + 1;
+  const minVal2 = realY2 * 100 + realM2;
+  const maxVal2 = Math.max(shiftY * 100 + shiftM, minVal2);
+  const curVal2 = dispY * 100 + dispM;
+  const prevBtn = document.getElementById('cal-prev-btn');
+  const nextBtn = document.getElementById('cal-next-btn');
+  if (prevBtn) {
+    prevBtn.style.opacity      = curVal2 <= minVal2 ? '0.35' : '1';
+    prevBtn.style.pointerEvents = curVal2 <= minVal2 ? 'none' : '';
+  }
+  if (nextBtn) {
+    nextBtn.style.opacity      = curVal2 >= maxVal2 ? '0.35' : '1';
+    nextBtn.style.pointerEvents = curVal2 >= maxVal2 ? 'none' : '';
+  }
+
+  const DOWS = ['月','火','水','木','金','土','日'];
+  DOWS.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow' + (i === 5 ? ' sat' : i === 6 ? ' sun' : '');
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(dispY, dispM - 1, 1);
+  const dow      = firstDay.getDay();
+  const offset   = dow === 0 ? 6 : dow - 1;
+  const lastDate = new Date(dispY, dispM, 0).getDate();
+
+  // イベント日付セット（表示中の年を基準）
+  const parseDate = str => {
+    if (!str) return null;
+    const p = str.split('/');
+    return p.length === 2 ? new Date(dispY, parseInt(p[0]) - 1, parseInt(p[1])) : null;
+  };
+  const applyD    = parseDate(ed['申込開始']);
+  const deadlineD = parseDate(ed['締切']);
+  const openD     = parseDate(ed['シフト公開']);
+
+  // 実施日セット：SHIFT_DATES（カレンダーB10以降）を優先使用
+  // SHIFT_DATESは'm/d'形式、表示月でフィルタして'm_d'キーのSetを作成
+  const shiftDays = new Set();
+  (SHIFT_DATES.length > 0 ? SHIFT_DATES : []).forEach(dateStr => {
+    const p = dateStr.split('/');
+    if (p.length === 2) {
+      const m = parseInt(p[0]), day = parseInt(p[1]);
+      if (m === dispM) shiftDays.add(m + '_' + day);
+    }
+  });
+  // SHIFT_DATESが空の場合はSHIFT_DATA.datesからフォールバック
+  if (shiftDays.size === 0) {
+    (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
+      const p = d.date.split('/');
+      if (p.length === 2) {
+        const m = parseInt(p[0]), day = parseInt(p[1]);
+        if (m === dispM) shiftDays.add(m + '_' + day);
+      }
+    });
+  }
+  console.log('[Calendar] dispM=' + dispM + ' SHIFT_DATES=', SHIFT_DATES, ' shiftDays=', [...shiftDays]);
+
+  // 自分のシフト日セット（SHIFT_DATA.datesから、公開後のみ有効）
+  const myShiftDays = new Set();
+  (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
+    if (isMyCellInDate(d)) {
+      const p = d.date.split('/');
+      if (p.length === 2) {
+        const m = parseInt(p[0]), day = parseInt(p[1]);
+        if (m === dispM) myShiftDays.add(m + '_' + day);
+      }
+    }
+  });
+
+  // 申込期間バー用：申込開始〜締切の範囲を計算
+  const applyStart = applyD ? applyD.getTime() : null;
+  const applyEnd   = deadlineD ? deadlineD.getTime() : null;
+
+  const total = Math.ceil((offset + lastDate) / 7) * 7;
+  for (let i = 0; i < total; i++) {
+    const day = i - offset + 1;
+    const el  = document.createElement('div');
+    el.className = 'cal-day';
+    if (day < 1 || day > lastDate) {
+      el.classList.add('other');
+      el.textContent = '';
+    } else {
+      const thisDate = new Date(dispY, dispM - 1, day);
+      const thisT    = thisDate.getTime();
+      const col = i % 7;
+      if (col === 5) el.classList.add('sat');
+      if (col === 6) el.classList.add('sun');
+
+      const isToday    = thisT === today.getTime();
+      const isApply    = applyD    && isSameDayJS(thisDate, applyD);
+      const isDeadline = deadlineD && isSameDayJS(thisDate, deadlineD);
+      const isOpen     = openD     && isSameDayJS(thisDate, openD);
+      if (isApply)    el.classList.add('apply-day');
+      if (isDeadline) el.classList.add('deadline');
+      if (isOpen)     el.classList.add('open-day');
+
+      // 日付表示：今日は真円span、それ以外はテキスト
+      const dayLabel = document.createElement('span');
+      if (isToday) {
+        dayLabel.className = 'today-circle';
+      }
+      dayLabel.textContent = day;
+
+      // 実施日かどうか（サブラベルより先に判定）
+      const key      = dispM + '_' + day;
+      const isShift  = shiftDays.has(key);
+
+      // サブラベル：実施日優先、次に申込/締切/公開予定
+      const hasSub = isShift ? null  // 実施日は件数をcal-countで別途表示
+                   : isApply    ? '申込'
+                   : isDeadline ? '締切'
+                   : isOpen     ? '公開予定'
+                   : '';
+      el.appendChild(dayLabel);
+      if (hasSub) {
+        const sub = document.createElement('span');
+        sub.className   = 'cal-sub';
+        sub.textContent = hasSub;
+        el.appendChild(sub);
+      }
+
+      // 申込期間バー（申込開始〜締切の期間中）
+      if (applyStart && applyEnd && thisT >= applyStart && thisT <= applyEnd) {
+        const bar = document.createElement('div');
+        bar.className = 'cal-period-bar apply-bar';
+        if (thisT === applyStart && thisT === applyEnd) {
+          // 1日だけの場合（バー全幅）
+        } else if (thisT === applyStart) {
+          bar.classList.add('bar-start');
+        } else if (thisT === applyEnd) {
+          bar.classList.add('bar-end');
+        } else {
+          bar.classList.add('bar-mid');
+        }
+        el.appendChild(bar);
+      }
+
+      // 実施日：件数表示＋クリックイベント
+      if (isShift) {
+        el.classList.add('shift-day');
+
+        // 件数（SHIFT_DATESから同日のスロット数を算出）
+        const count = (SHIFT_DATES_MAP[key] || []).length;
+        if (count > 0) {
+          const countEl = document.createElement('span');
+          countEl.className   = 'cal-count';
+          countEl.textContent = count + '件';
+          el.appendChild(countEl);
+        }
+
+        // 自分のシフトバッジ
+        if (myShiftDays.has(key)) {
+          const badge = document.createElement('div');
+          badge.className = 'cal-badge my-shift';
+          el.appendChild(badge);
+        }
+
+        // クリックで時間帯ボックスを表示/非表示
+        el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day));
+      }
+    }
+    grid.appendChild(el);
+  }
+}
+
+// ===== カレンダー実施日クリック：時間帯ボックス表示 =====
+let _selectedShiftKey = null;
+
+function toggleShiftTimeBox(key, y, m, d) {
+  const box      = document.getElementById('shift-time-box');
+  const boxDate  = document.getElementById('shift-time-box-date');
+  const boxList  = document.getElementById('shift-time-box-list');
+
+  // 同じセルを再クリックで閉じる
+  if (_selectedShiftKey === key) {
+    _selectedShiftKey = null;
+    box.classList.remove('show');
+    // 選択状態を解除
+    document.querySelectorAll('.cal-day.shift-day.selected').forEach(el => el.classList.remove('selected'));
+    return;
+  }
+
+  _selectedShiftKey = key;
+
+  // 選択状態の更新
+  document.querySelectorAll('.cal-day.shift-day.selected').forEach(el => el.classList.remove('selected'));
+  // クリックされたセルにselectedを付与（イベントのターゲット経由で探す）
+  document.querySelectorAll('.cal-day.shift-day').forEach(el => {
+    const dayEl = el.querySelector('span');
+    if (dayEl && parseInt(dayEl.textContent) === d) el.classList.add('selected');
+  });
+
+  const DAY_NAMES = ['日','月','火','水','木','金','土'];
+  const dt = new Date(y, m - 1, d);
+  boxDate.textContent = m + '月' + d + '日（' + DAY_NAMES[dt.getDay()] + '）の時間帯';
+
+  const times = SHIFT_DATES_MAP[key] || [];
+  boxList.innerHTML = '';
+  if (times.length === 0) {
+    boxList.innerHTML = '<div class="shift-time-item">時間帯情報がありません</div>';
+  } else {
+    times.forEach(t => {
+      const item = document.createElement('div');
+      item.className   = 'shift-time-item';
+      item.innerHTML   = '🕐 ' + esc(t);
+      boxList.appendChild(item);
+    });
+  }
+  box.classList.add('show');
+}
+
+function isMyCellInDate(dateObj) {
+  if (!SESSION) return false;
+  const name = SESSION.name;
+  return (dateObj.slots || []).some(slot =>
+    [...slot.north, ...slot.south].some(p => p && p.name === name)
+  ) || (dateObj.responsible || []).includes(name)
+    || (dateObj.cart && (
+        (dateObj.cart.bring || []).some(c => c.name === name) ||
+        (dateObj.cart.take  || []).some(c => c.name === name)
+       ));
+}
+
+function isSameDayJS(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth()    === b.getMonth()    &&
+         a.getDate()     === b.getDate();
+}
+
+// ===== 希望一覧ボックス構築 =====
+function buildWishListBox(status, isOpenPassed) {
+  const card  = document.getElementById('wish-list-card');
+  const title = document.getElementById('wish-list-title');
+  const body  = document.getElementById('wish-list-body');
+  if (!card || !body) return;
+
+  const myUid  = SESSION ? SESSION.uid : '';
+  const myName = SESSION ? SESSION.name : '';
+
+  // 準備中は非表示
+  if (status === '準備中') { card.style.display = 'none'; return; }
+
+  // シフト公開済み：確定シフト一覧を表示
+  if (isOpenPassed && SHIFT_DATA && SHIFT_DATA.published) {
+    const myShifts = [];
+    (SHIFT_DATA.dates || []).forEach(d => {
+      if (!isMyCellInDate(d)) return;
+      let role = '奉仕者';
+      if ((d.responsible || []).includes(myName)) role = '責任者';
+      else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === myName)) role = 'カート担当';
+      myShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role });
+    });
+    title.textContent = '✅ 確定シフト一覧';
+    if (myShifts.length === 0) {
+      body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">確定シフトはありません</div>';
+    } else {
+      body.innerHTML = myShifts.map(s =>
+        '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+        '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
+        ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
+        ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
+        '</div>'
+      ).join('');
+    }
+    card.style.display = '';
+    return;
+  }
+
+  // 受付中・受付終了：送信済み希望一覧を表示
+  const myData = THIS_MONTH[myUid];
+  if (!myData || Object.keys(myData.checkedMap || {}).length === 0) {
+    title.textContent = '📋 シフト希望';
+    body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">まだ送信されていません</div>';
+    card.style.display = (status === '受付終了') ? '' : ''; // 受付終了でも表示
+    return;
+  }
+
+  // 送信済みデータを表示
+  title.textContent = '📋 送信済みのシフト希望';
+  // タイムスタンプ（最終送信日時）
+  const ts = myData.timestamp || '';
+  let tsHtml = '';
+  if (ts) {
+    tsHtml = '<div style="font-size:12px;color:var(--sub);margin-bottom:8px;">最終送信：' + esc(ts) + '</div>';
+  }
+
+  // 希望スロット一覧
+  let items = [];
+  if (SLOTS.length === 0) {
+    // SLOTS未取得時はスロット詳細なしで表示
+    items.push('<div style="font-size:14px;color:var(--sub);padding:6px 0;">（詳細はシフト希望フォームを開くと表示されます）</div>');
+  } else {
+  SLOTS.forEach(slot => {
+    const gk = slot.week + ' ' + slot.dateLabel;
+    const checked = myData.checkedMap[gk] && myData.checkedMap[gk].includes(slot.time);
+    if (!checked) return;
+    const cartNg = myData.cartNgMap[gk] && myData.cartNgMap[gk].includes(slot.time);
+    const note   = myData.noteMap ? (myData.noteMap[gk + ' ' + slot.time] || '') : '';
+    let badges = '';
+    if (cartNg) badges += '<span style="font-size:11px;background:#fee2e2;color:var(--danger);padding:2px 5px;border-radius:4px;margin-left:4px;">カート不可</span>';
+    if (note)   badges += '<div style="font-size:12px;color:var(--sub);margin-top:2px;padding-left:4px;">備考: ' + esc(note) + '</div>';
+    items.push(
+      '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+      '<span style="font-weight:700;color:var(--green);">' + esc(slot.dateLabel) + '</span>' +
+      ' <span style="color:var(--sub);">' + esc(slot.time) + '</span>' +
+      badges + '</div>'
+    );
+  });
+  }
+
+  let editBtn = '';
+  if (status === '受付中') {
+    editBtn = '<button onclick="showScreen(\'form\')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
+  }
+
+  body.innerHTML = tsHtml + (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') + editBtn;
+  card.style.display = '';
+}
+
+function buildNextShift() {
+  if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const name  = SESSION.name;
+  const next  = SHIFT_DATA.dates.find(d => {
+    const p = d.date.split('/');
+    if (p.length !== 2) return false;
+    const dt = new Date(YEAR, parseInt(p[0]) - 1, parseInt(p[1]));
+    if (dt < today) return false;
+    if (d.cancelled) return false;
+    return isMyCellInDate(d);
+  });
+  if (!next) return;
+  const card = document.getElementById('next-shift-card');
+  card.style.display = '';
+  document.getElementById('next-shift-date').textContent = next.date + '（' + next.weekday + '） ' + next.time;
+  // 役割判定
+  let role = '奉仕者';
+  if ((next.responsible || []).includes(name)) role = '責任者';
+  else if ((next.cart && [...(next.cart.bring||[]), ...(next.cart.take||[])]).some(c => c.name === name)) role = 'カート担当';
+  document.getElementById('next-shift-role').textContent = '役割: ' + role;
+}
+
+// ===== フォーム画面 =====
+function initFormScreen() {
+  currentFormName = SESSION.name;
+  currentFormUid  = SESSION.uid;
+  isCartUser      = SESSION.isCart;
+  lastMonthOn     = false;
+  document.getElementById('toggle-track').classList.remove('on');
+  document.title = '宇多津会衆PWアプリ';
+
+  // 代理送信
+  const proxyArea = document.getElementById('proxy-area');
+  const proxySel  = document.getElementById('sel-proxy');
+  const targets   = SESSION.proxyTargets || [];
+  if (targets.length > 0) {
+    proxySel.innerHTML = '<option value="">自分（' + SESSION.name + '）</option>';
+    // メンバー名を取得するためにAPP_DATAを使用
+    targets.forEach(uid => {
+      const member = (APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid, uid: uid };
+      const opt = document.createElement('option');
+      opt.value = uid; opt.textContent = member.name + ' の代わりに送信';
+      opt.dataset.name = member.name;
+      proxySel.appendChild(opt);
+    });
+    proxyArea.style.display = 'block';
+  } else {
+    proxyArea.style.display = 'none';
+  }
+
+  initFormState(currentFormUid);
+  renderSlots(currentFormUid);
+
+  const hasLast = LAST_MONTH[currentFormUid] &&
+                Object.keys(LAST_MONTH[currentFormUid]).length > 0 &&
+                !THIS_MONTH[currentFormUid];
+  document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
+}
+
+function onProxyChange() {
+  const sel = document.getElementById('sel-proxy');
+  if (sel.value) {
+    currentFormUid  = sel.value;
+    currentFormName = sel.options[sel.selectedIndex].dataset.name || sel.value;
+  } else {
+    currentFormUid  = SESSION.uid;
+    currentFormName = SESSION.name;
+  }
+  lastMonthOn = false;
+  document.getElementById('toggle-track').classList.remove('on');
+  initFormState(currentFormUid);
+  renderSlots(currentFormUid);
+  const hasLast = LAST_MONTH[currentFormUid] &&
+                Object.keys(LAST_MONTH[currentFormUid]).length > 0 &&
+                !THIS_MONTH[currentFormUid];
+  document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
+}
+
+function initFormState(uid) {
+  formState.checkedMap = {}; formState.cartNgMap = {}; formState.noteMap = {};
+  if (THIS_MONTH[uid]) {
+    const d = THIS_MONTH[uid];
+    Object.entries(d.checkedMap || {}).forEach(([k, arr]) => { formState.checkedMap[k] = new Set(arr); });
+    Object.entries(d.cartNgMap  || {}).forEach(([k, arr]) => { formState.cartNgMap[k]  = new Set(arr); });
+    Object.entries(d.noteMap    || {}).forEach(([k, v])   => { formState.noteMap[k] = v; });
+    return;
+  }
+  // 先月データは「先月と同じ」ボタンON時のみ適用するため、ここでは何もしない
+}
+
+function groupSlots(slots) {
+  const g = [], seen = {};
+  slots.forEach(s => {
+    const k = s.week + '_' + s.dateLabel;
+    if (!seen[k]) { seen[k] = { week: s.week, dateLabel: s.dateLabel, times: [] }; g.push(seen[k]); }
+    seen[k].times.push(s.time);
+  });
+  return g;
+}
+
+function renderSlots(uid) {
+  const container = document.getElementById('slots-container');
+  const grouped   = groupSlots(SLOTS);
+  if (grouped.length === 0) { container.innerHTML = '<p class="empty-note">スロットがありません</p>'; return; }
+  container.innerHTML = '';
+  grouped.forEach(g => {
+    const groupKey = g.week + ' ' + g.dateLabel;
+    const div = document.createElement('div');
+    div.className = 'date-group';
+    div.innerHTML = '<div class="date-label"><span class="week-badge">' + g.week + '</span>' + g.dateLabel + '</div>';
+    g.times.forEach(time => {
+      const slotKey       = groupKey + ' ' + time;
+      const isChecked     = !!(formState.checkedMap[groupKey] && formState.checkedMap[groupKey].has(time));
+      const isLast        = !!(LAST_MONTH[uid] && LAST_MONTH[uid][slotKey]);
+      const cartNgChecked = !!(formState.cartNgMap[groupKey] && formState.cartNgMap[groupKey].has(time));
+      const noteVal       = formState.noteMap[slotKey] || '';
+      const row = document.createElement('div');
+      row.className = 'slot-row' + (isChecked ? ' checked' : '');
+      row.dataset.group = groupKey; row.dataset.time = time;
+      const badge = isLast ? '<span class="last-badge">先月も参加</span>' : '';
+      row.innerHTML =
+        '<div class="slot-main" onclick="toggleSlot(this)">'
+        + '<div class="slot-checkbox"></div>'
+        + '<div class="slot-time">' + time + '</div>'
+        + badge + '</div>'
+        + '<div class="slot-extra">'
+        + '<div class="cart-row' + (isCartUser ? ' visible' : '') + '" onclick="toggleCart(this)">'
+        + '<div class="cart-check' + (cartNgChecked ? ' on' : '') + '"></div>'
+        + '<span class="cart-label">この時間はカート担当不可</span></div>'
+        + '<div class="note-area"><label>備考（途中参加・早退など）</label>'
+        + '<textarea placeholder="例: 10:00から / 14:00まで" oninput="saveNote(this)">' + noteVal + '</textarea></div>'
+        + '</div>';
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+}
+
+function toggleSlot(el) {
+  const row = el.closest('.slot-row'), gk = row.dataset.group, time = row.dataset.time;
+  if (row.classList.contains('checked')) {
+    row.classList.remove('checked');
+    if (formState.checkedMap[gk]) formState.checkedMap[gk].delete(time);
+    if (formState.cartNgMap[gk])  formState.cartNgMap[gk].delete(time);
+    delete formState.noteMap[gk + ' ' + time];
+  } else {
+    row.classList.add('checked');
+    if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
+    formState.checkedMap[gk].add(time);
+  }
+}
+function toggleCart(el) {
+  const row = el.closest('.slot-row'), gk = row.dataset.group, time = row.dataset.time;
+  const ch  = el.querySelector('.cart-check');
+  if (ch.classList.contains('on')) { ch.classList.remove('on'); if (formState.cartNgMap[gk]) formState.cartNgMap[gk].delete(time); }
+  else { ch.classList.add('on'); if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set(); formState.cartNgMap[gk].add(time); }
+}
+function saveNote(el) {
+  const row = el.closest('.slot-row');
+  formState.noteMap[row.dataset.group + ' ' + row.dataset.time] = el.value.trim();
+}
+function toggleLastMonth() {
+  lastMonthOn = !lastMonthOn;
+  const track = document.getElementById('toggle-track');
+  if (lastMonthOn) {
+    track.classList.add('on');
+    if (LAST_MONTH[currentFormUid]) {
+      SLOTS.forEach(slot => {
+        const sk    = slot.week + ' ' + slot.dateLabel + ' ' + slot.time;
+        const entry = LAST_MONTH[currentFormUid][sk];
+        if (entry && entry.checked) {
+          const gk = slot.week + ' ' + slot.dateLabel;
+          if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
+          formState.checkedMap[gk].add(slot.time);
+          const comment = entry.comment || '';
+          if (comment.includes('カート不可')) {
+            if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set();
+            formState.cartNgMap[gk].add(slot.time);
+          }
+          const noteContent = comment.replace('カート不可', '').trim();
+          if (noteContent) formState.noteMap[sk] = noteContent;
+        }
+      });
+    }
+  } else {
+    track.classList.remove('on');
+    formState.checkedMap = {}; formState.cartNgMap = {}; formState.noteMap = {};
+  }
+  renderSlots(currentFormUid);
+}
+
+async function submitForm() {
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = '送信中...';
+  const cm = {}, ng = {};
+  Object.entries(formState.checkedMap).forEach(([k, s]) => { cm[k] = [...s]; });
+  Object.entries(formState.cartNgMap).forEach(([k, s])  => { ng[k] = [...s]; });
+  const payload = {
+    uid:  currentFormUid,
+    name: currentFormName,
+    checkedMap: cm, cartNgMap: ng, noteMap: Object.assign({}, formState.noteMap),
+    proxyFromUid: (currentFormUid !== SESSION.uid) ? SESSION.uid : ''
+  };
+  try {
+    const result = await gasJsonp('submitShift', payload);
+    if (result && result.ok === false) throw new Error(result.error || '送信失敗');
+    const msg = document.getElementById('form-msg');
+    msg.className = 'msg success';
+    msg.textContent = '✅ 送信が完了しました！';
+    btn.textContent = '送信済み';
+    setTimeout(() => showScreen('main'), 2000);
+  } catch (e) {
+    const msg = document.getElementById('form-msg');
+    msg.className = 'msg error';
+    msg.textContent = '⚠️ 通信エラーが発生しました。もう一度お試しください。';
+    btn.disabled = false; btn.textContent = '送信する';
+  }
+}
+
+// ===== シフト表画面 =====
+function initShiftScreen() {
+  document.getElementById('shift-date-list').style.display   = '';
+  document.getElementById('shift-detail-view').style.display = 'none';
+  document.getElementById('shift-back-btn').onclick = () => showScreen('main');
+  shiftViewingDate = null;
+  buildShiftDateList();
+}
+
+function buildShiftDateList() {
+  const container = document.getElementById('shift-dates-container');
+  container.innerHTML = '';
+  if (!SHIFT_DATA || !SHIFT_DATA.published) {
+    container.innerHTML = '<div class="card" style="text-align:center;color:var(--sub);padding:30px;">シフト表はまだ公開されていません</div>';
+    return;
+  }
+  (SHIFT_DATA.dates || []).forEach(d => {
+    const btn = document.createElement('div');
+    btn.className = 'shift-date-btn' + (d.cancelled ? ' cancelled' : '');
+    const hasMyShift = isMyCellInDate(d);
+    btn.innerHTML =
+      '<div class="sdb-date">' + d.date + '（' + d.weekday + '）</div>'
+      + '<div class="sdb-time">' + d.time + '</div>'
+      + (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
+          : hasMyShift ? '<span class="sdb-badge">参加</span>' : '');
+    btn.onclick = () => showShiftDetail(d);
+    container.appendChild(btn);
+  });
+}
+
+function showShiftDetail(dateObj) {
+  shiftViewingDate = dateObj;
+  document.getElementById('shift-date-list').style.display   = 'none';
+  document.getElementById('shift-detail-view').style.display = '';
+  document.getElementById('shift-back-btn').onclick = () => {
+    document.getElementById('shift-date-list').style.display   = '';
+    document.getElementById('shift-detail-view').style.display = 'none';
+    document.getElementById('shift-back-btn').onclick = () => showScreen('main');
+  };
+  buildShiftDetail(dateObj);
+}
+
+function buildShiftDetail(d) {
+  const container = document.getElementById('shift-detail-container');
+  const myName    = SESSION ? SESSION.name : '';
+  let html = '';
+
+  html += '<div class="shift-block">';
+  html += '<div class="shift-block-hdr">';
+  html += '<span>' + d.date + '（' + d.weekday + '） ' + d.time + '</span>';
+  // 管理者・責任者向け操作ボタン
+  if (SESSION && (SESSION.isAdmin || (SESSION.isResponsible && (d.responsible || []).includes(myName)))) {
+    html += '<div class="edit-actions">';
+    html += '<button class="btn-small btn-cancel-input" onclick="openCancelInput(' + JSON.stringify(d.date) + ',' + JSON.stringify(d.time) + ')">中止入力</button>';
+    html += '<button class="btn-small btn-memo-edit" onclick="openMemoEdit(' + JSON.stringify(d.date) + ',' + JSON.stringify(d.time) + ')">メモ編集</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // 中止バナー
+  if (d.cancelled) {
+    html += '<div class="cancel-banner">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
+  }
+
+  // メモ
+  if (d.memo) {
+    html += '<div class="memo-box"><label>📝 責任者メモ</label>' + esc(d.memo) + '</div>';
+  }
+
+  // 責任者
+  if (d.responsible && d.responsible.length > 0) {
+    html += '<div class="resp-row"><span class="resp-label">責任者：</span>';
+    d.responsible.forEach(name => {
+      html += '<span style="font-weight:700;">' + esc(name) + '</span>&nbsp;';
+    });
+    html += '</div>';
+  }
+
+  // カート担当
+  if (d.cart) {
+    const allCart = [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name);
+    if (allCart.length > 0) {
+      html += '<div class="cart-info-row"><span class="cart-label-s">カート：</span>';
+      (d.cart.bring || []).filter(c => c.name).forEach(c => {
+        html += '<span>持込: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + c.cartNo + ')' : '') + '</span>&nbsp;';
+      });
+      (d.cart.take || []).filter(c => c.name).forEach(c => {
+        html += '<span>持帰: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + c.cartNo + ')' : '') + '</span>&nbsp;';
+      });
+      html += '</div>';
+    }
+    // 展示内容写真ボタン
+    html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
+  }
+
+  // 奉仕者テーブル
+  if (d.slots && d.slots.length > 0) {
+    // 北口
+    html += '<div class="area-section"><div class="area-title">🔵 北口</div>';
+    html += '<table class="slot-table"><thead><tr><th>時間</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
+    d.slots.forEach(slot => {
+      html += '<tr><td class="time-col">' + slot.time + '</td>';
+      slot.north.forEach(p => {
+        const cellClass = getCellClass(p, myName, d, 'north');
+        html += '<td class="' + cellClass + '">' + formatName(p) + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // 南口
+    html += '<div class="area-section"><div class="area-title">🟠 南口</div>';
+    html += '<table class="slot-table"><thead><tr><th>時間</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
+    d.slots.forEach(slot => {
+      html += '<tr><td class="time-col">' + slot.time + '</td>';
+      slot.south.forEach(p => {
+        const cellClass = getCellClass(p, myName, d, 'south');
+        html += '<td class="' + cellClass + '">' + formatName(p) + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function getCellClass(p, myName, d, area) {
+  if (!p || !p.name || p.name !== myName) return '';
+  const isResp = (d.responsible || []).includes(myName);
+  const isCart = d.cart && ([...(d.cart.bring||[]),...(d.cart.take||[])]).some(c => c.name === myName);
+  if (isResp && isCart) return 'my-cell-both';
+  if (isResp) return 'my-cell-resp';
+  if (isCart) return 'my-cell-cart';
+  return 'my-cell-staff';
+}
+function formatName(p) {
+  if (!p || !p.name) return '';
+  return esc(p.name) + (p.watch ? '<span class="watch-mark">（見守り）</span>' : '');
+}
+
+// 中止入力（長押し3秒）
+let cancelTimer = null;
+function openCancelInput(date, time) {
+  const reason = prompt('中止理由を入力してください（空白でも可）:', '');
+  if (reason === null) return; // キャンセル
+  showLoading('中止情報を登録中...');
+  gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(data => {
+    hideLoading();
+    if (data.ok) { alert('中止情報を登録しました。'); initApp().then(() => showScreen('shift')); }
+    else alert('エラー: ' + data.error);
+  }).catch(() => { hideLoading(); alert('通信エラー'); });
+}
+
+// メモ編集
+function openMemoEdit(date, time) {
+  const key = date + '_' + time;
+  const current = (shiftViewingDate && shiftViewingDate.memo) || '';
+  const memo = prompt('責任者メモを入力してください:', current);
+  if (memo === null) return;
+  showLoading('メモを保存中...');
+  gasJsonp('saveMemo', { date, time, memo }).then(data => {
+    hideLoading();
+    if (data.ok) { initApp().then(() => showScreen('shift')); }
+    else alert('エラー: ' + data.error);
+  }).catch(() => { hideLoading(); alert('通信エラー'); });
+}
+
+// ===== 要望送信 =====
+async function submitRequest() {
+  const ta  = document.getElementById('req-textarea');
+  const btn = document.getElementById('btn-req-submit');
+  const msg = document.getElementById('req-msg');
+  if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
+  btn.disabled = true; btn.textContent = '送信中...';
+  try {
+    const data = await gasJsonp('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
+    if (data.ok) {
+      msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
+      ta.value = '';
+      setTimeout(() => showScreen('main'), 2000);
+    } else throw new Error(data.error);
+  } catch (e) {
+    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    btn.disabled = false; btn.textContent = '送信する';
+  }
+}
+
+
+
+// ===== ヘルプ =====
+const HELP_CONTENTS = {
+  login: {
+    title: 'アプリについて',
+    sections: [
+      {
+        title: 'このアプリでできること',
+        items: [
+          { icon: '📝', text: 'シフト希望を送る（参加できる時間帯を申告）' },
+          { icon: '📋', text: 'シフト表を確認する（公開後に閲覧可能）' },
+          { icon: '💬', text: '区域係への要望・ご意見を送る' },
+        ]
+      },
+      {
+        title: 'ログイン方法',
+        items: [
+          { icon: '①', text: '「Googleでログイン」ボタンをタップ' },
+          { icon: '②', text: 'アクセス許可されたGoogleアカウントを選択' },
+          { icon: '③', text: '初回のみ、名前の選択・登録が必要です' },
+          { icon: '④', text: '次回からは自動でログインされます' },
+        ]
+      },
+      {
+        title: 'ログインできない場合',
+        items: [
+          { icon: '⚠️', text: 'アクセス許可されていないアカウントではログインできません。区域係にご連絡ください。' },
+        ]
+      }
+    ]
+  },
+  main: {
+    title: 'メイン画面の見方',
+    sections: [
+      {
+        title: 'カレンダーの色の意味',
+        legend: [
+          { color: '#ede9fe', border: '#c4b5fd', label: '実施日（タップで時間帯を確認できます）' },
+          { color: '#f59e0b', border: '#f59e0b', round: true, label: '自分のシフトが入っている日' },
+          { color: '#f97316', border: '#f97316', label: '申込期間（横線で表示）' },
+          { color: '#d1fae5', border: '#a7f3d0', label: '申込開始日' },
+          { color: '#fee2e2', border: '#fca5a5', label: '締切日' },
+          { color: '#eff6ff', border: '#bfdbfe', label: 'シフト公開予定日' },
+        ]
+      },
+      {
+        title: '各ボタンの説明',
+        items: [
+          { icon: '📝', text: '「シフト希望を送る」：受付中のみ利用可。参加できる時間帯を選んで送信します。' },
+          { icon: '📋', text: '「シフト表を見る」：シフト公開後に全員のシフト表を確認できます。' },
+          { icon: '💬', text: '「要望を送る」：区域係へのご意見・要望を送ることができます。' },
+        ]
+      }
+    ]
+  },
+  form: {
+    title: 'シフト希望の送り方',
+    sections: [
+      {
+        title: '基本的な使い方',
+        items: [
+          { icon: '①', text: '参加できる時間帯の行をタップするとチェックが入ります' },
+          { icon: '②', text: 'もう一度タップするとチェックが外れます' },
+          { icon: '③', text: '複数の時間帯を選択することができます' },
+          { icon: '④', text: '選択が終わったら「送信する」ボタンを押してください' },
+        ]
+      },
+      {
+        title: 'カート担当不可について',
+        items: [
+          { icon: '🛒', text: 'カート担当に指定されている方のみ表示される項目です' },
+          { icon: '⚠️', text: 'その時間帯にカート担当ができない場合はチェックを入れてください' },
+        ]
+      },
+      {
+        title: '備考欄について',
+        items: [
+          { icon: '📝', text: '「途中から参加」「早退あり」などの場合は備考欄に記入してください' },
+          { icon: '例', text: '「10:00から」「14:00まで」など' },
+        ]
+      },
+      {
+        title: '先月と同じにする',
+        items: [
+          { icon: '🔄', text: '先月の回答がある場合に表示されます。ONにすると先月と同じ時間帯が自動で選択されます。' },
+        ]
+      }
+    ]
+  },
+  shift: {
+    title: 'シフト表の見方',
+    sections: [
+      {
+        title: 'セルのハイライト色',
+        legend: [
+          { color: '#fde68a', border: '#f59e0b', label: '自分（奉仕者）' },
+          { color: '#fca5a5', border: '#ef4444', label: '自分（責任者）' },
+          { color: '#a5b4fc', border: '#6366f1', label: '自分（カート担当）' },
+        ]
+      },
+      {
+        title: '各エリアの見方',
+        items: [
+          { icon: '🔵', text: '北口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: '🟠', text: '南口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: '🛒', text: 'カート欄：持込・持帰担当者とカート番号' },
+        ]
+      },
+      {
+        title: 'その他の表示',
+        items: [
+          { icon: '⛔', text: '赤いバナーが表示されている日は「中止」です' },
+          { icon: '📝', text: '責任者メモが表示されている場合は内容を確認してください' },
+          { icon: '（見守り）', text: '見守り担当として配置されていることを示します' },
+        ]
+      }
+    ]
+  },
+  request: {
+    title: '要望・ご意見の送り方',
+    sections: [
+      {
+        title: '使い方',
+        items: [
+          { icon: '①', text: 'テキストエリアにご意見・要望・質問などを入力してください' },
+          { icon: '②', text: '「送信する」ボタンを押すと区域係に届きます' },
+          { icon: '③', text: '送信後はメイン画面に戻ります' },
+        ]
+      },
+      {
+        title: '注意事項',
+        items: [
+          { icon: '⚠️', text: 'このフォームはシフト希望の変更には使用できません。シフト希望の変更は直接区域係にご連絡ください。' },
+        ]
+      }
+    ]
+  }
+};
+
+function openHelp(screen) {
+  const content = HELP_CONTENTS[screen] || HELP_CONTENTS['main'];
+  document.getElementById('help-modal-title-text').textContent = content.title;
+  const body = document.getElementById('help-modal-body');
+  body.innerHTML = '';
+  content.sections.forEach(sec => {
+    const secEl = document.createElement('div');
+    secEl.className = 'help-section';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'help-section-title';
+    titleEl.textContent = sec.title;
+    secEl.appendChild(titleEl);
+    if (sec.legend) {
+      const legendEl = document.createElement('div');
+      legendEl.className = 'help-legend';
+      sec.legend.forEach(row => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'help-legend-row';
+        const dot = document.createElement('div');
+        dot.className = 'help-legend-dot';
+        dot.style.background = row.color;
+        dot.style.border = '1.5px solid ' + row.border;
+        if (row.round) dot.style.borderRadius = '50%';
+        const label = document.createElement('span');
+        label.textContent = row.label;
+        rowEl.appendChild(dot);
+        rowEl.appendChild(label);
+        legendEl.appendChild(rowEl);
+      });
+      secEl.appendChild(legendEl);
+    }
+    if (sec.items) {
+      sec.items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'help-item';
+        itemEl.innerHTML = '<span class="help-item-icon">' + item.icon + '</span><span>' + item.text + '</span>';
+        secEl.appendChild(itemEl);
+      });
+    }
+    body.appendChild(secEl);
+  });
+  document.getElementById('help-overlay').classList.add('show');
+}
+
+function closeHelp() {
+  document.getElementById('help-overlay').classList.remove('show');
+}
+
+function closeHelpOutside(e) {
+  if (e.target === document.getElementById('help-overlay')) closeHelp();
+}
+
+// ===== エスケープ =====
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== 起動処理 =====
+(async function init() {
+  // セッション復元を試みる（email/tokenのみ保存、権限は毎回GASから再取得）
+  const saved = loadSession();
+  if (saved && saved.email) {
+    if (saved.needsRegister) {
+      // 初回登録途中でリロードされた場合は登録画面へ
+      buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
+      return;
+    }
+    // email+tokenがあればGASに再認証して最新データを取得
+    showLoading('認証中...');
+    try {
+      const data = await gasJsonp('auth', null, { source: 'form', email: saved.email });
+      if (!data.ok) {
+        hideLoading();
+        clearSession();
+        shouldShowOneTap = true;
+        try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
+        showScreen('login');
+        return;
+      }
+      if (data.needsRegister) {
+        hideLoading();
+        buildRegisterScreen(data.members || [], saved.email, saved.token || '', '', saved.picture || '');
+        return;
+      }
+      SESSION = {
+        uid: data.uid, name: data.name, email: saved.email, token: saved.token,
+        isAdmin: data.isAdmin, isResponsible: data.isResponsible,
+        isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+        picture: saved.picture || ''
+      };
+      // hideLoadingせずそのままinitAppへ（ローディングはinitApp内で引き継ぎ）
+      await initApp();
+      return;
+    } catch(e) {
+      hideLoading();
+      // 通信エラー時はログイン画面へ
+      clearSession();
+      shouldShowOneTap = true;
+      try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
+      showScreen('login');
+      return;
+    }
+  }
+  // 未ログイン：One Tapを許可してからログイン画面を表示
+  shouldShowOneTap = true;
+  // GISがすでに初期化済みなら直接prompt()を呼ぶ
+  try {
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt();
+    }
+  } catch(_) {}
+  showScreen('login');
+})();
+</script>
+</body>
+</html><script>
+// ===== 写真閲覧モーダル =====
+const ACCOUNTING_URL = 'https://docs.google.com/spreadsheets/d/1_eacoOvEoj2k6SjuoTJnM8_QBRGxzhogWkhjZkP1Vyk/edit';
+
+let _photoList    = [];
+let _photoCurrent = 0;
+
+async function openPhotoModal(category) {
+  const overlay = document.getElementById('photo-modal-overlay');
+  const titleEl = document.getElementById('photo-modal-title');
+  const imgEl   = document.getElementById('photo-modal-img');
+  const loadEl  = document.getElementById('photo-modal-loading');
+  const counter = document.getElementById('photo-modal-counter');
+
+  overlay.style.display = 'flex';
+  titleEl.textContent   = category === 'road' ? '🗺 道路使用許可書' : '🖼 カート展示内容';
+  imgEl.style.display   = 'none';
+  loadEl.style.display  = 'block';
+  counter.textContent   = '';
+  _photoList    = [];
+  _photoCurrent = 0;
+
+  try {
+    const res = await gasJsonp('getPhotos', { category, year: YEAR || new Date().getFullYear(), month: MONTH || (new Date().getMonth() + 1) });
+    _photoList = (res && res.photos) || [];
+    if (_photoList.length === 0) {
+      loadEl.textContent = '写真が登録されていません';
+      return;
+    }
+    loadEl.style.display = 'none';
+    showPhoto(0);
+  } catch(e) {
+    loadEl.textContent = '読み込みに失敗しました';
+  }
+}
+
+function showPhoto(idx) {
+  const imgEl   = document.getElementById('photo-modal-img');
+  const loadEl  = document.getElementById('photo-modal-loading');
+  const counter = document.getElementById('photo-modal-counter');
+  const prevBtn = document.getElementById('photo-prev-btn');
+  const nextBtn = document.getElementById('photo-next-btn');
+  if (!_photoList.length) return;
+  _photoCurrent = Math.max(0, Math.min(idx, _photoList.length - 1));
+  imgEl.style.display  = 'none';
+  loadEl.style.display = 'block';
+  loadEl.textContent   = '読み込み中...';
+  const url = _photoList[_photoCurrent].url;
+  imgEl.onload = () => { loadEl.style.display = 'none'; imgEl.style.display = 'block'; };
+  imgEl.onerror = () => { loadEl.textContent = '画像を読み込めませんでした'; };
+  imgEl.src = url;
+  counter.textContent = (_photoCurrent + 1) + ' / ' + _photoList.length;
+  prevBtn.style.opacity = _photoCurrent === 0 ? '0.3' : '1';
+  nextBtn.style.opacity = _photoCurrent === _photoList.length - 1 ? '0.3' : '1';
+}
+
+function photoNav(delta) {
+  showPhoto(_photoCurrent + delta);
+}
+
+function closePhotoModal() {
+  document.getElementById('photo-modal-overlay').style.display 

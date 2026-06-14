@@ -1631,19 +1631,14 @@ async function doRegister() {
 function updateAvatarUI() {
   if (!SESSION) return;
   const pic = SESSION.picture || '';
-  // すべての画面のアバターを更新（idなし要素も含めクラスで全取得）
-  document.querySelectorAll('.hdr-avatar').forEach(el => {
+  // すべての画面のアバターを更新
+  ['hdr-avatar', 'pp-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
     if (pic) {
       el.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
     }
   });
-  // ポップアップアバターを更新
-  const ppAvatar = document.getElementById('pp-avatar');
-  if (ppAvatar) {
-    if (pic) {
-      ppAvatar.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
-    }
-  }
   // ポップアップ内情報
   const ppName  = document.getElementById('pp-name');
   const ppEmail = document.getElementById('pp-email');
@@ -2966,8 +2961,8 @@ function esc(s) {
   showScreen('login');
 })();
 </script>
-</body>
-</html><script>
+
+<script>
 // ===== 写真閲覧モーダル =====
 const ACCOUNTING_URL = 'https://docs.google.com/spreadsheets/d/1_eacoOvEoj2k6SjuoTJnM8_QBRGxzhogWkhjZkP1Vyk/edit';
 
@@ -3016,7 +3011,7 @@ function showPhoto(idx) {
   loadEl.textContent   = '読み込み中...';
   const url = _photoList[_photoCurrent].url;
   imgEl.onload = () => { loadEl.style.display = 'none'; imgEl.style.display = 'block'; };
-  imgEl.onerror = () => { loadEl.textContent = '画像を読み込めませんでした'; };
+  imgEl.onerror = () => { loadEl.textContent = '画像を読み込めませんでました'; };
   imgEl.src = url;
   counter.textContent = (_photoCurrent + 1) + ' / ' + _photoList.length;
   prevBtn.style.opacity = _photoCurrent === 0 ? '0.3' : '1';
@@ -3028,4 +3023,13 @@ function photoNav(delta) {
 }
 
 function closePhotoModal() {
-  document.getElementById('photo-modal-overlay').style.display 
+  document.getElementById('photo-modal-overlay').style.display = 'none';
+  _photoList = []; _photoCurrent = 0;
+}
+
+function openAccountingSheet() {
+  window.open(ACCOUNTING_URL, '_blank');
+}
+
+// ===== シフト表詳細：カート展示写真ボタン =====
+function openExhibitPhotoFro

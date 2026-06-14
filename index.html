@@ -1433,6 +1433,7 @@ function showScreen(name) {
     const el = document.getElementById('screen-' + s);
     el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
   });
+  updateAvatarUI();
   if (name === 'form')  _showFormScreen();
   if (name === 'shift') _showShiftScreen();
 }
@@ -3028,16 +3029,4 @@ function photoNav(delta) {
 }
 
 function closePhotoModal() {
-  document.getElementById('photo-modal-overlay').style.display = 'none';
-  _photoList = []; _photoCurrent = 0;
-}
-
-function openAccountingSheet() {
-  window.open(ACCOUNTING_URL, '_blank');
-}
-
-// ===== シフト表詳細：カート展示写真ボタン =====
-function openExhibitPhotoFromShift() {
-  openPhotoModal('exhibit');
-}
-</script>
+  document.getElementById('photo-modal-overlay').style.display

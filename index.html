@@ -1053,6 +1053,11 @@ body {
     <!-- 希望一覧ボックス -->
     <div class="card" id="wish-list-card" style="display:none;">
       <div class="card-title" id="wish-list-title">📋 送信済みのシフト希望</div>
+      <!-- 代理送信権限がある場合のみ表示するドロップダウン -->
+      <div id="wish-list-proxy-area" style="display:none;margin-bottom:10px;">
+        <select id="wish-list-proxy-sel" onchange="onWishListProxyChange()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);">
+        </select>
+      </div>
       <div id="wish-list-body"></div>
     </div>
 
@@ -2218,10 +2223,15 @@ function isSameDayJS(a, b) {
 }
 
 // ===== 希望一覧ボックス構築 =====
+// wishListViewUid: 一覧ボックスで現在選択中のUID（自分 or 代理対象者）
+let wishListViewUid = '';
+
 function buildWishListBox(status, isOpenPassed) {
-  const card  = document.getElementById('wish-list-card');
-  const title = document.getElementById('wish-list-title');
-  const body  = document.getElementById('wish-list-body');
+  const card      = document.getElementById('wish-list-card');
+  const title     = document.getElementById('wish-list-title');
+  const body      = document.getElementById('wish-list-body');
+  const proxyArea = document.getElementById('wish-list-proxy-area');
+  const proxySel  = document.getElementById('wish-list-proxy-sel');
   if (!card || !body) return;
 
   const myUid  = SESSION ? SESSION.uid : '';
@@ -2230,21 +2240,58 @@ function buildWishListBox(status, isOpenPassed) {
   // 準備中は非表示
   if (status === '準備中') { card.style.display = 'none'; return; }
 
-  // シフト公開済み：確定シフト一覧を表示
+  // ── ドロップダウン構築（代理送信権限がある場合のみ） ──
+  const targets = (SESSION && SESSION.proxyTargets) || [];
+  if (targets.length > 0) {
+    // 選択中UIDが未設定 or 自分のUID → 初期は自分
+    if (!wishListViewUid) wishListViewUid = myUid;
+    proxySel.innerHTML = '<option value="' + myUid + '">自分（' + esc(myName) + '）</option>';
+    targets.forEach(uid => {
+      const member = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid, uid: uid };
+      const opt = document.createElement('option');
+      opt.value = uid;
+      opt.textContent = member.name;
+      if (uid === wishListViewUid) opt.selected = true;
+      proxySel.appendChild(opt);
+    });
+    proxyArea.style.display = 'block';
+  } else {
+    wishListViewUid = myUid;
+    proxyArea.style.display = 'none';
+  }
+
+  // 表示対象のUID・名前を決定
+  const viewUid  = wishListViewUid || myUid;
+  const viewName = (viewUid === myUid)
+    ? myName
+    : (() => {
+        const m = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === viewUid);
+        return m ? m.name : viewUid;
+      })();
+
+  // シフト公開済み：確定シフト一覧を表示（自分のみ）
   if (isOpenPassed && SHIFT_DATA && SHIFT_DATA.published) {
-    const myShifts = [];
+    const targetShifts = [];
     (SHIFT_DATA.dates || []).forEach(d => {
-      if (!isMyCellInDate(d)) return;
+      const inSlot = name => {
+        return (d.workers || []).includes(name) ||
+               (d.responsible || []).includes(name) ||
+               (d.cart && (
+                 (d.cart.bring || []).some(c => c.name === name) ||
+                 (d.cart.take  || []).some(c => c.name === name)
+               ));
+      };
+      if (!inSlot(viewName)) return;
       let role = '奉仕者';
-      if ((d.responsible || []).includes(myName)) role = '責任者';
-      else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === myName)) role = 'カート担当';
-      myShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role });
+      if ((d.responsible || []).includes(viewName)) role = '責任者';
+      else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === viewName)) role = 'カート担当';
+      targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role });
     });
     title.textContent = '✅ 確定シフト一覧';
-    if (myShifts.length === 0) {
+    if (targetShifts.length === 0) {
       body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">確定シフトはありません</div>';
     } else {
-      body.innerHTML = myShifts.map(s =>
+      body.innerHTML = targetShifts.map(s =>
         '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
         '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
         ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
@@ -2257,54 +2304,96 @@ function buildWishListBox(status, isOpenPassed) {
   }
 
   // 受付中・受付終了：送信済み希望一覧を表示
-  const myData = THIS_MONTH[myUid];
-  if (!myData || Object.keys(myData.checkedMap || {}).length === 0) {
-    title.textContent = '📋 シフト希望';
-    body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">まだ送信されていません</div>';
-    card.style.display = (status === '受付終了') ? '' : ''; // 受付終了でも表示
-    return;
-  }
-
-  // 送信済みデータを表示
   title.textContent = '📋 送信済みのシフト希望';
-  // タイムスタンプ（最終送信日時）
-  const ts = myData.timestamp || '';
-  let tsHtml = '';
-  if (ts) {
-    tsHtml = '<div style="font-size:12px;color:var(--sub);margin-bottom:8px;">最終送信：' + esc(ts) + '</div>';
+  const viewData = THIS_MONTH[viewUid];
+  if (!viewData || Object.keys(viewData.checkedMap || {}).length === 0) {
+    body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">まだ送信されていません</div>';
+    card.style.display = '';
+    return;
   }
 
   // 希望スロット一覧
   let items = [];
   if (SLOTS.length === 0) {
-    // SLOTS未取得時はスロット詳細なしで表示
     items.push('<div style="font-size:14px;color:var(--sub);padding:6px 0;">（詳細はシフト希望フォームを開くと表示されます）</div>');
   } else {
-  SLOTS.forEach(slot => {
-    const gk = slot.week + ' ' + slot.dateLabel;
-    const checked = myData.checkedMap[gk] && myData.checkedMap[gk].includes(slot.time);
-    if (!checked) return;
-    const cartNg = myData.cartNgMap[gk] && myData.cartNgMap[gk].includes(slot.time);
-    const note   = myData.noteMap ? (myData.noteMap[gk + ' ' + slot.time] || '') : '';
-    let badges = '';
-    if (cartNg) badges += '<span style="font-size:11px;background:#fee2e2;color:var(--danger);padding:2px 5px;border-radius:4px;margin-left:4px;">カート不可</span>';
-    if (note)   badges += '<div style="font-size:12px;color:var(--sub);margin-top:2px;padding-left:4px;">備考: ' + esc(note) + '</div>';
-    items.push(
-      '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
-      '<span style="font-weight:700;color:var(--green);">' + esc(slot.dateLabel) + '</span>' +
-      ' <span style="color:var(--sub);">' + esc(slot.time) + '</span>' +
-      badges + '</div>'
-    );
-  });
+    SLOTS.forEach(slot => {
+      const gk      = slot.week + ' ' + slot.dateLabel;
+      const checked = viewData.checkedMap[gk] && viewData.checkedMap[gk].includes(slot.time);
+      if (!checked) return;
+      const cartNg = viewData.cartNgMap[gk] && viewData.cartNgMap[gk].includes(slot.time);
+      const note   = viewData.noteMap ? (viewData.noteMap[gk + ' ' + slot.time] || '') : '';
+      let badges = '';
+      if (cartNg) badges += '<span style="font-size:11px;background:#fee2e2;color:var(--danger);padding:2px 5px;border-radius:4px;margin-left:4px;">カート不可</span>';
+      if (note)   badges += '<div style="font-size:12px;color:var(--sub);margin-top:2px;padding-left:4px;">備考: ' + esc(note) + '</div>';
+      items.push(
+        '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+        '<span style="font-weight:700;color:var(--green);">' + esc(slot.dateLabel) + '</span>' +
+        ' <span style="color:var(--sub);">' + esc(slot.time) + '</span>' +
+        badges + '</div>'
+      );
+    });
   }
+
+  // タイムスタンプ（右下）＋編集ボタン
+  const ts = viewData.timestamp || '';
+  const tsHtml = ts
+    ? '<div style="font-size:12px;color:var(--sub);text-align:right;margin-top:8px;">最終送信：' + esc(ts) + '</div>'
+    : '';
 
   let editBtn = '';
   if (status === '受付中') {
-    editBtn = '<button onclick="showScreen(\'form\')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
+    // 編集ボタン押下時は wishListViewUid の人のフォームを開く
+    editBtn = '<button onclick="openFormForUid(' + JSON.stringify(viewUid) + ')" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
   }
 
-  body.innerHTML = tsHtml + (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') + editBtn;
+  body.innerHTML =
+    (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') +
+    tsHtml + editBtn;
   card.style.display = '';
+}
+
+// 希望一覧のドロップダウン変更時
+function onWishListProxyChange() {
+  const sel = document.getElementById('wish-list-proxy-sel');
+  wishListViewUid = sel.value || (SESSION ? SESSION.uid : '');
+  // body部分のみ再描画（ドロップダウン自体は再構築不要）
+  _renderWishListBody();
+}
+
+// body部分のみ再描画（ドロップダウン変更・送信後の即時更新に使用）
+function _renderWishListBody() {
+  const card  = document.getElementById('wish-list-card');
+  const body  = document.getElementById('wish-list-body');
+  if (!card || !body) return;
+  const status      = APP_DATA ? (APP_DATA.status || '準備中') : '準備中';
+  const today       = new Date(); today.setHours(0,0,0,0);
+  const ed          = APP_DATA ? (APP_DATA.eventDates || {}) : {};
+  const openStr     = ed['シフト公開'];
+  let isOpenPassed  = false;
+  if (openStr) {
+    const p = openStr.split('/');
+    if (p.length === 2) {
+      const openD = new Date(YEAR || today.getFullYear(), parseInt(p[0]) - 1, parseInt(p[1]));
+      isOpenPassed = openD.getTime() <= today.getTime();
+    }
+  }
+  // buildWishListBoxを再呼び出し（ドロップダウンは再構築せずbodyのみ更新される）
+  buildWishListBox(status, isOpenPassed);
+}
+
+// 指定UIDのフォームを開く（希望一覧の編集ボタン用）
+function openFormForUid(uid) {
+  showScreen('form');
+  // フォーム画面が表示されてからドロップダウンを切り替える
+  setTimeout(() => {
+    const sel = document.getElementById('sel-proxy');
+    if (!sel) return;
+    // uidが自分なら空文字（自分選択）、代理対象者ならそのUID
+    const myUid = SESSION ? SESSION.uid : '';
+    sel.value = (uid === myUid) ? '' : uid;
+    onProxyChange();
+  }, 50);
 }
 
 function buildNextShift() {
@@ -2529,6 +2618,8 @@ async function submitForm() {
       noteMap:    Object.assign({}, formState.noteMap),
       timestamp:  tsStr
     };
+    // 希望一覧の表示対象を送信した人に合わせてリセット
+    wishListViewUid = currentFormUid;
 
     setTimeout(() => {
       buildMainScreen();

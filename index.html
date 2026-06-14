@@ -506,12 +506,23 @@ body {
 .back-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 12px 10px;
+  padding: 6px 0 2px;
+}
+.back-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px 8px 12px;
   cursor: pointer;
   color: var(--green);
   font-weight: 700;
   font-size: 16px;
+  border-radius: 8px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-bar-btn:active {
+  background: rgba(22,163,74,0.1);
 }
 .proxy-sel {
   background: #f0fdf4;
@@ -1150,7 +1161,7 @@ body {
     </div>
   </div>
   <div class="container">
-    <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
+    <div class="back-bar"><span class="back-bar-btn" id="form-back-btn">‹ 戻る</span></div>
 
     <!-- 代理送信 -->
     <div class="proxy-sel" id="proxy-area" style="display:none;">
@@ -1197,7 +1208,7 @@ body {
     </div>
   </div>
   <div class="container">
-    <div class="back-bar" id="shift-back-btn" onclick="shiftBack()">‹ 戻る</div>
+    <div class="back-bar"><span class="back-bar-btn" id="shift-back-btn">‹ 戻る</span></div>
 
     <!-- 日付一覧 -->
     <div id="shift-date-list">
@@ -1221,7 +1232,7 @@ body {
     </div>
   </div>
   <div class="container">
-    <div class="back-bar" onclick="showScreen('main')">‹ 戻る</div>
+    <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
     <div class="card">
       <div class="card-title">💬 要望・ご意見</div>
       <textarea class="req-textarea" id="req-textarea" placeholder="ご自由にご記入ください"></textarea>
@@ -1433,14 +1444,62 @@ const SCREEN_DISPLAY = {
   shift:    'block',
   request:  'block'
 };
-function showScreen(name) {
+// ===== History API による戻るボタン対応 =====
+// 戻るボタンで履歴を積まない画面（ログイン画面のみ底とする）
+const HISTORY_NO_PUSH = new Set(['login']);
+
+function showScreen(name, fromPopstate) {
   SCREENS.forEach(s => {
     const el = document.getElementById('screen-' + s);
     el.style.display = (s === name) ? (SCREEN_DISPLAY[s] || 'block') : 'none';
   });
   if (name === 'form')  _showFormScreen();
   if (name === 'shift') _showShiftScreen();
+
+  // form-back-btnのonclickを設定（動的IDのため）
+  const formBackBtn = document.getElementById('form-back-btn');
+  if (formBackBtn) {
+    formBackBtn.onclick = () => showScreen('main');
+  }
+
+  // popstateからの呼び出しでなければ履歴に積む
+  if (!fromPopstate && !HISTORY_NO_PUSH.has(name)) {
+    history.pushState({ screen: name }, '');
+  }
 }
+
+// 戻るボタン（ブラウザ・スマホ）が押されたとき
+window.addEventListener('popstate', function(e) {
+  const state = e.state;
+  const screen = state && state.screen;
+
+  if (!screen) {
+    // 履歴の底に達した = main からさらに戻った
+    if (SESSION) {
+      const leave = confirm('アプリを閉じますか？');
+      if (leave) {
+        // window.close() はブラウザが許可しない場合がある
+        const closed = (function() { try { window.close(); return true; } catch(e) { return false; } })();
+        if (!closed) {
+          // 閉じられなかった場合はmainを再表示してスタックを積み直す
+          showScreen('main', false);
+        }
+      } else {
+        // キャンセル → mainのエントリを再度積んで底に達しないようにする
+        history.pushState({ screen: 'main' }, '');
+      }
+    }
+    return;
+  }
+
+  // shift画面の詳細→一覧の内部遷移
+  if (screen === 'shift' && state.subScreen === 'detail') {
+    _shiftDetailBack();
+    return;
+  }
+
+  showScreen(screen, true);
+});
 
 // フォーム画面：SLOTSが未取得なら getFormDetail を取得してから表示
 async function _showFormScreen() {
@@ -2667,12 +2726,16 @@ function showShiftDetail(dateObj) {
   shiftViewingDate = dateObj;
   document.getElementById('shift-date-list').style.display   = 'none';
   document.getElementById('shift-detail-view').style.display = '';
-  document.getElementById('shift-back-btn').onclick = () => {
-    document.getElementById('shift-date-list').style.display   = '';
-    document.getElementById('shift-detail-view').style.display = 'none';
-    document.getElementById('shift-back-btn').onclick = () => showScreen('main');
-  };
+  document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
+  // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）
+  history.pushState({ screen: 'shift', subScreen: 'detail' }, '');
   buildShiftDetail(dateObj);
+}
+
+function _shiftDetailBack() {
+  document.getElementById('shift-date-list').style.display   = '';
+  document.getElementById('shift-detail-view').style.display = 'none';
+  document.getElementById('shift-back-btn').onclick = () => showScreen('main');
 }
 
 function buildShiftDetail(d) {

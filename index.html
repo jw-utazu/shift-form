@@ -734,8 +734,11 @@ body {
 }
 .shift-date-btn:active { background: var(--green-light); border-color: var(--green); }
 .shift-date-btn.cancelled { border-color: var(--danger); background: #fff1f2; }
-.sdb-date  { font-size: 18px; font-weight: 700; flex: 1; }
+.sdb-main { flex: 1; min-width: 0; }
+.sdb-date  { font-size: 18px; font-weight: 700; }
 .sdb-time  { font-size: 13px; color: var(--sub); }
+.sdb-sub   { margin-top: 4px; font-size: 12px; color: var(--sub); line-height: 1.5; }
+.sdb-sub b { color: var(--ink, #1f2937); font-weight: 700; }
 .sdb-badge {
   font-size: 11px;
   font-weight: 700;
@@ -743,6 +746,7 @@ body {
   border-radius: 20px;
   background: var(--amber);
   color: #78350f;
+  flex-shrink: 0;
 }
 .sdb-badge.cancelled { background: var(--danger); color: #fff; }
 
@@ -790,7 +794,7 @@ body {
   margin-right: 4px;
 }
 
-/* 奉仕者テーブル */
+/* 奉仕者テーブル（場所名が動的・列数も可変） */
 .area-section { margin-bottom: 12px; }
 .area-title {
   font-size: 13px;
@@ -811,18 +815,31 @@ body {
   color: var(--sub);
   border: 1px solid #e5e7eb;
 }
+.slot-table th.place-cart {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sub);
+  background: #fff;
+}
 .slot-table td {
   padding: 7px 5px;
   text-align: center;
   border: 1px solid #e5e7eb;
   font-size: 13px;
-  vertical-align: middle;
+  vertical-align: top;
 }
-.slot-table td.time-col { font-weight: 700; color: var(--sub); font-size: 12px; white-space: nowrap; }
-.slot-table td.my-cell-staff { background: var(--amber); }
-.slot-table td.my-cell-resp  { background: #fca5a5; }
-.slot-table td.my-cell-cart  { background: var(--purple); }
-.slot-table td.my-cell-both  { background: #fca5a5; box-shadow: inset 0 0 0 3px var(--purple-dark); }
+.slot-table td.time-col { font-weight: 700; color: var(--sub); font-size: 12px; white-space: nowrap; vertical-align: middle; }
+.slot-table td.place-cell { text-align: left; }
+.staff-line {
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+.staff-line:last-child { margin-bottom: 0; }
+.staff-line.my-cell-staff { background: var(--amber); }
+.staff-line.my-cell-resp  { background: #fca5a5; }
+.staff-line.my-cell-cart  { background: var(--purple); }
+.staff-line.my-cell-both  { background: #fca5a5; box-shadow: inset 0 0 0 2px var(--purple-dark); }
 .watch-mark { font-size: 10px; color: var(--sub); display: block; }
 
 /* メモ */
@@ -2302,7 +2319,7 @@ function isMyCellInDate(dateObj) {
   if (!SESSION) return false;
   const name = SESSION.name;
   return (dateObj.slots || []).some(slot =>
-    [...slot.north, ...slot.south].some(p => p && p.name === name)
+    Object.values(slot.places || {}).some(people => (people || []).some(p => p && p.name === name))
   ) || (dateObj.responsible || []).includes(name)
     || (dateObj.cart && (
         (dateObj.cart.bring || []).some(c => c.name === name) ||
@@ -2747,10 +2764,32 @@ function buildShiftDateList() {
     const btn = document.createElement('div');
     btn.className = 'shift-date-btn' + (d.cancelled ? ' cancelled' : '');
     const hasMyShift = isMyCellInDate(d);
+
+    // 責任者・カート担当の要約（カード用）
+    const respNames = (d.responsible || []).filter(n => n);
+    const cartAll = d.cart ? [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name) : [];
+    let subHtml = '';
+    if (respNames.length > 0) {
+      subHtml += '<div>責任者：<b>' + respNames.map(esc).join('、') + '</b></div>';
+    }
+    if (cartAll.length > 0 && d.cart) {
+      const bringStr = (d.cart.bring || []).filter(c => c.name)
+        .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
+      const takeStr = (d.cart.take || []).filter(c => c.name)
+        .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
+      subHtml += '<div>カート：' +
+        (bringStr ? '持込 <b>' + bringStr + '</b>' : '') +
+        (bringStr && takeStr ? '　' : '') +
+        (takeStr ? '持帰 <b>' + takeStr + '</b>' : '') +
+        '</div>';
+    }
+
     btn.innerHTML =
-      '<div class="sdb-date">' + d.date + '（' + d.weekday + '）</div>'
-      + '<div class="sdb-time">' + d.time + '</div>'
-      + (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
+      '<div class="sdb-main">' +
+        '<div class="sdb-date">' + esc(d.date) + '（' + esc(d.weekday) + '）<span class="sdb-time">　' + esc(d.time) + '</span></div>' +
+        (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '') +
+      '</div>' +
+      (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
           : hasMyShift ? '<span class="sdb-badge">参加</span>' : '');
     btn.onclick = () => showShiftDetail(d);
     container.appendChild(btn);
@@ -2793,7 +2832,7 @@ function buildShiftDetail(d) {
 
   html += '<div class="shift-block">';
   html += '<div class="shift-block-hdr">';
-  html += '<span>' + d.date + '（' + d.weekday + '） ' + d.time + '</span>';
+  html += '<span>' + esc(d.date) + '（' + esc(d.weekday) + '） ' + esc(d.time) + '</span>';
   // 管理者・責任者向け操作ボタン
   if (SESSION && (SESSION.isAdmin || (SESSION.isResponsible && (d.responsible || []).includes(myName)))) {
     html += '<div class="edit-actions">';
@@ -2828,10 +2867,10 @@ function buildShiftDetail(d) {
     if (allCart.length > 0) {
       html += '<div class="cart-info-row"><span class="cart-label-s">カート：</span>';
       (d.cart.bring || []).filter(c => c.name).forEach(c => {
-        html += '<span>持込: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + c.cartNo + ')' : '') + '</span>&nbsp;';
+        html += '<span>持込: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
       });
       (d.cart.take || []).filter(c => c.name).forEach(c => {
-        html += '<span>持帰: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + c.cartNo + ')' : '') + '</span>&nbsp;';
+        html += '<span>持帰: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
       });
       html += '</div>';
     }
@@ -2839,40 +2878,53 @@ function buildShiftDetail(d) {
     html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
   }
 
-  // 奉仕者テーブル
+  // 奉仕者テーブル（場所名は動的。slots[0]の場所名一覧を列見出しに使う）
   if (d.slots && d.slots.length > 0) {
-    // 北口
-    html += '<div class="area-section"><div class="area-title">🔵 北口</div>';
-    html += '<table class="slot-table"><thead><tr><th>時間</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
-    d.slots.forEach(slot => {
-      html += '<tr><td class="time-col">' + slot.time + '</td>';
-      slot.north.forEach(p => {
-        const cellClass = getCellClass(p, myName, d, 'north');
-        html += '<td class="' + cellClass + '">' + formatName(p) + '</td>';
-      });
+    const placeCart = d.placeCart || {};
+    // 全スロットに登場する場所名を集めて列を決定（順序はplaceCartのキー順→無ければ最初のスロットのキー順）
+    const placeNames = Object.keys(d.slots[0].places || {});
+    if (placeNames.length > 0) {
+      html += '<div class="area-section">';
+      html += '<table class="slot-table"><thead>';
+      html += '<tr><th class="time-col" style="background:#f9fafb;">時間</th>';
+      placeNames.forEach(loc => { html += '<th>' + esc(loc) + '</th>'; });
       html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-
-    // 南口
-    html += '<div class="area-section"><div class="area-title">🟠 南口</div>';
-    html += '<table class="slot-table"><thead><tr><th>時間</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
-    d.slots.forEach(slot => {
-      html += '<tr><td class="time-col">' + slot.time + '</td>';
-      slot.south.forEach(p => {
-        const cellClass = getCellClass(p, myName, d, 'south');
-        html += '<td class="' + cellClass + '">' + formatName(p) + '</td>';
+      // 場所別カート番号（設定されている場所のみ表示）
+      const hasPlaceCart = placeNames.some(loc => placeCart[loc]);
+      if (hasPlaceCart) {
+        html += '<tr><th class="place-cart">カート番号</th>';
+        placeNames.forEach(loc => {
+          html += '<th class="place-cart">' + (placeCart[loc] ? esc(placeCart[loc]) : '—') + '</th>';
+        });
+        html += '</tr>';
+      }
+      html += '</thead><tbody>';
+      d.slots.forEach(slot => {
+        html += '<tr><td class="time-col">' + esc(slot.time) + '</td>';
+        placeNames.forEach(loc => {
+          const people = (slot.places && slot.places[loc]) ? slot.places[loc] : [];
+          html += '<td class="place-cell">' + buildStaffCellHtml(people, myName, d) + '</td>';
+        });
+        html += '</tr>';
       });
-      html += '</tr>';
-    });
-    html += '</tbody></table></div>';
+      html += '</tbody></table></div>';
+    }
   }
 
   html += '</div>';
   container.innerHTML = html;
 }
 
-function getCellClass(p, myName, d, area) {
+// 1セル分（1場所×1スロット）の奉仕者一覧HTMLを構築
+function buildStaffCellHtml(people, myName, d) {
+  if (!people || people.length === 0) return '';
+  return people.map(p => {
+    const cellClass = getCellClass(p, myName, d);
+    return '<div class="staff-line' + (cellClass ? ' ' + cellClass : '') + '">' + formatName(p) + '</div>';
+  }).join('');
+}
+
+function getCellClass(p, myName, d) {
   if (!p || !p.name || p.name !== myName) return '';
   const isResp = (d.responsible || []).includes(myName);
   const isCart = d.cart && ([...(d.cart.bring||[]),...(d.cart.take||[])]).some(c => c.name === myName);

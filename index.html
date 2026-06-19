@@ -3651,6 +3651,9 @@ async function openRoadPdfModal() {
   const modal = document.getElementById('road-pdf-view-modal');
   modal.style.display = 'flex';
   const body = document.getElementById('road-pdf-view-body');
+  body.style.maxHeight = '60vh';
+  body.style.overflowY = 'auto';
+  body.style.padding = '16px';
   body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>';
   try {
     const res = await gasJsonp('getRoadPdfs', {});
@@ -3666,12 +3669,25 @@ async function openRoadPdfModal() {
       + '<div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.fileName + '</div>'
       + '<div style="font-size:12px;color:var(--sub);margin-top:2px;">' + p.updatedAt + '</div>'
       + '</div>'
-      + '<a href="' + p.viewUrl + '" rel="noopener" onclick="closeRoadPdfModal()" style="padding:9px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;flex-shrink:0;white-space:nowrap;">開く</a>'
+      + '<button onclick="showRoadPdfPreview(\'' + p.fileId + '\')" style="padding:9px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;">プレビュー</button>'
       + '</div>'
     ).join('');
   } catch(e) {
     body.innerHTML = '<div style="color:var(--danger);padding:12px;font-size:13px;">読み込みに失敗しました</div>';
   }
+}
+
+function showRoadPdfPreview(fileId) {
+  const body = document.getElementById('road-pdf-view-body');
+  body.style.maxHeight = '';
+  body.style.overflowY = '';
+  body.style.padding = '0';
+  const previewUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+  body.innerHTML =
+    '<div style="padding:10px 16px;border-bottom:1px solid var(--border);">'
+    + '<button onclick="openRoadPdfModal()" style="background:none;border:none;color:#2563eb;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;">← 一覧に戻る</button>'
+    + '</div>'
+    + '<iframe src="' + previewUrl + '" style="width:100%;height:70vh;border:none;display:block;"></iframe>';
 }
 
 function closeRoadPdfModal() {

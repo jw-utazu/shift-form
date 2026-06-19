@@ -1747,14 +1747,26 @@ async function doRegister() {
 function updateAvatarUI() {
   if (!SESSION) return;
   const pic = SESSION.picture || '';
-  // すべての画面のアバターを更新
-  ['hdr-avatar', 'pp-avatar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (pic) {
-      el.innerHTML = '<img src="' + esc(pic) + '" alt="' + esc(SESSION.name) + '">';
+  // すべての画面のヘッダーアバターを更新（ページ遷移後も維持）
+  if (pic) {
+    document.querySelectorAll('.hdr-avatar').forEach(el => {
+      const img = document.createElement('img');
+      img.src = pic;
+      img.alt = SESSION.name || '';
+      img.onerror = () => { el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>'; };
+      el.innerHTML = '';
+      el.appendChild(img);
+    });
+    const ppAvatar = document.getElementById('pp-avatar');
+    if (ppAvatar) {
+      const img = document.createElement('img');
+      img.src = pic;
+      img.alt = SESSION.name || '';
+      img.onerror = () => { ppAvatar.innerHTML = '<span style="font-size:22px;">👤</span>'; };
+      ppAvatar.innerHTML = '';
+      ppAvatar.appendChild(img);
     }
-  });
+  }
   // ポップアップ内情報
   const ppName  = document.getElementById('pp-name');
   const ppEmail = document.getElementById('pp-email');

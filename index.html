@@ -1086,7 +1086,7 @@ body {
     </div>
 
     <!-- 受付状況 -->
-    <div class="card status-card">
+    <div class="card status-card" id="reception-status-card">
       <div class="card-title">📬 シフト希望受付</div>
       <div class="status-label">受付情報</div>
       <div class="status-value" id="status-value">-</div>
@@ -1908,7 +1908,7 @@ function buildMainScreen() {
   const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
     Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
   if (btnForm) {
-    if (isOwner) {
+    if (isOwner || isOpenPassed) {
       btnForm.style.display = 'none';
     } else if (status === '受付中') {
       btnForm.disabled = false;
@@ -2000,6 +2000,10 @@ function buildMainScreen() {
     sd.textContent = '';
     document.getElementById('status-closed-msg').classList.add('show');
   }
+
+  // シフト公開日以降は受付状況カードを非表示
+  const receptionCard = document.getElementById('reception-status-card');
+  if (receptionCard) receptionCard.style.display = isOpenPassed ? 'none' : '';
 
   // カレンダー描画（今日が含まれる月を初期表示）
   const todayForCal = new Date();

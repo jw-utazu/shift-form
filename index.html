@@ -1081,6 +1081,12 @@ body {
     </div>
   </div>
   <div class="container">
+    <!-- お知らせ -->
+    <div class="card" id="notices-card" style="display:none;">
+      <div class="card-title">📢 お知らせ</div>
+      <div id="notices-container"></div>
+    </div>
+
     <!-- 次のシフト -->
     <div class="next-shift-card" id="next-shift-card" style="display:none;">
       <div class="next-shift-label">📅 次のシフト</div>
@@ -1127,12 +1133,6 @@ body {
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>自分のシフト</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;border-radius:2px;background:#f97316;display:inline-block;"></span>申込期間</span>
       </div>
-    </div>
-
-    <!-- お知らせ -->
-    <div class="card" id="notices-card" style="display:none;">
-      <div class="card-title">📢 お知らせ</div>
-      <div id="notices-container"></div>
     </div>
 
     <!-- ナビゲーション -->
@@ -2383,19 +2383,27 @@ function buildWishListBox(status, isOpenPassed) {
       let role = '奉仕者';
       if ((d.responsible || []).includes(viewName)) role = '責任者';
       else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === viewName)) role = 'カート担当';
-      targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role });
+      targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role, cancelled: d.cancelled, cancelReason: d.cancelReason });
     });
     title.textContent = '✅ 確定シフト一覧';
     if (targetShifts.length === 0) {
       body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">確定シフトはありません</div>';
     } else {
-      body.innerHTML = targetShifts.map(s =>
-        '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
-        '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
-        ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
-        ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
-        '</div>'
-      ).join('');
+      body.innerHTML = targetShifts.map(s => {
+        if (s.cancelled) {
+          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+            '<span style="font-weight:700;color:#9ca3af;text-decoration:line-through;">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
+            ' <span style="color:#9ca3af;text-decoration:line-through;">' + esc(s.time) + '</span>' +
+            ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">⛔ 中止</span>' +
+            (s.cancelReason ? '<div style="font-size:12px;color:var(--danger-dark);margin-top:2px;">理由：' + esc(s.cancelReason) + '</div>' : '') +
+            '</div>';
+        }
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+          '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
+          ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
+          ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
+          '</div>';
+      }).join('');
     }
     card.style.display = '';
     return;

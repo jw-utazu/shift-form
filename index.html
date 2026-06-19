@@ -3739,7 +3739,7 @@ function showRoadPdfPreview(fileId) {
   body.style.maxHeight = '';
   body.style.overflowY = '';
   body.style.padding = '0';
-  const previewUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+  const previewUrl = GAS_URL + '?action=previewPdf&fileId=' + encodeURIComponent(fileId);
   body.innerHTML =
     '<div style="padding:10px 16px;border-bottom:1px solid var(--border);">'
     + '<button onclick="openRoadPdfModal()" style="background:none;border:none;color:#2563eb;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;">← 一覧に戻る</button>'

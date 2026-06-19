@@ -334,6 +334,8 @@ body {
 .next-shift-label { font-size: 13px; opacity: .85; margin-bottom: 6px; }
 .next-shift-date  { font-size: 22px; font-weight: 700; }
 .next-shift-role  { font-size: 14px; opacity: .9; margin-top: 4px; }
+.next-shift-card.cancelled { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+.next-shift-cancel { font-size: 13px; font-weight: 700; margin-top: 8px; }
 
 /* カレンダー月ナビ */
 .cal-month-nav {
@@ -1092,6 +1094,7 @@ body {
       <div class="next-shift-label">📅 次のシフト</div>
       <div class="next-shift-date" id="next-shift-date">-</div>
       <div class="next-shift-role" id="next-shift-role"></div>
+      <div class="next-shift-cancel" id="next-shift-cancel" style="display:none;"></div>
     </div>
 
     <!-- 受付状況 -->
@@ -2511,12 +2514,20 @@ function buildNextShift() {
     if (p.length !== 2) return false;
     const dt = new Date(YEAR, parseInt(p[0]) - 1, parseInt(p[1]));
     if (dt < today) return false;
-    if (d.cancelled) return false;
     return isMyCellInDate(d);
   });
   if (!next) return;
   const card = document.getElementById('next-shift-card');
   card.style.display = '';
+  if (next.cancelled) {
+    card.classList.add('cancelled');
+    const cancelEl = document.getElementById('next-shift-cancel');
+    cancelEl.style.display = '';
+    cancelEl.textContent = '⛔ 中止' + (next.cancelReason ? '：' + next.cancelReason : '');
+  } else {
+    card.classList.remove('cancelled');
+    document.getElementById('next-shift-cancel').style.display = 'none';
+  }
   document.getElementById('next-shift-date').textContent = next.date + '（' + next.weekday + '） ' + next.time;
   // 役割判定
   let role = '奉仕者';

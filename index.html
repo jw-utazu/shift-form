@@ -3003,7 +3003,11 @@ function buildShiftDetail(d) {
   if (d.slots && d.slots.length > 0) {
     const placeCart = d.placeCart || {};
     // 全スロットに登場する場所名を集めて列を決定（順序はplaceCartのキー順→無ければ最初のスロットのキー順）
-    const placeNames = Object.keys(d.slots[0].places || {});
+    const allPlaceNames = Object.keys(d.slots[0].places || {});
+    // 奉仕者が一人もいない場所は表示しない（カート番号のみの場合も除外）
+    const placeNames = allPlaceNames.filter(loc =>
+      d.slots.some(slot => slot.places && slot.places[loc] && slot.places[loc].length > 0)
+    );
     if (placeNames.length > 0) {
       html += '<div class="area-section">';
       html += '<table class="slot-table"><thead>';

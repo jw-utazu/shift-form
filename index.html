@@ -3117,11 +3117,13 @@ async function submitRequest() {
     if (data.ok) {
       msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
       ta.value = '';
-      setTimeout(() => showScreen('main'), 2000);
+      btn.disabled = false; btn.textContent = '送信する';
+      setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
     } else throw new Error(data.error);
   } catch (e) {
     msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
     btn.disabled = false; btn.textContent = '送信する';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   }
 }
 

@@ -1023,6 +1023,31 @@ body {
   text-align: center;
   font-size: 13px; color: var(--sub); line-height: 1.7;
 }
+
+/* 中止インフォポップアップ */
+#cancel-info-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+#cancel-info-overlay.show { display: flex; }
+#cancel-info-popup {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 22px 20px;
+  max-width: 300px;
+  width: 88%;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  text-align: center;
+}
+.ci-icon { font-size: 34px; margin-bottom: 10px; }
+.ci-title { font-size: 16px; font-weight: 700; color: var(--danger); margin-bottom: 8px; }
+.ci-reason { font-size: 13px; color: var(--danger-dark); font-weight: 600; margin-bottom: 8px; }
+.ci-msg { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.6; }
+.ci-ok { background: var(--green); color: #fff; border: none; border-radius: 8px; padding: 11px 32px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -1312,6 +1337,17 @@ body {
     <div class="help-modal-footer">
       解決しない場合は<strong>区域係にご連絡</strong>ください
     </div>
+  </div>
+</div>
+
+<!-- ===== 中止インフォポップアップ ===== -->
+<div id="cancel-info-overlay" onclick="closeCancelInfoPopup()">
+  <div id="cancel-info-popup" onclick="event.stopPropagation()">
+    <div class="ci-icon">⛔</div>
+    <div class="ci-title">このシフトは中止になっています</div>
+    <div class="ci-reason" id="cancel-info-reason" style="display:none;"></div>
+    <div class="ci-msg">詳細は責任者に直接<br>ご連絡ください。</div>
+    <button class="ci-ok" onclick="closeCancelInfoPopup()">OK</button>
   </div>
 </div>
 
@@ -2406,7 +2442,8 @@ function buildWishListBox(status, isOpenPassed) {
           ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
           ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
           '</div>';
-      }).join('');
+      }).join('') +
+        '<div style="margin-top:10px;font-size:12px;color:var(--sub);border-top:1px solid var(--border);padding-top:8px;">変更がある場合は、責任者に直接ご連絡ください。</div>';
     }
     card.style.display = '';
     return;
@@ -2804,7 +2841,29 @@ function buildShiftDateList() {
   });
 }
 
+function showCancelInfoPopup(reason) {
+  const reasonEl = document.getElementById('cancel-info-reason');
+  if (reason) {
+    reasonEl.textContent = '理由：' + reason;
+    reasonEl.style.display = '';
+  } else {
+    reasonEl.style.display = 'none';
+  }
+  document.getElementById('cancel-info-overlay').classList.add('show');
+}
+function closeCancelInfoPopup() {
+  document.getElementById('cancel-info-overlay').classList.remove('show');
+}
+
 function showShiftDetail(dateObj) {
+  // 中止シフトで一般ユーザー（管理者・責任者以外）はポップアップのみ表示
+  if (dateObj.cancelled && SESSION) {
+    const isAssignedResp = (dateObj.responsible || []).includes(SESSION.name);
+    if (!SESSION.isAdmin && !SESSION.isResponsible && !isAssignedResp) {
+      showCancelInfoPopup(dateObj.cancelReason);
+      return;
+    }
+  }
   shiftViewingDate = dateObj;
   const listEl   = document.getElementById('shift-date-list');
   const detailEl = document.getElementById('shift-detail-view');

@@ -873,8 +873,9 @@ body {
 .btn-cancel-undo  { background: #ede9fe; color: #7c3aed; }
 .btn-memo-edit    { background: #fef9c3; color: #713f12; }
 
-/* ===================== 要望画面 ===================== */
+/* ===================== 要望・バグ報告画面 ===================== */
 #screen-request { display: none; }
+#screen-bug     { display: none; }
 .req-textarea {
   width: 100%;
   font-size: 16px;
@@ -3134,7 +3135,7 @@ async function submitBugReport() {
     if (data.ok) {
       msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
       ta.value = '';
-      setTimeout(() => showScreen('main'), 2500);
+      btn.disabled = false; btn.textContent = '送信する';
     } else throw new Error(data.error);
   } catch (e) {
     msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';

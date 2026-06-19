@@ -3670,11 +3670,13 @@ async function openRoadPdfModal() {
     const res = await gasJsonp('getRoadPdfs', {});
     const allPdfs = (res && res.pdfs) || [];
     // 表示期間でフィルタリング（期間未設定のものは常に表示）
+    // "YYYY-MM-DD" を new Date() で解釈するとUTC深夜になり日本時間でずれるためローカル解釈する
+    function _parseLocalDate(s) { const p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const pdfs = allPdfs.filter(p => {
       if (!p.startDate && !p.endDate) return true;
-      if (p.startDate && today < new Date(p.startDate)) return false;
-      if (p.endDate   && today > new Date(p.endDate))   return false;
+      if (p.startDate && today < _parseLocalDate(p.startDate)) return false;
+      if (p.endDate   && today > _parseLocalDate(p.endDate))   return false;
       return true;
     });
     if (!pdfs.length) {
@@ -3784,7 +3786,9 @@ async function onRoadPermitFileSelected(event) {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-    const res = await gasPost('uploadRoadPdf', { base64, fileName: file.name, displayName, startDate, endDate });
+    // PDF名をDriveのファイル名にも適用（上書き検索に使われる）
+    const driveFileName = (displayName.endsWith('.pdf') ? displayName : displayName + '.pdf');
+    const res = await gasPost('uploadRoadPdf', { base64, fileName: driveFileName, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || 'アップロード失敗');
     statusEl.textContent = 'アップロード完了！';
     document.getElementById('road-permit-file-input').value = '';

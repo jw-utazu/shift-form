@@ -2626,7 +2626,8 @@ function buildWishListBox(status, isOpenPassed) {
     });
     title.textContent = '✅ 確定シフト一覧';
     if (targetShifts.length === 0) {
-      body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">確定シフトはありません</div>';
+      card.style.display = 'none';
+      return;
     } else {
       body.innerHTML = targetShifts.map(s => {
         if (s.cancelled) {

@@ -1185,11 +1185,16 @@ body {
         <span class="nav-txt">会計情報を閲覧する</span>
         <span class="nav-arr">›</span>
       </button>
-      <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')">
-        <span class="nav-icon">💬</span>
-        <span class="nav-txt">要望を送る</span>
-        <span class="nav-arr">›</span>
-      </button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="font-size:15px;padding:14px 10px;">
+          <span class="nav-icon">💬</span>
+          <span class="nav-txt" style="font-size:14px;">要望を送る</span>
+        </button>
+        <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="font-size:15px;padding:14px 10px;border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
+          <span class="nav-icon">🐛</span>
+          <span class="nav-txt" style="font-size:14px;">バグを報告する</span>
+        </button>
+      </div>
       <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
         <span class="nav-icon">📲</span>
         <span class="nav-txt">アプリとしてインストール</span>
@@ -1306,6 +1311,27 @@ body {
   </div>
 </div>
 
+
+<!-- ===== バグ報告画面 ===== -->
+<div id="screen-bug">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
+    <h1>宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
+    <div class="card">
+      <div class="card-title" style="color:#b91c1c;border-color:#fecaca;">🐛 バグ報告</div>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.7;">アプリの不具合・エラーについて詳しくお知らせください。<br>担当者に通知され、確認・対応します。</p>
+      <textarea class="req-textarea" id="bug-textarea" placeholder="例：〇〇の画面で△△をしたら、エラーが出て送信できなかった"></textarea>
+      <div id="bug-msg"></div>
+      <button class="btn-primary" id="btn-bug-submit" onclick="submitBugReport()" style="background:#b91c1c;">送信する</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== 写真閲覧モーダル ===== -->
 <div id="photo-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;align-items:center;justify-content:center;flex-direction:column;">
@@ -1509,7 +1535,7 @@ function _startProgress() {
 }
 
 // ===== 画面切替 =====
-const SCREENS = ['login','register','main','form','shift','request'];
+const SCREENS = ['login','register','main','form','shift','request','bug'];
 // 画面ごとの display 値
 const SCREEN_DISPLAY = {
   login:    'flex',
@@ -1517,14 +1543,15 @@ const SCREEN_DISPLAY = {
   main:     'block',
   form:     'block',
   shift:    'block',
-  request:  'block'
+  request:  'block',
+  bug:      'block'
 };
 // ===== History API による戻るボタン対応 =====
 // 戻るボタンで履歴を積まない画面（ログイン画面のみ底とする）
 const HISTORY_NO_PUSH = new Set(['login']);
 
 // 画面の「深さ」（進む/戻るの方向判定用）
-const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, request: 3 };
+const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3 };
 let _currentScreenName = 'login';
 
 function showScreen(name, fromPopstate) {
@@ -3094,6 +3121,26 @@ async function submitRequest() {
 }
 
 
+
+// ===== バグ報告送信 =====
+async function submitBugReport() {
+  const ta  = document.getElementById('bug-textarea');
+  const btn = document.getElementById('btn-bug-submit');
+  const msg = document.getElementById('bug-msg');
+  if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
+  btn.disabled = true; btn.textContent = '送信中...';
+  try {
+    const data = await gasJsonp('postBugReport', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
+    if (data.ok) {
+      msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
+      ta.value = '';
+      setTimeout(() => showScreen('main'), 2500);
+    } else throw new Error(data.error);
+  } catch (e) {
+    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    btn.disabled = false; btn.textContent = '送信する';
+  }
+}
 
 // ===== ヘルプ =====
 const HELP_CONTENTS = {

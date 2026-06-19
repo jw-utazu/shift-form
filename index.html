@@ -3079,6 +3079,19 @@ async function _refreshShiftAndRedraw() {
         buildShiftDetail(updated);
       }
     }
+    // メイン画面の確定シフト一覧・次のシフトカードも最新化
+    _renderWishListBody();
+    const _today = new Date(); _today.setHours(0,0,0,0);
+    const _openStr = APP_DATA ? ((APP_DATA.eventDates || {})['シフト公開'] || '') : '';
+    let _isOpenPassed = false;
+    if (_openStr) {
+      const _p = _openStr.split('/');
+      if (_p.length === 2) {
+        const _openD = new Date(YEAR || _today.getFullYear(), parseInt(_p[0]) - 1, parseInt(_p[1]));
+        _isOpenPassed = _openD.getTime() <= _today.getTime();
+      }
+    }
+    buildNextShift(_isOpenPassed);
     await hideLoading();
   } catch (e) {
     await hideLoading();

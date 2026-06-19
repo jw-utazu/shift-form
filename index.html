@@ -1379,9 +1379,20 @@ body {
     <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
     <div class="card">
       <div class="card-title" style="color:#92400e;border-color:#fde68a;">📄 道路使用許可書PDF管理</div>
-      <p style="font-size:13px;color:var(--sub);margin-bottom:14px;line-height:1.7;">PDFファイルを選択するとアップロードされます。同じファイル名のPDFは上書きされます。</p>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📝 PDF名</label>
+        <input type="text" id="road-permit-display-name" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;" placeholder="例：道路使用許可書7月">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📅 表示期間</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="date" id="road-permit-start-date" style="flex:1;font-size:15px;padding:9px 10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);">
+          <span style="color:var(--sub);font-size:14px;flex-shrink:0;">〜</span>
+          <input type="date" id="road-permit-end-date" style="flex:1;font-size:15px;padding:9px 10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);">
+        </div>
+      </div>
       <label style="display:inline-flex;align-items:center;gap:8px;padding:12px 18px;background:#fffbeb;border:2px solid #fde68a;border-radius:10px;cursor:pointer;font-weight:700;color:#92400e;font-size:15px;">
-        📂 PDFを選択
+        📂 PDFを選択してアップロード
         <input type="file" id="road-permit-file-input" accept="application/pdf" style="display:none;" onchange="onRoadPermitFileSelected(event)">
       </label>
       <div id="road-permit-upload-status" style="display:none;margin-top:12px;font-size:13px;color:var(--sub);text-align:center;">アップロード中...</div>
@@ -3657,7 +3668,15 @@ async function openRoadPdfModal() {
   body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>';
   try {
     const res = await gasJsonp('getRoadPdfs', {});
-    const pdfs = (res && res.pdfs) || [];
+    const allPdfs = (res && res.pdfs) || [];
+    // 表示期間でフィルタリング（期間未設定のものは常に表示）
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const pdfs = allPdfs.filter(p => {
+      if (!p.startDate && !p.endDate) return true;
+      if (p.startDate && today < new Date(p.startDate)) return false;
+      if (p.endDate   && today > new Date(p.endDate))   return false;
+      return true;
+    });
     if (!pdfs.length) {
       body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">道路使用許可書が登録されていません</div>';
       return;
@@ -3666,7 +3685,7 @@ async function openRoadPdfModal() {
       '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">'
       + '<span style="font-size:24px;flex-shrink:0;">📄</span>'
       + '<div style="flex:1;min-width:0;">'
-      + '<div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.fileName + '</div>'
+      + '<div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (p.displayName || p.fileName) + '</div>'
       + '<div style="font-size:12px;color:var(--sub);margin-top:2px;">' + p.updatedAt + '</div>'
       + '</div>'
       + '<button onclick="showRoadPdfPreview(\'' + p.fileId + '\')" style="padding:9px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;">プレビュー</button>'
@@ -3700,6 +3719,18 @@ async function _initRoadPermitScreen() {
   card.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub);font-size:14px;">読み込み中...</div>';
   document.getElementById('road-permit-file-input').value = '';
   document.getElementById('road-permit-upload-status').style.display = 'none';
+
+  // デフォルト値をセット
+  const today = new Date();
+  function _pad(n) { return String(n).padStart(2, '0'); }
+  function _fmtDate(d) { return d.getFullYear() + '-' + _pad(d.getMonth()+1) + '-' + _pad(d.getDate()); }
+  const managedYear  = YEAR  || today.getFullYear();
+  const managedMonth = MONTH || (today.getMonth() + 1);
+  const endOfMonth   = new Date(managedYear, managedMonth, 0);
+  document.getElementById('road-permit-display-name').value = '道路使用許可書' + managedMonth + '月';
+  document.getElementById('road-permit-start-date').value   = _fmtDate(today);
+  document.getElementById('road-permit-end-date').value     = _fmtDate(endOfMonth);
+
   try {
     const res = await gasJsonp('getRoadPdfs', {});
     const pdfs = (res && res.pdfs) || [];
@@ -3708,19 +3739,24 @@ async function _initRoadPermitScreen() {
       return;
     }
     card.innerHTML = '<div class="card-title" style="margin-bottom:12px;">📋 登録済みPDF</div>'
-      + pdfs.map(p =>
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
-        + '<span style="font-size:20px;flex-shrink:0;">📄</span>'
-        + '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.fileName + '</div>'
-        + '<div style="font-size:12px;color:var(--sub);">' + p.updatedAt + '</div>'
-        + '</div>'
-        + '<div style="display:flex;gap:6px;flex-shrink:0;">'
-        + '<a href="' + p.viewUrl + '" target="_blank" rel="noopener" style="padding:6px 10px;background:#f0fdf4;border:1px solid var(--border);border-radius:8px;color:var(--green);font-size:12px;font-weight:700;text-decoration:none;">表示</a>'
-        + '<button onclick="deleteRoadPdf(\'' + p.fileId + '\',\'' + p.fileName.replace(/'/g, "\\'") + '\')" style="padding:6px 10px;background:#fff1f2;border:1px solid #fca5a5;border-radius:8px;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;">削除</button>'
-        + '</div>'
-        + '</div>'
-      ).join('');
+      + pdfs.map(p => {
+        const label = p.displayName || p.fileName;
+        const period = (p.startDate || p.endDate)
+          ? (p.startDate ? p.startDate.replace(/-/g,'/') : '') + '〜' + (p.endDate ? p.endDate.replace(/-/g,'/') : '')
+          : '';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
+          + '<span style="font-size:20px;flex-shrink:0;">📄</span>'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>'
+          + (period ? '<div style="font-size:11px;color:#92400e;font-weight:700;margin-top:1px;">📅 ' + period + '</div>' : '')
+          + '<div style="font-size:12px;color:var(--sub);margin-top:1px;">' + p.updatedAt + '</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+          + '<a href="' + p.viewUrl + '" target="_blank" rel="noopener" style="padding:6px 10px;background:#f0fdf4;border:1px solid var(--border);border-radius:8px;color:var(--green);font-size:12px;font-weight:700;text-decoration:none;">表示</a>'
+          + '<button onclick="deleteRoadPdf(\'' + p.fileId + '\',\'' + label.replace(/'/g, "\\'") + '\')" style="padding:6px 10px;background:#fff1f2;border:1px solid #fca5a5;border-radius:8px;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;">削除</button>'
+          + '</div>'
+          + '</div>';
+      }).join('');
   } catch(e) {
     card.innerHTML = '<div style="color:var(--danger);padding:12px;font-size:13px;">読み込みに失敗しました: ' + e.message + '</div>';
   }
@@ -3734,6 +3770,10 @@ async function onRoadPermitFileSelected(event) {
     event.target.value = '';
     return;
   }
+  const displayName = document.getElementById('road-permit-display-name').value.trim()
+    || ('道路使用許可書' + (MONTH || (new Date().getMonth() + 1)) + '月');
+  const startDate = document.getElementById('road-permit-start-date').value;
+  const endDate   = document.getElementById('road-permit-end-date').value;
   const statusEl = document.getElementById('road-permit-upload-status');
   statusEl.style.display = 'block';
   statusEl.textContent = 'アップロード中...';
@@ -3744,7 +3784,7 @@ async function onRoadPermitFileSelected(event) {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-    const res = await gasPost('uploadRoadPdf', { base64: base64, fileName: file.name });
+    const res = await gasPost('uploadRoadPdf', { base64, fileName: file.name, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || 'アップロード失敗');
     statusEl.textContent = 'アップロード完了！';
     document.getElementById('road-permit-file-input').value = '';

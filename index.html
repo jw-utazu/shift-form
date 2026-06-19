@@ -3531,7 +3531,7 @@ function esc(s) {
       SESSION = {
         uid: data.uid, name: data.name, email: saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
-        isCart: data.isCart, proxyTargets: data.proxyTargets || [],
+        isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
         picture: saved.picture || ''
       };
       // hideLoadingせずそのままinitAppへ（ローディングはinitApp内で引き継ぎ）
@@ -3666,7 +3666,7 @@ async function openRoadPdfModal() {
       + '<div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.fileName + '</div>'
       + '<div style="font-size:12px;color:var(--sub);margin-top:2px;">' + p.updatedAt + '</div>'
       + '</div>'
-      + '<a href="' + p.viewUrl + '" target="_blank" rel="noopener" onclick="closeRoadPdfModal()" style="padding:9px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;flex-shrink:0;white-space:nowrap;">開く ↗</a>'
+      + '<a href="' + p.viewUrl + '" rel="noopener" onclick="closeRoadPdfModal()" style="padding:9px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;flex-shrink:0;white-space:nowrap;">開く</a>'
       + '</div>'
     ).join('');
   } catch(e) {

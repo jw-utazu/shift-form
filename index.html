@@ -733,7 +733,9 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .shift-date-btn:active { background: var(--green-light); border-color: var(--green); }
-.shift-date-btn.cancelled { border-color: var(--danger); background: #fff1f2; }
+.shift-date-btn.cancelled { border-color: var(--danger); border-width: 2px; background: #fff1f2; }
+.shift-date-btn.cancelled .sdb-date { color: #9ca3af; text-decoration: line-through; }
+.sdb-cancel-reason { margin-top: 4px; font-size: 12px; color: var(--danger-dark); font-weight: 600; }
 .sdb-main { flex: 1; min-width: 0; }
 .sdb-date  { font-size: 18px; font-weight: 700; }
 .sdb-time  { font-size: 13px; color: var(--sub); }
@@ -866,6 +868,7 @@ body {
 }
 .btn-small:active { opacity: .7; }
 .btn-cancel-input { background: #fee2e2; color: var(--danger-dark); }
+.btn-cancel-undo  { background: #ede9fe; color: #7c3aed; }
 .btn-memo-edit    { background: #fef9c3; color: #713f12; }
 
 /* ===================== 要望画面 ===================== */
@@ -2771,7 +2774,9 @@ function buildShiftDateList() {
     btn.innerHTML =
       '<div class="sdb-main">' +
         '<div class="sdb-date">' + esc(d.date) + '（' + esc(d.weekday) + '）<span class="sdb-time">　' + esc(d.time) + '</span></div>' +
-        (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '') +
+        (d.cancelled
+          ? '<div class="sdb-cancel-reason">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
+          : (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '')) +
       '</div>' +
       (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
           : hasMyShift ? '<span class="sdb-badge">参加</span>' : '');
@@ -2818,10 +2823,21 @@ function buildShiftDetail(d) {
   html += '<div class="shift-block-hdr">';
   html += '<span>' + esc(d.date) + '（' + esc(d.weekday) + '） ' + esc(d.time) + '</span>';
   // 管理者・責任者向け操作ボタン
-  if (SESSION && (SESSION.isAdmin || (SESSION.isResponsible && (d.responsible || []).includes(myName)))) {
+  // 中止入力/取り消し: 管理者 OR この時間帯の責任者
+  // メモ編集: 管理者 OR 責任者ロール全般
+  const isAssignedResp = SESSION && (d.responsible || []).includes(myName);
+  const canCancel      = SESSION && (SESSION.isAdmin || isAssignedResp);
+  const canEditMemo    = SESSION && (SESSION.isAdmin || SESSION.isResponsible);
+  if (canCancel || canEditMemo) {
     html += '<div class="edit-actions">';
-    html += '<button class="btn-small btn-cancel-input" onclick="openCancelInput()">中止入力</button>';
-    html += '<button class="btn-small btn-memo-edit" onclick="openMemoEdit()">メモ編集</button>';
+    if (canCancel) {
+      if (d.cancelled) {
+        html += '<button class="btn-small btn-cancel-undo" onclick="openCancelUndo()">中止取り消し</button>';
+      } else {
+        html += '<button class="btn-small btn-cancel-input" onclick="openCancelInput()">中止入力</button>';
+      }
+    }
+    if (canEditMemo) html += '<button class="btn-small btn-memo-edit" onclick="openMemoEdit()">メモ編集</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -2933,6 +2949,18 @@ function openCancelInput() {
   gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(data => {
     hideLoading();
     if (data.ok) { alert('中止情報を登録しました。'); initApp().then(() => showScreen('shift')); }
+    else alert('エラー: ' + data.error);
+  }).catch(() => { hideLoading(); alert('通信エラー'); });
+}
+
+function openCancelUndo() {
+  if (!shiftViewingDate) return;
+  if (!confirm('この時間帯の中止を取り消しますか？')) return;
+  const date = shiftViewingDate.date, time = shiftViewingDate.time;
+  showLoading('中止を取り消し中...');
+  gasJsonp('undoCancelShift', { date, time, uid: SESSION.uid }).then(data => {
+    hideLoading();
+    if (data.ok) { alert('中止を取り消しました。'); initApp().then(() => showScreen('shift')); }
     else alert('エラー: ' + data.error);
   }).catch(() => { hideLoading(); alert('通信エラー'); });
 }

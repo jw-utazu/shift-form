@@ -1049,9 +1049,36 @@ body {
 .ci-reason { font-size: 13px; color: var(--danger-dark); font-weight: 600; margin-bottom: 8px; }
 .ci-msg { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.6; }
 .ci-ok { background: var(--green); color: #fff; border: none; border-radius: 8px; padding: 11px 32px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+/* シフト更新通知バナー */
+#shift-update-banner {
+  display: none;
+  position: fixed;
+  top: 52px;
+  left: 0; right: 0;
+  z-index: 200;
+  background: var(--amber-dark);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  animation: banner-in .25s ease;
+}
+@keyframes banner-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
 </style>
 </head>
 <body>
+
+<!-- シフト更新通知バナー -->
+<div id="shift-update-banner" onclick="reloadShiftData()">
+  ⚠ シフト情報が更新されました。タップして最新データを表示
+</div>
 
 <!-- ローディングオーバーレイ -->
 <div id="loading-overlay">
@@ -1924,8 +1951,49 @@ function closeProfilePopup() {
   document.getElementById('profile-overlay').classList.remove('show');
 }
 
+// ===== シフト自動更新チェック =====
+let _knownTimestamp = null;
+let _updateCheckerTimer = null;
+let _updateCheckerListening = false;
+
+async function checkShiftUpdate() {
+  if (!SESSION) return;
+  try {
+    const res = await gasJsonp('getShiftLastUpdated');
+    if (!res || !res.ok) return;
+    if (_knownTimestamp === null) {
+      _knownTimestamp = res.lastUpdated;
+      return;
+    }
+    if (res.lastUpdated !== _knownTimestamp) {
+      document.getElementById('shift-update-banner').style.display = 'block';
+    }
+  } catch (_) {}
+}
+
+async function reloadShiftData() {
+  document.getElementById('shift-update-banner').style.display = 'none';
+  _knownTimestamp = null;
+  await initApp();
+}
+
+function startUpdateChecker() {
+  clearInterval(_updateCheckerTimer);
+  _updateCheckerTimer = setInterval(checkShiftUpdate, 5 * 60 * 1000);
+  if (!_updateCheckerListening) {
+    _updateCheckerListening = true;
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) checkShiftUpdate();
+    });
+  }
+  checkShiftUpdate();
+}
+
 // ===== ログアウト =====
 function logout() {
+  clearInterval(_updateCheckerTimer);
+  _knownTimestamp = null;
+  document.getElementById('shift-update-banner').style.display = 'none';
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
@@ -1980,6 +2048,7 @@ async function initApp() {
     }
     await hideLoading();
     showScreen('main');
+    startUpdateChecker();
   } catch (e) {
     hideLoading();
     console.error('initApp error:', e);

@@ -2323,37 +2323,43 @@ function buildWishListBox(status, isOpenPassed) {
   // 準備中は非表示
   if (status === '準備中') { card.style.display = 'none'; return; }
 
-  // ── ドロップダウン構築（代理送信権限がある場合のみ） ──
-  const targets = (SESSION && SESSION.proxyTargets) || [];
-  if (targets.length > 0) {
-    // 選択中UIDが未設定 or 自分のUID → 初期は自分
-    if (!wishListViewUid) wishListViewUid = myUid;
-    proxySel.innerHTML = '<option value="' + myUid + '">自分（' + esc(myName) + '）</option>';
-    targets.forEach(uid => {
-      const member = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid, uid: uid };
-      const opt = document.createElement('option');
-      opt.value = uid;
-      opt.textContent = member.name;
-      if (uid === wishListViewUid) opt.selected = true;
-      proxySel.appendChild(opt);
-    });
-    proxyArea.style.display = 'block';
-  } else {
-    wishListViewUid = myUid;
+  // 確定シフト一覧はドロップダウン不要（自分のみ）
+  const isConfirmedView = isOpenPassed && SHIFT_DATA && SHIFT_DATA.published;
+  let viewUid, viewName;
+  if (isConfirmedView) {
     proxyArea.style.display = 'none';
+    viewUid  = myUid;
+    viewName = myName;
+  } else {
+    // ── ドロップダウン構築（代理送信権限がある場合のみ） ──
+    const targets = (SESSION && SESSION.proxyTargets) || [];
+    if (targets.length > 0) {
+      if (!wishListViewUid) wishListViewUid = myUid;
+      proxySel.innerHTML = '<option value="' + myUid + '">自分（' + esc(myName) + '）</option>';
+      targets.forEach(uid => {
+        const member = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === uid) || { name: uid, uid: uid };
+        const opt = document.createElement('option');
+        opt.value = uid;
+        opt.textContent = member.name;
+        if (uid === wishListViewUid) opt.selected = true;
+        proxySel.appendChild(opt);
+      });
+      proxyArea.style.display = 'block';
+    } else {
+      wishListViewUid = myUid;
+      proxyArea.style.display = 'none';
+    }
+    viewUid  = wishListViewUid || myUid;
+    viewName = (viewUid === myUid)
+      ? myName
+      : (() => {
+          const m = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === viewUid);
+          return m ? m.name : viewUid;
+        })();
   }
 
-  // 表示対象のUID・名前を決定
-  const viewUid  = wishListViewUid || myUid;
-  const viewName = (viewUid === myUid)
-    ? myName
-    : (() => {
-        const m = (APP_DATA && APP_DATA.staffJSON || []).find(s => s.uid === viewUid);
-        return m ? m.name : viewUid;
-      })();
-
   // シフト公開済み：確定シフト一覧を表示（自分のみ）
-  if (isOpenPassed && SHIFT_DATA && SHIFT_DATA.published) {
+  if (isConfirmedView) {
     const targetShifts = [];
     (SHIFT_DATA.dates || []).forEach(d => {
       const inSlot = name => {

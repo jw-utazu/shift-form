@@ -2000,10 +2000,10 @@ function logout() {
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
-  // ログアウト後はOne Tapを表示してよい状態にしてからGISを再初期化
+  // ログアウト後はOne Tapを表示（initialize()は初回のみ呼び出し済みなので prompt() だけでよい）
   shouldShowOneTap = true;
   setTimeout(() => {
-    try { initGoogleLogin(); } catch(_) {}
+    try { google.accounts.id.prompt(); } catch(_) {}
   }, 100);
 }
 

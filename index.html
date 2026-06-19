@@ -3136,10 +3136,12 @@ async function submitBugReport() {
       msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
       ta.value = '';
       btn.disabled = false; btn.textContent = '送信する';
+      setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
     } else throw new Error(data.error);
   } catch (e) {
     msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
     btn.disabled = false; btn.textContent = '送信する';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   }
 }
 

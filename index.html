@@ -2456,6 +2456,17 @@ function buildWishListBox(status, isOpenPassed) {
   title.textContent = '📋 送信済みのシフト希望';
   const viewData = THIS_MONTH[viewUid];
   if (!viewData || Object.keys(viewData.checkedMap || {}).length === 0) {
+    const isAfterDeadline = status === '受付終了' || (() => {
+      const ed = APP_DATA ? (APP_DATA.eventDates || {}) : {};
+      const deadlineStr = ed['締切'];
+      if (!deadlineStr) return false;
+      const p = deadlineStr.split('/');
+      if (p.length !== 2) return false;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const deadlineDate = new Date(YEAR || today.getFullYear(), parseInt(p[0]) - 1, parseInt(p[1]));
+      return today.getTime() >= deadlineDate.getTime();
+    })();
+    if (isAfterDeadline) { card.style.display = 'none'; return; }
     body.innerHTML = '<div style="font-size:14px;color:var(--sub);padding:6px 0;">まだ送信されていません</div>';
     card.style.display = '';
     return;

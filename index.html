@@ -1966,8 +1966,11 @@ function buildMainScreen() {
         if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
         if (btnFormIco) btnFormIco.textContent = '📝';
       }
+    } else if (status === '受付終了') {
+      // 締切後は非表示
+      btnForm.style.display = 'none';
     } else {
-      // 準備中・受付終了はグレーアウト
+      // 準備中はグレーアウト
       btnForm.disabled = true;
       btnForm.style.opacity = '0.5';
       btnForm.style.cursor  = 'default';
@@ -2054,7 +2057,7 @@ function buildMainScreen() {
   buildCalendar();
 
   // ── 次のシフト ──
-  buildNextShift();
+  buildNextShift(isOpenPassed);
 
   // ── お知らせ ──
   const notices = APP_DATA.notices || [];
@@ -2542,8 +2545,9 @@ function openFormForUid(uid) {
   }, 50);
 }
 
-function buildNextShift() {
+function buildNextShift(isOpenPassed) {
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
+  if (!isOpenPassed) return; // 公開予定日前は表示しない
   const today = new Date(); today.setHours(0,0,0,0);
   const name  = SESSION.name;
   const next  = SHIFT_DATA.dates.find(d => {

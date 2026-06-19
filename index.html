@@ -3063,7 +3063,30 @@ function formatName(p) {
   return esc(p.name) + (p.watch ? '<span class="watch-mark">（見守り）</span>' : '');
 }
 
-// 中止入力（長押し3秒）
+// シフトデータのみ再取得して現在の詳細ビューをその場で再描画
+async function _refreshShiftAndRedraw() {
+  showLoading('シフト表を更新中...');
+  try {
+    const shiftData = await gasJsonp('getShiftTable');
+    SHIFT_DATA = shiftData;
+    buildShiftDateList();
+    if (shiftViewingDate) {
+      const updated = (SHIFT_DATA.dates || []).find(
+        d => d.date === shiftViewingDate.date && d.time === shiftViewingDate.time
+      );
+      if (updated) {
+        shiftViewingDate = updated;
+        buildShiftDetail(updated);
+      }
+    }
+    await hideLoading();
+  } catch (e) {
+    await hideLoading();
+    alert('シフト表の更新に失敗しました: ' + e.message);
+  }
+}
+
+// 中止入力
 let cancelTimer = null;
 function openCancelInput() {
   if (!shiftViewingDate) return;
@@ -3071,10 +3094,9 @@ function openCancelInput() {
   const reason = prompt('中止理由を入力してください（空白でも可）:', '');
   if (reason === null) return; // キャンセル
   showLoading('中止情報を登録中...');
-  gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(data => {
-    hideLoading();
-    if (data.ok) { alert('中止情報を登録しました。'); initApp().then(() => showScreen('shift')); }
-    else alert('エラー: ' + data.error);
+  gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(async data => {
+    if (data.ok) { await _refreshShiftAndRedraw(); }
+    else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
 }
 
@@ -3083,10 +3105,9 @@ function openCancelUndo() {
   if (!confirm('この時間帯の中止を取り消しますか？')) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   showLoading('中止を取り消し中...');
-  gasJsonp('undoCancelShift', { date, time, uid: SESSION.uid }).then(data => {
-    hideLoading();
-    if (data.ok) { alert('中止を取り消しました。'); initApp().then(() => showScreen('shift')); }
-    else alert('エラー: ' + data.error);
+  gasJsonp('undoCancelShift', { date, time, uid: SESSION.uid }).then(async data => {
+    if (data.ok) { await _refreshShiftAndRedraw(); }
+    else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
 }
 
@@ -3098,10 +3119,9 @@ function openMemoEdit() {
   const memo = prompt('責任者メモを入力してください:', current);
   if (memo === null) return;
   showLoading('メモを保存中...');
-  gasJsonp('saveMemo', { date, time, memo }).then(data => {
-    hideLoading();
-    if (data.ok) { initApp().then(() => showScreen('shift')); }
-    else alert('エラー: ' + data.error);
+  gasJsonp('saveMemo', { date, time, memo }).then(async data => {
+    if (data.ok) { await _refreshShiftAndRedraw(); }
+    else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
 }
 

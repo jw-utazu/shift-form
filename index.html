@@ -1342,8 +1342,29 @@ body::-webkit-scrollbar { display: none; }
         <span class="nav-txt">操作マニュアルを見る</span>
         <span class="nav-arr">›</span>
       </button>
+      <button class="btn-nav secondary" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;border-color:#a78bfa;color:#5b21b6;background:#f5f3ff;">
+        <span class="nav-icon">👁</span>
+        <span class="nav-txt">メンバーとして閲覧</span>
+        <span class="nav-arr">›</span>
+      </button>
     </div>
   </div>
+</div>
+
+<!-- プレビューバナー（オーナーのみ） -->
+<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;">
+  <span>👁 <span id="preview-banner-name"></span>さんとして閲覧中</span>
+  <button onclick="exitPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;">閲覧終了</button>
+</div>
+
+<!-- メンバー選択モーダル（オーナー専用） -->
+<div id="member-preview-overlay" onclick="closeMemberPreviewModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;"></div>
+<div id="member-preview-modal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);max-height:75vh;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:9999;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="padding:16px 16px 12px;border-bottom:1px solid #e5e7eb;">
+    <div style="font-size:16px;font-weight:700;color:#1f2937;margin-bottom:10px;">メンバーとして閲覧</div>
+    <input id="member-preview-search" type="text" placeholder="名前で絞り込み..." oninput="filterPreviewMembers()" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;">
+  </div>
+  <div id="member-preview-list" style="overflow-y:auto;flex:1;padding:8px 0;"></div>
 </div>
 
 <!-- プロフィールポップアップ -->
@@ -1658,6 +1679,8 @@ function gasJsonp(action, params, extraQuery) {
 
 // ===== グローバル状態 =====
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
+let _isPreviewMode         = false;
+let _previewOriginalSession = null;
 let APP_DATA     = null; // GASから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
@@ -2140,10 +2163,10 @@ function updateAvatarUI() {
     } else {
       // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
       ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
+      if (SESSION.isAdmin)       ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+      if (SESSION.isAccountant)  ppRoles.innerHTML += '<span class="badge" style="background:#dbeafe;color:#1e40af;">会計者</span>';
       if (SESSION.isResponsible) ppRoles.innerHTML += '<span class="badge badge-resp">責任者</span>';
       if (SESSION.isCart)        ppRoles.innerHTML += '<span class="badge badge-cart">カート担当</span>';
-      if (SESSION.isAccountant)  ppRoles.innerHTML += '<span class="badge" style="background:#dbeafe;color:#1e40af;">会計者</span>';
-      if (SESSION.isAdmin)       ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
     }
   }
 }

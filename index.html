@@ -1071,6 +1071,30 @@ body {
   from { transform: translateY(-100%); opacity: 0; }
   to   { transform: translateY(0);     opacity: 1; }
 }
+
+/* ===== 改良版シフト表テーブル（管理アプリ風） ===== */
+.shift-tbl-v2 { width:100%; border-collapse:collapse; font-size:13px; min-width:280px; }
+.shift-tbl-v2 th, .shift-tbl-v2 td { border:1px solid #e5e7eb; vertical-align:middle; }
+.stv2-hdr-time { background:#f9fafb; padding:8px 6px; text-align:center; font-weight:700; color:var(--sub); font-size:11px; min-width:70px; white-space:nowrap; }
+.stv2-hdr-place { padding:8px 10px; text-align:center; font-weight:700; font-size:12px; min-width:100px; }
+.stv2-cart-row td { font-size:10px; font-weight:700; color:var(--sub); padding:4px 8px; background:#f8fafc; text-align:center; border-bottom:2px solid #e5e7eb; }
+.stv2-time-cell { background:#f9fafb; padding:8px 6px; font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; text-align:center; }
+.stv2-place-cell { padding:6px 8px; text-align:left; }
+.stv2-staff-name { padding:2px 4px; border-radius:4px; margin-bottom:2px; font-size:13px; display:block; }
+.stv2-staff-name:last-child { margin-bottom:0; }
+.stv2-staff-name.my-cell-staff { background:var(--amber); }
+.stv2-staff-name.my-cell-resp  { background:#fca5a5; }
+.stv2-staff-name.my-cell-cart  { background:var(--purple); }
+.stv2-staff-name.my-cell-both  { background:#fca5a5; box-shadow:inset 0 0 0 2px var(--purple-dark); }
+/* 編集モード */
+.staff-edit-sel { width:100%; border:1px solid #d1d5db; border-radius:5px; padding:4px 5px; font-size:12px; font-family:inherit; outline:none; background:#fff; margin-bottom:3px; box-sizing:border-box; }
+.staff-edit-sel:last-child { margin-bottom:0; }
+.staff-edit-sel:focus { border-color:var(--green); }
+.edit-mode-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb; }
+.btn-save-shift { background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+.btn-save-shift:disabled { opacity:.5; cursor:not-allowed; }
+.btn-cancel-shift-edit { background:#f3f4f6; color:var(--sub); border:1px solid #e5e7eb; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.btn-edit-staff-mode { background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
 </style>
 </head>
 <body>
@@ -1551,6 +1575,7 @@ const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
 let deferredPrompt = null;
 let shouldShowOneTap = false; // セッションなしの時だけtrueにしてOne Tapを表示
 let shiftViewingDate = null; // 現在表示中のシフト日付
+let staffEditMode = false;   // 奉仕者編集モード
 
 // ===== PWA =====
 window.addEventListener('beforeinstallprompt', e => {
@@ -3078,6 +3103,7 @@ function showShiftDetail(dateObj) {
     }
   }
   shiftViewingDate = dateObj;
+  staffEditMode = false;
   const listEl   = document.getElementById('shift-date-list');
   const detailEl = document.getElementById('shift-detail-view');
   listEl.style.display   = 'none';
@@ -3093,6 +3119,7 @@ function showShiftDetail(dateObj) {
 }
 
 function _shiftDetailBack() {
+  staffEditMode = false;
   const listEl   = document.getElementById('shift-date-list');
   const detailEl = document.getElementById('shift-detail-view');
   detailEl.style.display = 'none';
@@ -3108,18 +3135,19 @@ function _shiftDetailBack() {
 function buildShiftDetail(d) {
   const container = document.getElementById('shift-detail-container');
   const myName    = SESSION ? SESSION.name : '';
+  const PC = ['#e0f2fe','#fef9c3','#fce7f3','#dcfce7','#ede9fe']; // 場所列のヘッダー色
   let html = '';
 
   html += '<div class="shift-block">';
   html += '<div class="shift-block-hdr">';
   html += '<span>' + esc(d.date) + '（' + esc(d.weekday) + '） ' + esc(d.time) + '</span>';
-  // 管理者・責任者向け操作ボタン
-  // 中止入力/取り消し: 管理者 OR この時間帯の責任者
-  // メモ編集: 管理者 OR 責任者ロール全般
+
   const isAssignedResp = SESSION && (d.responsible || []).includes(myName);
   const canCancel      = SESSION && (SESSION.isAdmin || isAssignedResp);
   const canEditMemo    = SESSION && (SESSION.isAdmin || SESSION.isResponsible);
-  if (canCancel || canEditMemo) {
+  const canEditStaff   = SESSION && (SESSION.isAdmin || isAssignedResp);
+
+  if (canCancel || canEditMemo || canEditStaff) {
     html += '<div class="edit-actions">';
     if (canCancel) {
       if (d.cancelled) {
@@ -3129,21 +3157,21 @@ function buildShiftDetail(d) {
       }
     }
     if (canEditMemo) html += '<button class="btn-small btn-memo-edit" onclick="openMemoEdit()">メモ編集</button>';
+    if (canEditStaff && !staffEditMode) {
+      html += '<button class="btn-edit-staff-mode" onclick="enterStaffEditMode()">奉仕者を編集</button>';
+    }
     html += '</div>';
   }
   html += '</div>';
 
-  // 中止バナー
   if (d.cancelled) {
     html += '<div class="cancel-banner">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
   }
 
-  // メモ
   if (d.memo) {
     html += '<div class="memo-box"><label>📝 責任者メモ</label>' + esc(d.memo) + '</div>';
   }
 
-  // 責任者
   if (d.responsible && d.responsible.length > 0) {
     html += '<div class="resp-row"><span class="resp-label">責任者：</span>';
     d.responsible.forEach(name => {
@@ -3152,7 +3180,6 @@ function buildShiftDetail(d) {
     html += '</div>';
   }
 
-  // カート担当
   if (d.cart) {
     const allCart = [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name);
     if (allCart.length > 0) {
@@ -3165,44 +3192,75 @@ function buildShiftDetail(d) {
       });
       html += '</div>';
     }
-    // 展示内容写真ボタン
     html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
   }
 
-  // 奉仕者テーブル（場所名は動的。slots[0]の場所名一覧を列見出しに使う）
   if (d.slots && d.slots.length > 0) {
-    const placeCart = d.placeCart || {};
-    // 全スロットに登場する場所名を集めて列を決定（順序はplaceCartのキー順→無ければ最初のスロットのキー順）
+    const placeCart    = d.placeCart || {};
     const allPlaceNames = Object.keys(d.slots[0].places || {});
-    // 奉仕者が一人もいない場所は表示しない（カート番号のみの場合も除外）
-    const placeNames = allPlaceNames.filter(loc =>
-      d.slots.some(slot => slot.places && slot.places[loc] && slot.places[loc].length > 0)
-    );
+    // 編集モードは全場所を表示、表示モードは奉仕者がいる場所のみ
+    const placeNames = staffEditMode
+      ? allPlaceNames
+      : allPlaceNames.filter(loc =>
+          d.slots.some(slot => slot.places && slot.places[loc] && slot.places[loc].length > 0)
+        );
+
     if (placeNames.length > 0) {
-      html += '<div class="area-section">';
-      html += '<table class="slot-table"><thead>';
-      html += '<tr><th class="time-col" style="background:#f9fafb;">時間</th>';
-      placeNames.forEach(loc => { html += '<th>' + esc(loc) + '</th>'; });
+      html += '<div class="area-section" style="overflow-x:auto;">';
+      html += '<table class="shift-tbl-v2"><thead>';
+
+      // 場所名ヘッダー行（場所ごとに色分け）
+      html += '<tr><th class="stv2-hdr-time">時間</th>';
+      placeNames.forEach((loc, i) => {
+        html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">' + esc(loc) + '</th>';
+      });
       html += '</tr>';
-      // 場所別カート番号（設定されている場所のみ表示）
+
+      // カート番号行
       const hasPlaceCart = placeNames.some(loc => placeCart[loc]);
       if (hasPlaceCart) {
-        html += '<tr><th class="place-cart">カート番号</th>';
+        html += '<tr class="stv2-cart-row"><td>カート番号</td>';
         placeNames.forEach(loc => {
-          html += '<th class="place-cart">' + (placeCart[loc] ? esc(placeCart[loc]) : '—') + '</th>';
+          html += '<td>' + (placeCart[loc] ? esc(placeCart[loc]) : '—') + '</td>';
         });
         html += '</tr>';
       }
       html += '</thead><tbody>';
-      d.slots.forEach(slot => {
-        html += '<tr><td class="time-col">' + esc(slot.time) + '</td>';
-        placeNames.forEach(loc => {
+
+      d.slots.forEach((slot, ri) => {
+        html += '<tr><td class="stv2-time-cell">' + esc(slot.time) + '</td>';
+        placeNames.forEach((loc, li) => {
+          const bg     = PC[li % PC.length];
           const people = (slot.places && slot.places[loc]) ? slot.places[loc] : [];
-          html += '<td class="place-cell">' + buildStaffCellHtml(people, myName, d) + '</td>';
+          html += '<td class="stv2-place-cell" style="background:' + bg + '20;">';
+          if (staffEditMode) {
+            // 編集モード：ドロップダウン3つ（最大3名）
+            for (let pi = 0; pi < 3; pi++) {
+              const person = people[pi];
+              const curUid = person ? (person.uid || nameToUid(person.name)) : '';
+              html += '<select class="staff-edit-sel" id="staff-sel-' + ri + '-' + li + '-' + pi + '">';
+              html += '<option value="">—</option>';
+              (APP_DATA && APP_DATA.staffJSON || []).forEach(m => {
+                const sel = (m.uid && m.uid === curUid) ? ' selected' : '';
+                html += '<option value="' + esc(m.uid) + '"' + sel + '>' + esc(m.name) + '</option>';
+              });
+              html += '</select>';
+            }
+          } else {
+            html += buildStaffCellHtmlV2(people, myName, d);
+          }
+          html += '</td>';
         });
         html += '</tr>';
       });
       html += '</tbody></table></div>';
+
+      if (staffEditMode) {
+        html += '<div class="edit-mode-actions">';
+        html += '<button class="btn-cancel-shift-edit" onclick="exitStaffEditMode()">キャンセル</button>';
+        html += '<button class="btn-save-shift" id="btn-save-staff" onclick="saveStaffEdits()">保存する</button>';
+        html += '</div>';
+      }
     }
   }
 
@@ -3210,12 +3268,21 @@ function buildShiftDetail(d) {
   container.innerHTML = html;
 }
 
-// 1セル分（1場所×1スロット）の奉仕者一覧HTMLを構築
+// 1セル分（1場所×1スロット）の奉仕者一覧HTMLを構築（旧テーブル用・互換維持）
 function buildStaffCellHtml(people, myName, d) {
   if (!people || people.length === 0) return '';
   return people.map(p => {
     const cellClass = getCellClass(p, myName, d);
     return '<div class="staff-line' + (cellClass ? ' ' + cellClass : '') + '">' + formatName(p) + '</div>';
+  }).join('');
+}
+
+// 改良版テーブル用（.stv2-staff-name クラスを使用）
+function buildStaffCellHtmlV2(people, myName, d) {
+  if (!people || people.length === 0) return '';
+  return people.map(p => {
+    const cellClass = getCellClass(p, myName, d);
+    return '<span class="stv2-staff-name' + (cellClass ? ' ' + cellClass : '') + '">' + formatName(p) + '</span>';
   }).join('');
 }
 
@@ -3306,6 +3373,89 @@ function openMemoEdit() {
     if (data.ok) { await _refreshShiftAndRedraw(); }
     else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
+}
+
+// ===== 奉仕者編集モード =====
+function nameToUid(name) {
+  if (!name || !APP_DATA || !APP_DATA.staffJSON) return '';
+  const m = APP_DATA.staffJSON.find(s => s.name === name);
+  return m ? (m.uid || '') : '';
+}
+
+function enterStaffEditMode() {
+  staffEditMode = true;
+  buildShiftDetail(shiftViewingDate);
+}
+
+function exitStaffEditMode() {
+  staffEditMode = false;
+  buildShiftDetail(shiftViewingDate);
+}
+
+async function saveStaffEdits() {
+  if (!shiftViewingDate) return;
+  const d   = shiftViewingDate;
+  const btn = document.getElementById('btn-save-staff');
+  if (btn) btn.disabled = true;
+
+  const placeCart     = d.placeCart || {};
+  const allPlaceNames = Object.keys((d.slots && d.slots[0] && d.slots[0].places) || {});
+  const placeNames    = allPlaceNames; // 編集モードでは全場所を対象
+
+  // 各スロット×場所のドロップダウン値を収集
+  const slotsPayload = (d.slots || []).map((slot, ri) => {
+    const places = {};
+    const watch  = {};
+    placeNames.forEach((loc, li) => {
+      const uids = [];
+      for (let pi = 0; pi < 3; pi++) {
+        const sel = document.getElementById('staff-sel-' + ri + '-' + li + '-' + pi);
+        if (sel && sel.value) uids.push(sel.value);
+      }
+      places[loc] = uids;
+      watch[loc]  = !!(slot.watch && slot.watch[loc]);
+    });
+    return { time: slot.time, places, watch };
+  });
+
+  // 責任者をUID形式に変換
+  const respNames  = d.responsible || [];
+  const responsible = {
+    r1: nameToUid(respNames[0] || ''),
+    r2: nameToUid(respNames[1] || '')
+  };
+
+  // カート担当をUID形式に変換
+  const cart = { ki1:'', kc1:'', ki2:'', kc2:'', ko1:'', oc1:'', ko2:'', oc2:'' };
+  if (d.cart) {
+    const bring = (d.cart.bring || []).filter(c => c.name);
+    const take  = (d.cart.take  || []).filter(c => c.name);
+    if (bring[0]) { cart.ki1 = nameToUid(bring[0].name) || bring[0].name; cart.kc1 = bring[0].cartNo || ''; }
+    if (bring[1]) { cart.ki2 = nameToUid(bring[1].name) || bring[1].name; cart.kc2 = bring[1].cartNo || ''; }
+    if (take[0])  { cart.ko1 = nameToUid(take[0].name)  || take[0].name;  cart.oc1 = take[0].cartNo  || ''; }
+    if (take[1])  { cart.ko2 = nameToUid(take[1].name)  || take[1].name;  cart.oc2 = take[1].cartNo  || ''; }
+  }
+
+  showLoading('シフトを保存中...');
+  try {
+    const result = await gasJsonp('saveShiftBlock', {
+      date: d.date,
+      time: d.time,
+      responsible,
+      cart,
+      placeCart,
+      usedPlaces: placeNames,
+      slots: slotsPayload,
+      uid: SESSION ? SESSION.uid : ''
+    });
+    if (result && result.ok === false) throw new Error(result.error || '保存に失敗しました');
+    staffEditMode = false;
+    await _refreshShiftAndRedraw();
+  } catch (e) {
+    await hideLoading();
+    alert('保存に失敗しました: ' + e.message);
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ===== 要望送信 =====

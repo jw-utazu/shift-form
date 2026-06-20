@@ -33,6 +33,8 @@
   --shadow-lg:   0 4px 24px rgba(0,0,0,0.12);
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar { display: none; }
 body {
   font-family: "Noto Sans JP", sans-serif;
   font-size: 17px;
@@ -40,7 +42,10 @@ body {
   color: var(--text);
   min-height: 100vh;
   padding-bottom: 32px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+body::-webkit-scrollbar { display: none; }
 
 /* ヘッダー */
 .hdr {
@@ -141,7 +146,8 @@ body {
 
 /* ===================== ログイン画面 ===================== */
 #screen-login {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1578,6 +1584,7 @@ let shiftViewingDate = null; // 現在表示中のシフト日付
 let staffEditMode = false;   // 奉仕者編集モード
 let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
+let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
 
 // ===== PWA =====
 window.addEventListener('beforeinstallprompt', e => {
@@ -1702,6 +1709,7 @@ const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, reques
 let _currentScreenName = 'login';
 
 function showScreen(name, fromPopstate) {
+  window.scrollTo(0, 0);
   const isBack = fromPopstate || SCREEN_DEPTH[name] < SCREEN_DEPTH[_currentScreenName];
   const animClass = isBack ? 'screen-enter-back' : 'screen-enter-forward';
 
@@ -1732,10 +1740,14 @@ function showScreen(name, fromPopstate) {
   }
 
   // popstateからの呼び出しでなければ履歴に積む
-  // main は replaceState で常に履歴の底に固定し、それより前には戻れないようにする
   if (!fromPopstate && !HISTORY_NO_PUSH.has(name)) {
     if (name === 'main') {
-      history.replaceState({ screen: 'main' }, '');
+      if (!_mainHistorySetup) {
+        _mainHistorySetup = true;
+        // main の直下に番兵エントリを1度だけ挿入し、ここまで戻ると確認ダイアログを表示
+        history.pushState({ screen: '__bottom__' }, '');
+      }
+      history.pushState({ screen: 'main' }, '');
     } else {
       history.pushState({ screen: name }, '');
     }

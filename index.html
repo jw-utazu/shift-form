@@ -1988,7 +1988,8 @@ async function doRegister() {
   const email = sel.dataset.email;
   if (!name) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
-  btn.disabled = true; btn.textContent = '登録中...';
+  btn.disabled = true;
+  showLoading('登録中...');
   try {
     const data = await gasJsonp('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
@@ -2002,6 +2003,7 @@ async function doRegister() {
     saveSession({ email, token: sel.dataset.token, picture: sel.dataset.picture || '' });
     await initApp();
   } catch (e) {
+    await hideLoading();
     const msg = document.getElementById('register-msg');
     msg.className = 'msg error';
     msg.textContent = '⚠️ ' + e.message;
@@ -3032,7 +3034,8 @@ function toggleLastMonth() {
 
 async function submitForm() {
   const btn = document.getElementById('btn-submit');
-  btn.disabled = true; btn.textContent = '送信中...';
+  btn.disabled = true;
+  showLoading('送信中...');
   const cm = {}, ng = {};
   Object.entries(formState.checkedMap).forEach(([k, s]) => { cm[k] = [...s]; });
   Object.entries(formState.cartNgMap).forEach(([k, s])  => { ng[k] = [...s]; });
@@ -3045,10 +3048,6 @@ async function submitForm() {
   try {
     const result = await gasJsonp('submitShift', payload);
     if (result && result.ok === false) throw new Error(result.error || '送信失敗');
-    const msg = document.getElementById('form-msg');
-    msg.className = 'msg success';
-    msg.textContent = '✅ 送信が完了しました！';
-    btn.textContent = '送信済み';
 
     // THIS_MONTHをローカルで即時更新（メイン画面のボタン・希望一覧に反映するため）
     const now = new Date();
@@ -3063,11 +3062,16 @@ async function submitForm() {
     // 希望一覧の表示対象を送信した人に合わせてリセット
     wishListViewUid = currentFormUid;
 
+    await hideLoading();
+    const msg = document.getElementById('form-msg');
+    msg.className = 'msg success';
+    msg.textContent = '✅ 送信が完了しました！';
     setTimeout(() => {
       buildMainScreen();
       history.back(); // フォーム送信後、main エントリへ戻る
-    }, 2000);
+    }, 1500);
   } catch (e) {
+    await hideLoading();
     const msg = document.getElementById('form-msg');
     msg.className = 'msg error';
     msg.textContent = '⚠️ 通信エラーが発生しました。もう一度お試しください。';
@@ -3526,19 +3530,21 @@ async function submitRequest() {
   const btn = document.getElementById('btn-req-submit');
   const msg = document.getElementById('req-msg');
   if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
-  btn.disabled = true; btn.textContent = '送信中...';
+  btn.disabled = true;
+  showLoading('要望を送信中...');
   try {
     const data = await gasJsonp('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
-    if (data.ok) {
-      msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
-      ta.value = '';
-      btn.disabled = false; btn.textContent = '送信する';
-      setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
-    } else throw new Error(data.error);
-  } catch (e) {
-    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
-    btn.disabled = false; btn.textContent = '送信する';
+    if (!data.ok) throw new Error(data.error);
+    hideLoading();
+    msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
+    ta.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } catch (e) {
+    hideLoading();
+    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } finally {
+    btn.disabled = false; btn.textContent = '送信する';
   }
 }
 
@@ -3550,19 +3556,21 @@ async function submitBugReport() {
   const btn = document.getElementById('btn-bug-submit');
   const msg = document.getElementById('bug-msg');
   if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
-  btn.disabled = true; btn.textContent = '送信中...';
+  btn.disabled = true;
+  showLoading('バグ報告を送信中...');
   try {
     const data = await gasJsonp('postBugReport', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
-    if (data.ok) {
-      msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
-      ta.value = '';
-      btn.disabled = false; btn.textContent = '送信する';
-      setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
-    } else throw new Error(data.error);
-  } catch (e) {
-    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
-    btn.disabled = false; btn.textContent = '送信する';
+    if (!data.ok) throw new Error(data.error);
+    hideLoading();
+    msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
+    ta.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } catch (e) {
+    hideLoading();
+    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } finally {
+    btn.disabled = false; btn.textContent = '送信する';
   }
 }
 
@@ -4019,8 +4027,8 @@ async function onRoadPermitFileSelected(event) {
   const startDate = document.getElementById('road-permit-start-date').value;
   const endDate   = document.getElementById('road-permit-end-date').value;
   const statusEl = document.getElementById('road-permit-upload-status');
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'アップロード中...';
+  statusEl.style.display = 'none';
+  showLoading('PDFをアップロード中...');
   try {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -4032,21 +4040,28 @@ async function onRoadPermitFileSelected(event) {
     const driveFileName = (displayName.endsWith('.pdf') ? displayName : displayName + '.pdf');
     const res = await gasPost('uploadRoadPdf', { base64, fileName: driveFileName, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || 'アップロード失敗');
+    await hideLoading();
+    statusEl.style.display = 'block';
     statusEl.textContent = 'アップロード完了！';
     document.getElementById('road-permit-file-input').value = '';
     await _initRoadPermitScreen();
   } catch(e) {
+    await hideLoading();
+    statusEl.style.display = 'block';
     statusEl.textContent = 'エラー: ' + e.message;
   }
 }
 
 async function deleteRoadPdf(fileId, fileName) {
   if (!confirm('「' + fileName + '」を削除しますか？')) return;
+  showLoading('削除中...');
   try {
     const res = await gasJsonp('deleteRoadPdf', { fileId: fileId });
     if (!res.ok) throw new Error(res.error || '削除失敗');
+    await hideLoading();
     await _initRoadPermitScreen();
   } catch(e) {
+    await hideLoading();
     alert('削除に失敗しました: ' + e.message);
   }
 }
@@ -4102,14 +4117,16 @@ async function saveEditRoadPdf() {
     return;
   }
   saveBtn.disabled = true;
-  msgEl.style.color = 'var(--sub)';
-  msgEl.textContent = '保存中...';
+  msgEl.textContent = '';
+  showLoading('保存中...');
   try {
     const res = await gasJsonp('updateRoadPdfMeta', { fileId, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || '保存失敗');
+    await hideLoading();
     closeEditRoadPdf();
     await _initRoadPermitScreen();
   } catch(e) {
+    await hideLoading();
     msgEl.style.color = 'var(--danger)';
     msgEl.textContent = 'エラー: ' + e.message;
     saveBtn.disabled = false;

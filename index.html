@@ -423,6 +423,29 @@ body::-webkit-scrollbar { display: none; }
 .cal-sub { font-size: 10px; opacity: .8; margin-top: 1px; }
 .cal-count { font-size: 10px; margin-top: 2px; opacity: .85; }
 
+/* カレンダー月インジケータードット */
+.cal-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-light);
+  border: 1.5px solid var(--green);
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+  flex-shrink: 0;
+}
+.cal-dot.active {
+  background: var(--green);
+  transform: scale(1.35);
+  cursor: default;
+}
+
 /* 申込期間バー（オレンジ） */
 .cal-period-bar {
   position: absolute;
@@ -1205,6 +1228,7 @@ body::-webkit-scrollbar { display: none; }
         <button class="cal-nav-btn" id="cal-next-btn" onclick="calNavMonth(1)">次の月</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
+      <div id="cal-dots" class="cal-dots" style="display:none;"></div>
       <!-- 実施日クリック時の時間帯ボックス -->
       <div id="shift-time-box">
         <div class="shift-time-box-date" id="shift-time-box-date"></div>
@@ -2405,6 +2429,32 @@ function buildCalendar() {
   if (nextBtn) {
     nextBtn.style.opacity      = curVal2 >= maxVal2 ? '0.35' : '1';
     nextBtn.style.pointerEvents = curVal2 >= maxVal2 ? 'none' : '';
+  }
+
+  // 月インジケータードット生成
+  const dotsEl = document.getElementById('cal-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = '';
+    let dy = realY2, dm = realM2;
+    while (dy * 100 + dm <= maxVal2) {
+      const dotY = dy, dotM = dm;
+      const dot = document.createElement('span');
+      dot.className = 'cal-dot' + (dotY === dispY && dotM === dispM ? ' active' : '');
+      dot.title = dotY + '年' + dotM + '月';
+      dot.addEventListener('click', () => {
+        if (dotY === calDisplayYear && dotM === calDisplayMonth) return;
+        calDisplayYear = dotY;
+        calDisplayMonth = dotM;
+        _selectedShiftKey = null;
+        const box = document.getElementById('shift-time-box');
+        if (box) box.classList.remove('show');
+        buildCalendar();
+      });
+      dotsEl.appendChild(dot);
+      dm++;
+      if (dm > 12) { dm = 1; dy++; }
+    }
+    dotsEl.style.display = dotsEl.children.length > 1 ? 'flex' : 'none';
   }
 
   const DOWS = ['月','火','水','木','金','土','日'];
@@ -4151,7 +4201,7 @@ async function saveEditRoadPdf() {
 
 // カレンダースワイプジェスチャー（右スワイプ→前月、左スワイプ→次月）
 (function() {
-  const card = document.getElementById('cal-card');
+  const card = document.getElementById('cal-grid');
   if (!card) return;
   let startX = 0, startY = 0;
   card.addEventListener('touchstart', e => {

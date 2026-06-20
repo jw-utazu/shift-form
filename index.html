@@ -1364,7 +1364,7 @@ body::-webkit-scrollbar { display: none; }
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
+    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
       <div class="card-title">💬 要望・ご意見</div>
       <textarea class="req-textarea" id="req-textarea" placeholder="ご自由にご記入ください"></textarea>
@@ -1385,7 +1385,7 @@ body::-webkit-scrollbar { display: none; }
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
+    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
       <div class="card-title" style="color:#b91c1c;border-color:#fecaca;">🐛 バグ報告</div>
       <p style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.7;">アプリの不具合・エラーについて詳しくお知らせください。<br>担当者に通知され、確認・対応します。</p>
@@ -1406,7 +1406,7 @@ body::-webkit-scrollbar { display: none; }
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="showScreen('main')">‹ 戻る</span></div>
+    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
       <div class="card-title" style="color:#92400e;border-color:#fde68a;">📄 道路使用許可書PDF管理</div>
       <div style="margin-bottom:12px;">
@@ -1736,7 +1736,7 @@ function showScreen(name, fromPopstate) {
   // form-back-btnのonclickを設定（動的IDのため）
   const formBackBtn = document.getElementById('form-back-btn');
   if (formBackBtn) {
-    formBackBtn.onclick = () => showScreen('main');
+    formBackBtn.onclick = () => history.back();
   }
 
   // popstateからの呼び出しでなければ履歴に積む
@@ -1767,7 +1767,11 @@ window.addEventListener('popstate', function(e) {
     const which = _modalInHistory;
     _modalInHistory = null;
     if (which === 'help')        document.getElementById('help-overlay').classList.remove('show');
-    else if (which === 'roadPdf')     document.getElementById('road-pdf-view-modal').style.display = 'none';
+    else if (which === 'roadPdf')  document.getElementById('road-pdf-view-modal').style.display = 'none';
+    else if (which === 'adminPdf') {
+      document.getElementById('admin-pdf-preview-overlay').style.display = 'none';
+      document.getElementById('admin-pdf-preview-iframe').src = '';
+    }
     else if (which === 'staffEdit')   exitStaffEditMode();
     else if (which === 'roadPdfEdit') document.getElementById('road-pdf-edit-overlay').style.display = 'none';
     return;
@@ -1777,9 +1781,30 @@ window.addEventListener('popstate', function(e) {
   const screen = state && state.screen;
 
   if (!screen) {
-    // main が replaceState で底なので通常ここには来ないが、念のため main を再表示
+    // 念のため main に戻す
     history.replaceState({ screen: 'main' }, '');
     showScreen('main', true);
+    return;
+  }
+
+  // main 下の番兵エントリ → 「アプリを閉じますか？」確認ダイアログ
+  if (screen === '__bottom__') {
+    if (SESSION) {
+      const leave = confirm('アプリを閉じますか？');
+      if (leave) {
+        const closed = (function() { try { window.close(); return true; } catch(ex) { return false; } })();
+        if (!closed) {
+          _suppressNextPopstate = true;
+          history.go(1);
+        }
+      } else {
+        _suppressNextPopstate = true;
+        history.go(1);
+      }
+    } else {
+      _suppressNextPopstate = true;
+      history.go(1);
+    }
     return;
   }
 
@@ -2093,6 +2118,7 @@ function logout() {
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
+  _mainHistorySetup = false; // 再ログイン時に __bottom__ を再挿入するためリセット
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
   showScreen('login');
@@ -3039,7 +3065,7 @@ async function submitForm() {
 
     setTimeout(() => {
       buildMainScreen();
-      showScreen('main');
+      history.back(); // フォーム送信後、main エントリへ戻る
     }, 2000);
   } catch (e) {
     const msg = document.getElementById('form-msg');
@@ -3053,7 +3079,7 @@ async function submitForm() {
 function initShiftScreen() {
   document.getElementById('shift-date-list').style.display   = '';
   document.getElementById('shift-detail-view').style.display = 'none';
-  document.getElementById('shift-back-btn').onclick = () => showScreen('main');
+  document.getElementById('shift-back-btn').onclick = () => history.back();
   shiftViewingDate = null;
   buildShiftDateList();
 }
@@ -3155,7 +3181,7 @@ function _shiftDetailBack() {
   listEl.classList.remove('screen-enter-forward', 'screen-enter-back');
   void listEl.offsetWidth;
   listEl.classList.add('screen-enter-back');
-  document.getElementById('shift-back-btn').onclick = () => showScreen('main');
+  document.getElementById('shift-back-btn').onclick = () => history.back();
 }
 
 function buildShiftDetail(d) {
@@ -4030,10 +4056,17 @@ function showAdminPdfPreview(fileId, label) {
   document.getElementById('admin-pdf-preview-title').textContent = label;
   document.getElementById('admin-pdf-preview-iframe').src = 'https://drive.google.com/file/d/' + fileId + '/preview';
   document.getElementById('admin-pdf-preview-overlay').style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'adminPdf' }, '');
+  _modalInHistory = 'adminPdf';
 }
 function closeAdminPdfPreview() {
   document.getElementById('admin-pdf-preview-overlay').style.display = 'none';
   document.getElementById('admin-pdf-preview-iframe').src = '';
+  if (_modalInHistory === 'adminPdf') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 // ===== PDF情報編集 =====

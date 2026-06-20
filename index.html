@@ -1576,6 +1576,8 @@ let deferredPrompt = null;
 let shouldShowOneTap = false; // セッションなしの時だけtrueにしてOne Tapを表示
 let shiftViewingDate = null; // 現在表示中のシフト日付
 let staffEditMode = false;   // 奉仕者編集モード
+let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
+let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 
 // ===== PWA =====
 window.addEventListener('beforeinstallprompt', e => {
@@ -1730,36 +1732,46 @@ function showScreen(name, fromPopstate) {
   }
 
   // popstateからの呼び出しでなければ履歴に積む
+  // main は replaceState で常に履歴の底に固定し、それより前には戻れないようにする
   if (!fromPopstate && !HISTORY_NO_PUSH.has(name)) {
-    history.pushState({ screen: name }, '');
+    if (name === 'main') {
+      history.replaceState({ screen: 'main' }, '');
+    } else {
+      history.pushState({ screen: name }, '');
+    }
   }
 }
 
 // 戻るボタン（ブラウザ・スマホ）が押されたとき
 window.addEventListener('popstate', function(e) {
+  // モーダルを直接閉じた際のpopstateを抑制（履歴エントリ除去のhistry.go(-1)由来）
+  if (_suppressNextPopstate) {
+    _suppressNextPopstate = false;
+    return;
+  }
+
+  // モーダル・編集モードが履歴に積まれていた場合は閉じるだけで画面遷移しない
+  if (_modalInHistory) {
+    const which = _modalInHistory;
+    _modalInHistory = null;
+    if (which === 'help')        document.getElementById('help-overlay').classList.remove('show');
+    else if (which === 'roadPdf')     document.getElementById('road-pdf-view-modal').style.display = 'none';
+    else if (which === 'staffEdit')   exitStaffEditMode();
+    else if (which === 'roadPdfEdit') document.getElementById('road-pdf-edit-overlay').style.display = 'none';
+    return;
+  }
+
   const state = e.state;
   const screen = state && state.screen;
 
   if (!screen) {
-    // 履歴の底に達した = main からさらに戻った
-    if (SESSION) {
-      const leave = confirm('アプリを閉じますか？');
-      if (leave) {
-        // window.close() はブラウザが許可しない場合がある
-        const closed = (function() { try { window.close(); return true; } catch(e) { return false; } })();
-        if (!closed) {
-          // 閉じられなかった場合はmainを再表示してスタックを積み直す
-          showScreen('main', false);
-        }
-      } else {
-        // キャンセル → mainのエントリを再度積んで底に達しないようにする
-        history.pushState({ screen: 'main' }, '');
-      }
-    }
+    // main が replaceState で底なので通常ここには来ないが、念のため main を再表示
+    history.replaceState({ screen: 'main' }, '');
+    showScreen('main', true);
     return;
   }
 
-  // shift画面の詳細→一覧の内部遷移
+  // shift画面の詳細→一覧の内部遷移（前進で detail エントリに戻った場合）
   if (screen === 'shift' && state.subScreen === 'detail') {
     _shiftDetailBack();
     return;
@@ -3104,6 +3116,7 @@ function showShiftDetail(dateObj) {
   }
   shiftViewingDate = dateObj;
   staffEditMode = false;
+  _modalInHistory = null;
   const listEl   = document.getElementById('shift-date-list');
   const detailEl = document.getElementById('shift-detail-view');
   listEl.style.display   = 'none';
@@ -3120,6 +3133,7 @@ function showShiftDetail(dateObj) {
 
 function _shiftDetailBack() {
   staffEditMode = false;
+  _modalInHistory = null;
   const listEl   = document.getElementById('shift-date-list');
   const detailEl = document.getElementById('shift-detail-view');
   detailEl.style.display = 'none';
@@ -3384,11 +3398,20 @@ function nameToUid(name) {
 
 function enterStaffEditMode() {
   staffEditMode = true;
+  history.pushState({ screen: 'shift', modal: 'staffEdit' }, '');
+  _modalInHistory = 'staffEdit';
   buildShiftDetail(shiftViewingDate);
 }
 
 function exitStaffEditMode() {
   staffEditMode = false;
+  if (_modalInHistory === 'staffEdit') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  } else {
+    _modalInHistory = null;
+  }
   buildShiftDetail(shiftViewingDate);
 }
 
@@ -3450,6 +3473,7 @@ async function saveStaffEdits() {
     });
     if (result && result.ok === false) throw new Error(result.error || '保存に失敗しました');
     staffEditMode = false;
+    _modalInHistory = null;
     await _refreshShiftAndRedraw();
   } catch (e) {
     await hideLoading();
@@ -3684,10 +3708,17 @@ function openHelp(screen) {
     body.appendChild(secEl);
   });
   document.getElementById('help-overlay').classList.add('show');
+  history.pushState({ screen: _currentScreenName, modal: 'help' }, '');
+  _modalInHistory = 'help';
 }
 
 function closeHelp() {
   document.getElementById('help-overlay').classList.remove('show');
+  if (_modalInHistory === 'help') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 function closeHelpOutside(e) {
@@ -3848,6 +3879,8 @@ function gasPost(action, params) {
 async function openRoadPdfModal() {
   const modal = document.getElementById('road-pdf-view-modal');
   modal.style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'roadPdf' }, '');
+  _modalInHistory = 'roadPdf';
   const body = document.getElementById('road-pdf-view-body');
   body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>';
   try {
@@ -3875,6 +3908,11 @@ async function openRoadPdfModal() {
 
 function closeRoadPdfModal() {
   document.getElementById('road-pdf-view-modal').style.display = 'none';
+  if (_modalInHistory === 'roadPdf') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 // ===== 道路使用許可書PDF管理画面（会計者向け） =====
@@ -3995,9 +4033,16 @@ function openEditRoadPdf(fileId, displayName, startDate, endDate) {
   document.getElementById('edit-road-pdf-msg').textContent = '';
   document.getElementById('edit-road-pdf-save-btn').disabled = false;
   document.getElementById('road-pdf-edit-overlay').style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'roadPdfEdit' }, '');
+  _modalInHistory = 'roadPdfEdit';
 }
 function closeEditRoadPdf() {
   document.getElementById('road-pdf-edit-overlay').style.display = 'none';
+  if (_modalInHistory === 'roadPdfEdit') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 async function saveEditRoadPdf() {
   const fileId      = document.getElementById('edit-road-pdf-file-id').value;

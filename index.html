@@ -1352,14 +1352,14 @@ body::-webkit-scrollbar { display: none; }
 </div>
 
 <!-- プレビューバナー（オーナーのみ） -->
-<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;">
+<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;align-items:center;gap:8px;justify-content:space-between;">
   <span>👁 <span id="preview-banner-name"></span>さんとして閲覧中</span>
   <button onclick="exitPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;">閲覧終了</button>
 </div>
 
 <!-- メンバー選択モーダル（オーナー専用） -->
 <div id="member-preview-overlay" onclick="closeMemberPreviewModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;"></div>
-<div id="member-preview-modal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);max-height:75vh;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:9999;overflow:hidden;display:flex;flex-direction:column;">
+<div id="member-preview-modal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);max-height:75vh;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:9999;overflow:hidden;flex-direction:column;">
   <div style="padding:16px 16px 12px;border-bottom:1px solid #e5e7eb;">
     <div style="font-size:16px;font-weight:700;color:#1f2937;margin-bottom:10px;">メンバーとして閲覧</div>
     <input id="member-preview-search" type="text" placeholder="名前で絞り込み..." oninput="filterPreviewMembers()" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;">
@@ -2188,6 +2188,96 @@ function closeProfilePopup() {
   document.getElementById('profile-overlay').classList.remove('show');
 }
 
+// ===== メンバープレビュー（オーナー専用） =====
+let _previewMemberList = [];
+
+async function openMemberPreview() {
+  const overlay = document.getElementById('member-preview-overlay');
+  const modal   = document.getElementById('member-preview-modal');
+  const list    = document.getElementById('member-preview-list');
+  list.innerHTML = '<div style="padding:16px;text-align:center;color:#6b7280;font-size:14px;">読み込み中...</div>';
+  overlay.style.display = 'block';
+  modal.style.display   = 'flex';
+  try {
+    const data = await gasJsonp('getMemberList');
+    _previewMemberList = (data.members || []);
+    renderPreviewMemberList(_previewMemberList);
+  } catch (e) {
+    list.innerHTML = '<div style="padding:16px;color:#dc2626;font-size:14px;">読み込みに失敗しました</div>';
+  }
+}
+
+function renderPreviewMemberList(members) {
+  const list = document.getElementById('member-preview-list');
+  if (!members.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:#6b7280;font-size:14px;">メンバーが見つかりません</div>';
+    return;
+  }
+  list.innerHTML = members.map(m =>
+    `<button onclick="startPreview('${esc(m.uid)}','${esc(m.name)}','${esc(m.email||'')}')" style="width:100%;background:none;border:none;text-align:left;padding:12px 16px;cursor:pointer;font-size:14px;color:#1f2937;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">${m.gender === 'M' ? '👨' : '👩'}</span>
+      <span style="font-weight:600;">${esc(m.name)}</span>
+      ${m.isResponsible ? '<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:4px;">責任者</span>' : ''}
+      ${m.isCart        ? '<span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:4px;">カート</span>' : ''}
+    </button>`
+  ).join('');
+}
+
+function filterPreviewMembers() {
+  const q = document.getElementById('member-preview-search').value.trim();
+  if (!q) { renderPreviewMemberList(_previewMemberList); return; }
+  renderPreviewMemberList(_previewMemberList.filter(m => m.name.includes(q) || (m.furigana || '').includes(q)));
+}
+
+function closeMemberPreviewModal() {
+  document.getElementById('member-preview-overlay').style.display = 'none';
+  document.getElementById('member-preview-modal').style.display   = 'none';
+  document.getElementById('member-preview-search').value = '';
+}
+
+async function startPreview(uid, name, email) {
+  closeMemberPreviewModal();
+  showLoading(name + 'さんのデータを読み込み中...');
+  try {
+    const data = await gasJsonp('previewMember', null, { adminEmail: SESSION.email, targetUid: uid });
+    if (!data.ok) throw new Error(data.reason || '取得失敗');
+    _previewOriginalSession = Object.assign({}, SESSION);
+    _isPreviewMode = true;
+    SESSION = {
+      uid:          data.uid,
+      name:         data.name,
+      email:        data.email || email,
+      token:        _previewOriginalSession.token,
+      picture:      '',
+      isAdmin:      data.isAdmin,
+      isResponsible:data.isResponsible,
+      isCart:       data.isCart,
+      isAccountant: data.isAccountant,
+      proxyTargets: data.proxyTargets || []
+    };
+    // バナー表示
+    const banner = document.getElementById('preview-banner');
+    document.getElementById('preview-banner-name').textContent = data.name;
+    banner.style.display = 'flex';
+    // 画面上部にバナー分の余白を追加
+    document.body.style.paddingTop = '40px';
+    await initApp();
+  } catch (e) {
+    hideLoading();
+    alert('プレビューの開始に失敗しました: ' + e.message);
+  }
+}
+
+function exitPreview() {
+  if (!_previewOriginalSession) return;
+  SESSION = _previewOriginalSession;
+  _previewOriginalSession = null;
+  _isPreviewMode = false;
+  document.getElementById('preview-banner').style.display = 'none';
+  document.body.style.paddingTop = '';
+  initApp();
+}
+
 // ===== シフト自動更新チェック =====
 let _knownTimestamp = null;
 let _updateCheckerTimer = null;
@@ -2399,9 +2489,13 @@ function buildMainScreen() {
     }
   }
 
-  // ── 要望ボタン：管理者は非表示 ──
+  // ── 要望ボタン：管理者・プレビュー中は非表示 ──
   const btnRequest = document.getElementById('btn-request');
-  if (btnRequest) btnRequest.style.display = isOwner ? 'none' : '';
+  if (btnRequest) btnRequest.style.display = (isOwner || _isPreviewMode) ? 'none' : '';
+
+  // ── メンバープレビューボタン：オーナーかつ非プレビュー時のみ表示 ──
+  const btnMemberPreview = document.getElementById('btn-member-preview');
+  if (btnMemberPreview) btnMemberPreview.style.display = (isOwner && !_isPreviewMode) ? '' : 'none';
 
   // ── 道路許可書更新ボタン：会計者のみ表示 ──
   const btnRoadUpdate = document.getElementById('btn-road-permit-update');
@@ -3175,6 +3269,7 @@ function toggleLastMonth() {
 }
 
 async function submitForm() {
+  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
   showLoading('送信中...');
@@ -3537,6 +3632,7 @@ async function _refreshShiftAndRedraw() {
 // 中止入力
 let cancelTimer = null;
 function openCancelInput() {
+  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   const reason = prompt('中止理由を入力してください（空白でも可）:', '');
@@ -3549,6 +3645,7 @@ function openCancelInput() {
 }
 
 function openCancelUndo() {
+  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   if (!confirm('この時間帯の中止を取り消しますか？')) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
@@ -3668,6 +3765,7 @@ async function saveStaffEdits() {
 
 // ===== 要望送信 =====
 async function submitRequest() {
+  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
   const ta  = document.getElementById('req-textarea');
   const btn = document.getElementById('btn-req-submit');
   const msg = document.getElementById('req-msg');
@@ -3694,6 +3792,7 @@ async function submitRequest() {
 
 // ===== バグ報告送信 =====
 async function submitBugReport() {
+  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
   const ta  = document.getElementById('bug-textarea');
   const btn = document.getElementById('btn-bug-submit');
   const msg = document.getElementById('bug-msg');

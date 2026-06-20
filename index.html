@@ -54,7 +54,7 @@ body::-webkit-scrollbar { display: none; }
   padding: 0 16px;
   height: 52px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   position: sticky;
   top: 0;
@@ -909,10 +909,6 @@ body::-webkit-scrollbar { display: none; }
 }
 .status-closed-msg.show { display: block; }
 
-/* ヘッダーグリッド修正 */
-.hdr {
-  grid-template-columns: 44px 1fr 44px !important;
-}
 .hdr-left  { min-width: 0; }
 .hdr h1    { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hdr-right { min-width: 0; }
@@ -1201,7 +1197,7 @@ body::-webkit-scrollbar { display: none; }
     </div>
 
     <!-- カレンダー -->
-    <div class="card">
+    <div class="card" id="cal-card">
       <div class="card-title">🗓️ カレンダー</div>
       <div class="cal-month-nav">
         <button class="cal-nav-btn" id="cal-prev-btn" onclick="calNavMonth(-1)">前の月</button>
@@ -1378,7 +1374,7 @@ body::-webkit-scrollbar { display: none; }
 <!-- ===== バグ報告画面 ===== -->
 <div id="screen-bug">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('bug')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
@@ -3709,6 +3705,26 @@ const HELP_CONTENTS = {
         ]
       }
     ]
+  },
+  bug: {
+    title: 'バグ・不具合の報告方法',
+    sections: [
+      {
+        title: '書き方のポイント',
+        items: [
+          { icon: '①', text: '「どの画面で」「何をしたら」「どうなったか」を具体的に入力してください' },
+          { icon: '②', text: '「送信する」ボタンを押すと区域係に届きます' },
+          { icon: '③', text: '送信後はメイン画面に戻ります' },
+        ]
+      },
+      {
+        title: '入力例',
+        items: [
+          { icon: '例', text: '「シフト表画面で○月○日をタップしたら、画面が白くなって表示されなかった」' },
+          { icon: '例', text: '「送信ボタンを押してもエラーが出て送れない」' },
+        ]
+      }
+    ]
   }
 };
 
@@ -4132,4 +4148,22 @@ async function saveEditRoadPdf() {
     saveBtn.disabled = false;
   }
 }
+
+// カレンダースワイプジェスチャー（右スワイプ→前月、左スワイプ→次月）
+(function() {
+  const card = document.getElementById('cal-card');
+  if (!card) return;
+  let startX = 0, startY = 0;
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  card.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    // 水平移動が50px未満、または垂直移動の方が大きい場合は無視
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    calNavMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
 </script>

@@ -1352,9 +1352,12 @@ body::-webkit-scrollbar { display: none; }
 </div>
 
 <!-- プレビューバナー（オーナーのみ） -->
-<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;align-items:center;gap:8px;justify-content:space-between;">
-  <span>👁 <span id="preview-banner-name"></span>さんとして閲覧中</span>
-  <button onclick="exitPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;">閲覧終了</button>
+<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 12px;align-items:center;gap:6px;justify-content:space-between;">
+  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👁 <span id="preview-banner-name"></span>さんとして閲覧中</span>
+  <div style="display:flex;gap:6px;flex-shrink:0;">
+    <button onclick="openMemberPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">切替</button>
+    <button onclick="exitPreview()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">終了</button>
+  </div>
 </div>
 
 <!-- メンバー選択モーダル（オーナー専用） -->
@@ -2130,7 +2133,7 @@ function updateAvatarUI() {
   if (!SESSION) return;
   const pic = SESSION.picture || '';
   // すべての画面のヘッダーアバターを更新（ページ遷移後も維持）
-  if (pic) {
+  if (pic && !_isPreviewMode) {
     document.querySelectorAll('.hdr-avatar').forEach(el => {
       const img = document.createElement('img');
       img.src = pic;
@@ -2148,6 +2151,12 @@ function updateAvatarUI() {
       ppAvatar.innerHTML = '';
       ppAvatar.appendChild(img);
     }
+  } else if (_isPreviewMode) {
+    document.querySelectorAll('.hdr-avatar').forEach(el => {
+      el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>';
+    });
+    const ppAvatar = document.getElementById('pp-avatar');
+    if (ppAvatar) ppAvatar.innerHTML = '<span style="font-size:22px;">👤</span>';
   }
   // ポップアップ内情報
   const ppName  = document.getElementById('pp-name');

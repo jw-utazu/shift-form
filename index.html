@@ -2951,6 +2951,8 @@ function openFormForUid(uid) {
 function buildNextShift(isOpenPassed) {
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
   if (!isOpenPassed) return; // 公開予定日前は表示しない
+  const status = APP_DATA ? (APP_DATA.status || '準備中') : '準備中';
+  if (status === '受付中' || status === '準備中') return; // 受付中・準備中は表示しない
   const today = new Date(); today.setHours(0,0,0,0);
   const name  = SESSION.name;
   const next  = SHIFT_DATA.dates.find(d => {

@@ -765,7 +765,8 @@ body::-webkit-scrollbar { display: none; }
 }
 .shift-date-btn:active { background: var(--green-light); border-color: var(--green); }
 .shift-date-btn.cancelled { border-color: var(--danger); border-width: 2px; background: #fff1f2; }
-.shift-date-btn.cancelled .sdb-date { color: #9ca3af; text-decoration: line-through; }
+.shift-date-btn.cancelled .sdb-date { color: #9ca3af; }
+.shift-date-btn.cancelled .sdb-date-text { text-decoration: line-through; }
 .shift-date-btn.cancelled .sdb-time { color: #9ca3af; text-decoration: line-through; }
 .sdb-cancel-reason { margin-top: 4px; font-size: 12px; color: var(--danger-dark); font-weight: 600; }
 .sdb-main { flex: 1; min-width: 0; }
@@ -3168,7 +3169,7 @@ function buildShiftDateList() {
 
     btn.innerHTML =
       '<div class="sdb-main">' +
-        '<div class="sdb-date">' + esc(d.date) + '（' + esc(d.weekday) + '）<span class="sdb-time">　' + esc(d.time) + '</span></div>' +
+        '<div class="sdb-date"><span class="sdb-date-text">' + esc(d.date) + '（' + esc(d.weekday) + '）</span><span class="sdb-time">　' + esc(d.time) + '</span></div>' +
         (d.cancelled
           ? '<div class="sdb-cancel-reason">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
           : (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '')) +

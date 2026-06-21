@@ -1188,6 +1188,15 @@ body::-webkit-scrollbar { display: none; }
 .btn-save-shift:disabled { opacity:.5; cursor:not-allowed; }
 .btn-cancel-shift-edit { background:#f3f4f6; color:var(--sub); border:1px solid #e5e7eb; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
 .btn-edit-staff-mode { background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+/* PW モード切り替えタブ（奉仕者アプリ） */
+.pw-type-bar-form{display:none;gap:0;padding:6px 12px;background:#f8f8f8;border-bottom:1px solid #e5e7eb;}
+.pw-type-tab-form{flex:1;padding:7px 0;border:1.5px solid #d1d5db;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#6b7280;text-align:center;transition:all .15s;}
+.pw-type-tab-form:first-child{border-radius:7px 0 0 7px;}
+.pw-type-tab-form:last-child{border-radius:0 7px 7px 0;border-left:none;}
+.pw-type-tab-form.active{background:#16a34a;color:#fff;border-color:#16a34a;}
+.pw-type-tab-form.active.limited{background:#7c3aed;border-color:#7c3aed;}
+/* 限定PW カレンダー表示 */
+.cal-event-limited{background:#ede9fe;color:#5b21b6;border-left:3px solid #7c3aed;}
 </style>
 </head>
 <body>
@@ -1251,6 +1260,11 @@ body::-webkit-scrollbar { display: none; }
         <span class="hdr-avatar-fallback">👤</span>
       </div>
     </div>
+  </div>
+  <!-- PWモード切替タブ（限定PWメンバーのみ表示） -->
+  <div class="pw-type-bar-form" id="pw-type-bar-form" style="display:none;">
+    <button class="pw-type-tab-form active" id="pw-tab-form-normal" onclick="switchFormPwType('normal')">通常PW</button>
+    <button class="pw-type-tab-form limited" id="pw-tab-form-limited" onclick="switchFormPwType('limited')">限定PW</button>
   </div>
   <div class="container">
     <!-- お知らせ -->
@@ -1700,8 +1714,10 @@ const SS_KEY     = "shiftapp_session";
 // fetch方式（リダイレクト追従対応・Android Chrome対応）
 function gasJsonp(action, params, extraQuery) {
   const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  // type パラメータを自動付与（明示的に渡された type が優先）
+  const p = Object.assign({ type: currentPwType }, params || {});
   let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
-  if (params) url += '&params=' + encodeURIComponent(JSON.stringify(params));
+  url += '&params=' + encodeURIComponent(JSON.stringify(p));
   if (extraQuery) {
     Object.entries(extraQuery).forEach(([k, v]) => {
       url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
@@ -1727,6 +1743,10 @@ function gasJsonp(action, params, extraQuery) {
 }
 
 // ===== グローバル状態 =====
+let currentPwType = 'normal'; // 'normal' | 'limited'
+let isLimitedMember = false;   // 限定PWメンバーかどうか
+let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
+let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
 let _isPreviewMode         = false;
 let _previewOriginalSession = null;
@@ -2425,12 +2445,31 @@ function logout() {
 async function initApp() {
   showLoading('データを読み込み中...');
   try {
-    // dataMini・getFormDetail・getShiftTable を並列取得
-    const [formData, detail, shiftData] = await Promise.all([
-      gasJsonp('dataMini'),
-      gasJsonp('getFormDetail'),
-      gasJsonp('getShiftTable')
+    // isLimitedMember チェックと dataMini・getFormDetail・getShiftTable を並列取得
+    const uid = SESSION ? SESSION.uid : '';
+    const [limRes, formData, detail, shiftData] = await Promise.all([
+      uid ? gasJsonp('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
+      gasJsonp('dataMini', { type: 'normal' }),
+      gasJsonp('getFormDetail', { type: 'normal' }),
+      gasJsonp('getShiftTable', { type: 'normal' })
     ]);
+
+    isLimitedMember = limRes.ok && limRes.isLimited;
+
+    // 限定PWタブの表示制御
+    const pwBar = document.getElementById('pw-type-bar-form');
+    if (pwBar) pwBar.style.display = isLimitedMember ? 'flex' : 'none';
+
+    // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
+    if (isLimitedMember) {
+      const [limFormData, limDetail, limShiftData] = await Promise.all([
+        gasJsonp('dataMini', { type: 'limited' }),
+        gasJsonp('getFormDetail', { type: 'limited' }),
+        gasJsonp('getShiftTable', { type: 'limited' })
+      ]);
+      LIMITED_APP_DATA  = limFormData;
+      LIMITED_SHIFT_DATA = limShiftData;
+    }
 
     APP_DATA    = formData;
     SHIFT_DATA  = shiftData;
@@ -3394,6 +3433,33 @@ function toggleLastMonth() {
 async function submitForm() {
   if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
   if (SESSION && SESSION.isAdmin && !SESSION.uid) { alert('オーナーアカウントでは送信できません。'); return; }
+
+  // 重複申込チェック（限定PWメンバーのみ）
+  if (isLimitedMember) {
+    const otherData = currentPwType === 'normal' ? LIMITED_APP_DATA : APP_DATA;
+    const otherMonthKey = currentPwType === 'normal' ? 'limitedThisMonth' : 'thisMonthData';
+    const otherApply = (otherData && (otherData.thisMonthData || otherData[otherMonthKey])) || {};
+    const myDates = new Set();
+    Object.keys(formState.checkedMap).forEach(k => {
+      // k = "週 日付" 形式（例："第2週 6/14(日)"）→ 日付部分を抽出
+      const m = k.match(/(\d+\/\d+)/);
+      if (m) myDates.add(m[1]);
+    });
+    const conflicts = [];
+    const otherUidData = otherApply[currentFormUid] || {};
+    const otherDates = new Set();
+    Object.keys(otherUidData.checkedMap || {}).forEach(k => {
+      const m = k.match(/(\d+\/\d+)/);
+      if (m) otherDates.add(m[1]);
+    });
+    myDates.forEach(d => { if (otherDates.has(d)) conflicts.push(d); });
+    if (conflicts.length > 0) {
+      const otherLabel = currentPwType === 'normal' ? '限定PW' : '通常PW';
+      const msg = conflicts.join(', ') + ' は' + otherLabel + 'にも申込があります。\n両方に申し込んでもかまいませんが、シフトに入れるのはどちらか一方になります。\nこのまま送信しますか？';
+      if (!confirm(msg)) return;
+    }
+  }
+
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
   showLoading('送信中...');
@@ -4560,6 +4626,61 @@ async function saveEditRoadPdf() {
     msgEl.style.color = 'var(--danger)';
     msgEl.textContent = 'エラー: ' + e.message;
     saveBtn.disabled = false;
+  }
+}
+
+// ===== PW モード切り替え（奉仕者アプリ） =====
+async function switchFormPwType(type) {
+  if (currentPwType === type) return;
+  currentPwType = type;
+  document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form' + (type === 'normal'  ? ' active' : '');
+  document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
+
+  showLoading(type === 'limited' ? '限定PWデータを読み込み中...' : '通常PWデータを読み込み中...');
+  try {
+    if (type === 'limited') {
+      // 限定PW データを再フェッチ（キャッシュがあれば使う）
+      if (!LIMITED_APP_DATA) {
+        const [limFormData, limDetail, limShiftData] = await Promise.all([
+          gasJsonp('dataMini',      { type: 'limited' }),
+          gasJsonp('getFormDetail', { type: 'limited' }),
+          gasJsonp('getShiftTable', { type: 'limited' })
+        ]);
+        LIMITED_APP_DATA   = limFormData;
+        LIMITED_SHIFT_DATA = limShiftData;
+      }
+      // 通常PW のデータを退避し限定PW のデータで上書き
+      APP_DATA   = LIMITED_APP_DATA;
+      SHIFT_DATA = LIMITED_SHIFT_DATA;
+    } else {
+      // 通常PW に戻す（initApp で取得したデータを再フェッチ）
+      const [formData, detail, shiftData] = await Promise.all([
+        gasJsonp('dataMini',      { type: 'normal' }),
+        gasJsonp('getFormDetail', { type: 'normal' }),
+        gasJsonp('getShiftTable', { type: 'normal' })
+      ]);
+      APP_DATA   = formData;
+      SHIFT_DATA = shiftData;
+      THIS_MONTH  = (detail.thisMonthData && Object.keys(detail.thisMonthData).length > 0)
+                      ? detail.thisMonthData : (formData.thisMonthData || {});
+      SLOTS       = detail.slots         || [];
+      LAST_MONTH  = detail.lastMonthData || {};
+      if (APP_DATA) APP_DATA.staffJSON = detail.staffJSON || [];
+      YEAR        = formData.year  || 0;
+      MONTH       = formData.month || 0;
+      SHIFT_DATES = formData.shiftDates || [];
+      SHIFT_DATES_MAP = {};
+      (formData.shiftSlots || []).forEach(s => {
+        const key = s.m + '_' + s.d;
+        if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
+        if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
+      });
+    }
+    buildMainScreen();
+    await hideLoading();
+  } catch(e) {
+    hideLoading();
+    alert('データ読み込みエラー: ' + e.message);
   }
 }
 

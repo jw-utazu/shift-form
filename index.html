@@ -2508,7 +2508,25 @@ function buildMainScreen() {
   const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
     Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
   if (btnForm) {
-    if (isOwner || isOpenPassed) {
+    if (isOwner || _isPreviewMode) {
+      // オーナー・プレビュー中：日程条件を無視して常に表示（フォームは読み取り専用）
+      btnForm.disabled = false;
+      btnForm.style.opacity = '';
+      btnForm.style.cursor  = '';
+      btnForm.onclick = () => showScreen('form');
+      btnForm.style.display = '';
+      if (isOwner && !_isPreviewMode) {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を見る';
+        if (btnFormIco) btnFormIco.textContent = '👁';
+      } else if (hasSentThisMonth) {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を編集する';
+        if (btnFormIco) btnFormIco.textContent = '✏️';
+        btnForm.style.background = '';
+      } else {
+        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
+        if (btnFormIco) btnFormIco.textContent = '📝';
+      }
+    } else if (isOpenPassed) {
       btnForm.style.display = 'none';
     } else if (status === '受付中') {
       btnForm.disabled = false;
@@ -2546,8 +2564,8 @@ function buildMainScreen() {
   const btnShiftView    = document.getElementById('btn-shift-view');
   const btnShiftViewTxt = document.getElementById('btn-shift-view-txt');
   if (btnShiftView && btnShiftViewTxt) {
-    if (isOpenPassed) {
-      // 公開済み → 表示
+    if (isOpenPassed || _isPreviewMode) {
+      // 公開済み、またはプレビュー中 → 表示
       btnShiftView.style.display = '';
       btnShiftView.disabled = false;
       btnShiftView.style.opacity = '';
@@ -2561,9 +2579,9 @@ function buildMainScreen() {
     }
   }
 
-  // ── 要望ボタン：管理者・プレビュー中は非表示 ──
+  // ── 要望ボタン：プレビュー中のみ非表示（オーナーも表示） ──
   const btnRequest = document.getElementById('btn-request');
-  if (btnRequest) btnRequest.style.display = (isOwner || _isPreviewMode) ? 'none' : '';
+  if (btnRequest) btnRequest.style.display = _isPreviewMode ? 'none' : '';
 
   // ── メンバープレビューボタン：オーナーかつ非プレビュー時のみ表示 ──
   const btnMemberPreview = document.getElementById('btn-member-preview');
@@ -2600,9 +2618,9 @@ function buildMainScreen() {
     document.getElementById('status-closed-msg').classList.add('show');
   }
 
-  // シフト公開日以降は受付状況カードを非表示
+  // シフト公開日以降は受付状況カードを非表示（プレビュー中は常に表示）
   const receptionCard = document.getElementById('reception-status-card');
-  if (receptionCard) receptionCard.style.display = isOpenPassed ? 'none' : '';
+  if (receptionCard) receptionCard.style.display = (isOpenPassed && !_isPreviewMode) ? 'none' : '';
 
   // カレンダー描画（今日が含まれる月を初期表示）
   const todayForCal = new Date();
@@ -3222,6 +3240,21 @@ function initFormScreen() {
                 Object.keys(LAST_MONTH[currentFormUid]).length > 0 &&
                 !THIS_MONTH[currentFormUid];
   document.getElementById('last-month-card').style.display = hasLast ? 'block' : 'none';
+
+  // オーナーは送信ボタンをグレーアウト・無効化（読み取り専用）
+  const isOwnerForm = SESSION && SESSION.isAdmin && !SESSION.uid;
+  const btnSubmit = document.getElementById('btn-submit');
+  if (btnSubmit) {
+    if (isOwnerForm) {
+      btnSubmit.disabled = true;
+      btnSubmit.style.opacity = '0.4';
+      btnSubmit.textContent = '送信不可（閲覧専用）';
+    } else {
+      btnSubmit.disabled = false;
+      btnSubmit.style.opacity = '';
+      btnSubmit.textContent = '送信する';
+    }
+  }
 }
 
 function onProxyChange() {
@@ -3358,6 +3391,7 @@ function toggleLastMonth() {
 
 async function submitForm() {
   if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
+  if (SESSION && SESSION.isAdmin && !SESSION.uid) { alert('オーナーアカウントでは送信できません。'); return; }
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
   showLoading('送信中...');

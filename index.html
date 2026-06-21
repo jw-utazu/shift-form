@@ -2323,15 +2323,17 @@ async function startPreview(uid, name, email) {
   closeMemberPreviewModal();
   showLoading(name + 'さんのデータを読み込み中...');
   try {
-    const data = await gasJsonp('previewMember', null, { adminEmail: SESSION.email, targetUid: uid });
+    // 切替時もオーナーのセッションを使う（プレビュー中は SESSION がメンバーに置き換わっているため）
+    const ownerSession = _isPreviewMode ? _previewOriginalSession : SESSION;
+    const data = await gasJsonp('previewMember', null, { adminEmail: ownerSession.email, targetUid: uid });
     if (!data.ok) throw new Error(data.reason || '取得失敗');
-    _previewOriginalSession = Object.assign({}, SESSION);
+    if (!_isPreviewMode) _previewOriginalSession = Object.assign({}, SESSION); // 初回のみ保存
     _isPreviewMode = true;
     SESSION = {
       uid:          data.uid,
       name:         data.name,
       email:        data.email || email,
-      token:        _previewOriginalSession.token,
+      token:        ownerSession.token,
       picture:      '',
       isAdmin:      data.isAdmin,
       isResponsible:data.isResponsible,

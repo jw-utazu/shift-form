@@ -2926,10 +2926,6 @@ function buildCalendar() {
     });
   }
 
-  // 申込期間バー用：申込開始〜締切の範囲を計算
-  const applyStart = applyD ? applyD.getTime() : null;
-  const applyEnd   = deadlineD ? deadlineD.getTime() : null;
-
   const total = Math.ceil((offset + lastDate) / 7) * 7;
   for (let i = 0; i < total; i++) {
     const day = i - offset + 1;

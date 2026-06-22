@@ -1747,6 +1747,7 @@ let currentPwType = 'normal'; // 'normal' | 'limited'
 let isLimitedMember = false;   // 限定PWメンバーかどうか
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
+let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
 let _isPreviewMode         = false;
 let _previewOriginalSession = null;
@@ -2469,6 +2470,7 @@ async function initApp() {
       ]);
       LIMITED_APP_DATA  = limFormData;
       LIMITED_SHIFT_DATA = limShiftData;
+      LIMITED_DETAIL    = limDetail;
     }
 
     APP_DATA    = formData;
@@ -4648,10 +4650,26 @@ async function switchFormPwType(type) {
         ]);
         LIMITED_APP_DATA   = limFormData;
         LIMITED_SHIFT_DATA = limShiftData;
+        LIMITED_DETAIL     = limDetail;
       }
       // 通常PW のデータを退避し限定PW のデータで上書き
       APP_DATA   = LIMITED_APP_DATA;
       SHIFT_DATA = LIMITED_SHIFT_DATA;
+      const ld = LIMITED_DETAIL || {};
+      THIS_MONTH  = (ld.thisMonthData && Object.keys(ld.thisMonthData).length > 0)
+                      ? ld.thisMonthData : (LIMITED_APP_DATA.thisMonthData || {});
+      SLOTS       = ld.slots         || [];
+      LAST_MONTH  = ld.lastMonthData || {};
+      if (APP_DATA) APP_DATA.staffJSON = ld.staffJSON || [];
+      YEAR        = LIMITED_APP_DATA.year  || 0;
+      MONTH       = LIMITED_APP_DATA.month || 0;
+      SHIFT_DATES = LIMITED_APP_DATA.shiftDates || [];
+      SHIFT_DATES_MAP = {};
+      (LIMITED_APP_DATA.shiftSlots || []).forEach(s => {
+        const key = s.m + '_' + s.d;
+        if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
+        if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
+      });
     } else {
       // 通常PW に戻す（initApp で取得したデータを再フェッチ）
       const [formData, detail, shiftData] = await Promise.all([

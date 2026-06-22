@@ -1715,7 +1715,8 @@ const SS_KEY     = "shiftapp_session";
 function gasJsonp(action, params, extraQuery) {
   const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
   // type パラメータを自動付与（明示的に渡された type が優先）
-  const p = Object.assign({ type: currentPwType }, params || {});
+  const effectiveType = currentPwType === 'limited' ? limitedPwType : currentPwType;
+  const p = Object.assign({ type: effectiveType }, params || {});
   let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
   if (extraQuery) {
@@ -1744,6 +1745,7 @@ function gasJsonp(action, params, extraQuery) {
 
 // ===== グローバル状態 =====
 let currentPwType = 'normal'; // 'normal' | 'limited'
+let limitedPwType = 'limited'; // 実際の限定PWタイプID（isLimitedMemberで確定）
 let isLimitedMember = false;   // 限定PWメンバーかどうか
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
@@ -2431,6 +2433,8 @@ function logout() {
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
+  currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false;
+  LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
   _mainHistorySetup = false; // 再ログイン時に __bottom__ を再挿入するためリセット
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
@@ -2456,6 +2460,7 @@ async function initApp() {
     ]);
 
     isLimitedMember = limRes.ok && limRes.isLimited;
+    if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
 
     // 限定PWタブの表示制御
     const pwBar = document.getElementById('pw-type-bar-form');
@@ -2464,9 +2469,9 @@ async function initApp() {
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) {
       const [limFormData, limDetail, limShiftData] = await Promise.all([
-        gasJsonp('dataMini', { type: 'limited' }),
-        gasJsonp('getFormDetail', { type: 'limited' }),
-        gasJsonp('getShiftTable', { type: 'limited' })
+        gasJsonp('dataMini',      { type: limitedPwType }),
+        gasJsonp('getFormDetail', { type: limitedPwType }),
+        gasJsonp('getShiftTable', { type: limitedPwType })
       ]);
       LIMITED_APP_DATA  = limFormData;
       LIMITED_SHIFT_DATA = limShiftData;
@@ -2524,8 +2529,23 @@ function buildMainScreen() {
 
   const isOwner = SESSION.isAdmin && !SESSION.uid;
   const ed      = APP_DATA.eventDates || {};
-  const status  = APP_DATA.status || '準備中';
+  let   status  = APP_DATA.status || '準備中';
   const today   = new Date(); today.setHours(0,0,0,0);
+  // 限定PWはフェーズ情報からstatus上書き
+  if (currentPwType !== 'normal' && APP_DATA && APP_DATA.phases) {
+    const _phases = APP_DATA.phases;
+    const _ai = APP_DATA.activePhaseIndex;
+    if (typeof _ai === 'number' && _ai >= 0) {
+      status = '受付中';
+    } else {
+      const todayMs = today.getTime();
+      const allPast = _phases.length > 0 && _phases.every(p => {
+        if (!p.deadline) return true;
+        return new Date(p.deadline.y, p.deadline.m - 1, p.deadline.d).getTime() < todayMs;
+      });
+      status = (allPast ? '受付終了' : '準備中');
+    }
+  }
 
   // 今日が締切日か判定
   const parseEventDate = str => {
@@ -2739,7 +2759,23 @@ function buildCalendar() {
   const realY2 = realToday2.getFullYear();
   const realM2 = realToday2.getMonth() + 1;
   const minVal2 = realY2 * 100 + realM2;
-  const maxVal2 = Math.max(shiftY * 100 + shiftM, minVal2);
+  const isLimitedPw = currentPwType !== 'normal';
+  let maxVal2;
+  if (isLimitedPw) {
+    const future = new Date(realToday2);
+    future.setMonth(future.getMonth() + 6);
+    const futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
+    let lastSlotVal = minVal2;
+    ((APP_DATA && APP_DATA.phases) || []).forEach(p => {
+      (p.slots || []).forEach(s => {
+        const v = s.y * 100 + s.m;
+        if (v > lastSlotVal) lastSlotVal = v;
+      });
+    });
+    maxVal2 = Math.max(futureVal, lastSlotVal);
+  } else {
+    maxVal2 = Math.max(shiftY * 100 + shiftM, minVal2);
+  }
   const curVal2 = dispY * 100 + dispM;
   const prevBtn = document.getElementById('cal-prev-btn');
   const nextBtn = document.getElementById('cal-next-btn');
@@ -2791,23 +2827,68 @@ function buildCalendar() {
   const offset   = dow === 0 ? 6 : dow - 1;
   const lastDate = new Date(dispY, dispM, 0).getDate();
 
-  // イベント日付セット（表示中の年を基準）
-  const parseDate = str => {
-    if (!str) return null;
-    const p = str.split('/');
-    return p.length === 2 ? new Date(dispY, parseInt(p[0]) - 1, parseInt(p[1])) : null;
-  };
-  const applyD    = parseDate(ed['申込開始']);
-  const deadlineD = parseDate(ed['締切']);
-  const openD     = parseDate(ed['シフト公開']);
+  // フェーズ日付セット（限定PW：全フェーズ収集、通常PW：従来ロジック）
+  const isLimitedPw2 = currentPwType !== 'normal';
+  const applyTimes    = new Set(); // timestamp
+  const deadlineTimes = new Set();
+  const openTimes     = new Set();
+  let isOpenPassedForCal = false;
+  let applyStart = null, applyEnd = null; // 申込期間バー用
 
-  // シフト公開日の経過チェック（今日と比較するため YEAR 基準で年を設定）
-  const _calOpenStr = ed['シフト公開'];
-  const _calOpenP   = _calOpenStr ? _calOpenStr.split('/') : null;
-  const _calOpenY   = YEAR || today.getFullYear();
-  const _calOpenD   = (_calOpenP && _calOpenP.length === 2)
-    ? new Date(_calOpenY, parseInt(_calOpenP[0]) - 1, parseInt(_calOpenP[1])) : null;
-  const isOpenPassedForCal = _calOpenD ? _calOpenD.getTime() <= today.getTime() : false;
+  if (isLimitedPw2 && APP_DATA && APP_DATA.phases) {
+    const _phases2 = APP_DATA.phases;
+    const _ai2 = APP_DATA.activePhaseIndex;
+    _phases2.forEach(p => {
+      if (p.apply)    applyTimes.add(new Date(p.apply.y, p.apply.m - 1, p.apply.d).getTime());
+      if (p.deadline) deadlineTimes.add(new Date(p.deadline.y, p.deadline.m - 1, p.deadline.d).getTime());
+      if (p.open)     openTimes.add(new Date(p.open.y, p.open.m - 1, p.open.d).getTime());
+    });
+    const activePhase2 = (typeof _ai2 === 'number' && _ai2 >= 0) ? _phases2[_ai2] : null;
+    if (activePhase2 && activePhase2.open) {
+      const opD2 = new Date(activePhase2.open.y, activePhase2.open.m - 1, activePhase2.open.d);
+      isOpenPassedForCal = opD2.getTime() <= today.getTime();
+    }
+    const barPhase = activePhase2 || (_phases2.length > 0 ? _phases2[_phases2.length - 1] : null);
+    if (barPhase) {
+      applyStart = barPhase.apply    ? new Date(barPhase.apply.y, barPhase.apply.m - 1, barPhase.apply.d).getTime()       : null;
+      applyEnd   = barPhase.deadline ? new Date(barPhase.deadline.y, barPhase.deadline.m - 1, barPhase.deadline.d).getTime() : null;
+    }
+  } else {
+    const parseDate2 = str => {
+      if (!str) return null;
+      const p = str.split('/');
+      return p.length === 2 ? new Date(dispY, parseInt(p[0]) - 1, parseInt(p[1])) : null;
+    };
+    const applyD    = parseDate2(ed['申込開始']);
+    const deadlineD = parseDate2(ed['締切']);
+    const openD     = parseDate2(ed['シフト公開']);
+    if (applyD)    applyTimes.add(applyD.getTime());
+    if (deadlineD) deadlineTimes.add(deadlineD.getTime());
+    if (openD)     openTimes.add(openD.getTime());
+    const _calOpenStr = ed['シフト公開'];
+    const _calOpenP   = _calOpenStr ? _calOpenStr.split('/') : null;
+    const _calOpenY   = YEAR || today.getFullYear();
+    const _calOpenD   = (_calOpenP && _calOpenP.length === 2)
+      ? new Date(_calOpenY, parseInt(_calOpenP[0]) - 1, parseInt(_calOpenP[1])) : null;
+    isOpenPassedForCal = _calOpenD ? _calOpenD.getTime() <= today.getTime() : false;
+    applyStart = applyD    ? applyD.getTime()    : null;
+    applyEnd   = deadlineD ? deadlineD.getTime() : null;
+  }
+
+  // 限定PW：年考慮スロットセット
+  let shiftDaysLtd, shiftDaysMapLtd;
+  if (isLimitedPw2 && APP_DATA && APP_DATA.phases) {
+    shiftDaysLtd    = new Set();
+    shiftDaysMapLtd = {};
+    APP_DATA.phases.forEach(p => {
+      (p.slots || []).forEach(s => {
+        const k = `${s.y}_${s.m}_${s.d}`;
+        shiftDaysLtd.add(k);
+        if (!shiftDaysMapLtd[k]) shiftDaysMapLtd[k] = [];
+        if (s.time && !shiftDaysMapLtd[k].includes(s.time)) shiftDaysMapLtd[k].push(s.time);
+      });
+    });
+  }
 
   // 実施日セット：SHIFT_DATES（カレンダーB10以降）を優先使用
   // SHIFT_DATESは'm/d'形式、表示月でフィルタして'm_d'キーのSetを作成
@@ -2865,9 +2946,9 @@ function buildCalendar() {
       if (col === 6) el.classList.add('sun');
 
       const isToday    = thisT === today.getTime();
-      const isApply    = applyD    && isSameDayJS(thisDate, applyD);
-      const isDeadline = deadlineD && isSameDayJS(thisDate, deadlineD);
-      const isOpen     = openD     && isSameDayJS(thisDate, openD);
+      const isApply    = applyTimes.has(thisT);
+      const isDeadline = deadlineTimes.has(thisT);
+      const isOpen     = openTimes.has(thisT);
       if (isApply)    el.classList.add('apply-day');
       if (isDeadline) el.classList.add('deadline');
       if (isOpen)     el.classList.add('open-day');
@@ -2879,9 +2960,9 @@ function buildCalendar() {
       }
       dayLabel.textContent = day;
 
-      // 実施日かどうか（サブラベルより先に判定）
-      const key      = dispM + '_' + day;
-      const isShift  = shiftDays.has(key);
+      // 実施日かどうか（限定PWは年考慮キー）
+      const key      = isLimitedPw2 ? `${dispY}_${dispM}_${day}` : `${dispM}_${day}`;
+      const isShift  = isLimitedPw2 ? (shiftDaysLtd && shiftDaysLtd.has(key)) : shiftDays.has(key);
 
       // サブラベル：実施日優先、次に申込/締切/公開予定
       const hasSub = isShift ? null  // 実施日は件数をcal-countで別途表示
@@ -2898,7 +2979,7 @@ function buildCalendar() {
       }
 
       // 申込期間バー（申込開始〜締切の期間中）
-      if (applyStart && applyEnd && thisT >= applyStart && thisT <= applyEnd) {
+      if (applyStart !== null && applyEnd !== null && thisT >= applyStart && thisT <= applyEnd) {
         const bar = document.createElement('div');
         bar.className = 'cal-period-bar apply-bar';
         if (thisT === applyStart && thisT === applyEnd) {
@@ -2917,8 +2998,10 @@ function buildCalendar() {
       if (isShift) {
         el.classList.add('shift-day');
 
-        // 件数（SHIFT_DATESから同日のスロット数を算出）
-        const count = (SHIFT_DATES_MAP[key] || []).length;
+        // 件数（限定PWは年考慮マップ、通常PWはSHIFT_DATES_MAP）
+        const count = isLimitedPw2
+          ? (shiftDaysMapLtd && shiftDaysMapLtd[key] ? shiftDaysMapLtd[key].length : 0)
+          : (SHIFT_DATES_MAP[key] || []).length;
         if (count > 0) {
           const countEl = document.createElement('span');
           countEl.className   = 'cal-count';
@@ -2934,7 +3017,8 @@ function buildCalendar() {
         }
 
         // クリックで時間帯ボックスを表示/非表示
-        el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day));
+        const _ltdTimes = isLimitedPw2 ? (shiftDaysMapLtd && shiftDaysMapLtd[key] || []) : null;
+        el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day, _ltdTimes));
       }
     }
     grid.appendChild(el);
@@ -2950,7 +3034,7 @@ function buildCalendar() {
 // ===== カレンダー実施日クリック：時間帯ボックス表示 =====
 let _selectedShiftKey = null;
 
-function toggleShiftTimeBox(key, y, m, d) {
+function toggleShiftTimeBox(key, y, m, d, times_override) {
   const box      = document.getElementById('shift-time-box');
   const boxDate  = document.getElementById('shift-time-box-date');
   const boxList  = document.getElementById('shift-time-box-list');
@@ -2978,7 +3062,7 @@ function toggleShiftTimeBox(key, y, m, d) {
   const dt = new Date(y, m - 1, d);
   boxDate.textContent = m + '月' + d + '日（' + DAY_NAMES[dt.getDay()] + '）の時間帯';
 
-  const times = SHIFT_DATES_MAP[key] || [];
+  const times = times_override !== null && times_override !== undefined ? times_override : (SHIFT_DATES_MAP[key] || []);
   boxList.innerHTML = '';
   if (times.length === 0) {
     boxList.innerHTML = '<div class="shift-time-item">時間帯情報がありません</div>';
@@ -4644,9 +4728,9 @@ async function switchFormPwType(type) {
       // 限定PW データを再フェッチ（キャッシュがあれば使う）
       if (!LIMITED_APP_DATA) {
         const [limFormData, limDetail, limShiftData] = await Promise.all([
-          gasJsonp('dataMini',      { type: 'limited' }),
-          gasJsonp('getFormDetail', { type: 'limited' }),
-          gasJsonp('getShiftTable', { type: 'limited' })
+          gasJsonp('dataMini',      { type: limitedPwType }),
+          gasJsonp('getFormDetail', { type: limitedPwType }),
+          gasJsonp('getShiftTable', { type: limitedPwType })
         ]);
         LIMITED_APP_DATA   = limFormData;
         LIMITED_SHIFT_DATA = limShiftData;

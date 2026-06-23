@@ -1197,6 +1197,13 @@ body::-webkit-scrollbar { display: none; }
 .pw-type-tab-form.active.limited{background:#7c3aed;border-color:#7c3aed;}
 /* 限定PW カレンダー表示 */
 .cal-event-limited{background:#ede9fe;color:#5b21b6;border-left:3px solid #7c3aed;}
+/* 統合カレンダー: 実施日インジケーター行 */
+.cal-shift-row{display:block;font-size:0.55rem;font-weight:700;padding:1px 3px;border-radius:2px;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-shift-row.csr-normal{background:#dcfce7;color:#166534;}
+.cal-shift-row.csr-limited{background:#ede9fe;color:#5b21b6;}
+.cal-day.shift-day-unified{cursor:pointer;}
+.cal-day.shift-day-unified:active{background:#f5f3ff;}
+.cal-day.shift-day-unified.selected{background:#f0fdf4;}
 </style>
 </head>
 <body>
@@ -1757,6 +1764,8 @@ let APP_DATA     = null; // GASから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
 let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
+let NORMAL_SHIFT_DATES = [];     // 通常PW 実施日一覧（統合カレンダー用）
+let NORMAL_SHIFT_DATES_MAP = {}; // 通常PW 実施日→時間帯リスト（統合カレンダー用）
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;
 let currentFormName = '';
@@ -2497,6 +2506,9 @@ async function initApp() {
       if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
       if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
     });
+    // 通常PW の実施日を統合カレンダー用に保存
+    NORMAL_SHIFT_DATES     = SHIFT_DATES.slice();
+    NORMAL_SHIFT_DATES_MAP = Object.assign({}, SHIFT_DATES_MAP);
 
     try {
       buildMainScreen();
@@ -2890,6 +2902,15 @@ function buildCalendar() {
     });
   }
 
+  // 統合カレンダー用：通常PW 実施日（表示月分）
+  const normalShiftDaysInMonth = new Set();
+  if (isLimitedMember) {
+    (NORMAL_SHIFT_DATES || []).forEach(dateStr => {
+      const p = dateStr.split('/');
+      if (p.length === 2 && parseInt(p[0]) === dispM) normalShiftDaysInMonth.add(parseInt(p[0]) + '_' + parseInt(p[1]));
+    });
+  }
+
   // 実施日セット：SHIFT_DATES（カレンダーB10以降）を優先使用
   // SHIFT_DATESは'm/d'形式、表示月でフィルタして'm_d'キーのSetを作成
   const shiftDays = new Set();
@@ -2956,12 +2977,23 @@ function buildCalendar() {
       }
       dayLabel.textContent = day;
 
-      // 実施日かどうか（限定PWは年考慮キー）
-      const key      = isLimitedPw2 ? `${dispY}_${dispM}_${day}` : `${dispM}_${day}`;
-      const isShift  = isLimitedPw2 ? (shiftDaysLtd && shiftDaysLtd.has(key)) : shiftDays.has(key);
+      // 実施日かどうか（統合カレンダー or 単独）
+      const keyNorm  = `${dispM}_${day}`;
+      const keyLtd2  = `${dispY}_${dispM}_${day}`;
+      let isShiftNorm, isShiftLtdHere;
+      if (isLimitedMember) {
+        // 統合カレンダー: 両タイプをチェック
+        isShiftNorm    = normalShiftDaysInMonth.has(keyNorm);
+        isShiftLtdHere = !!(shiftDaysLtd && shiftDaysLtd.has(keyLtd2));
+      } else {
+        const key2  = isLimitedPw2 ? keyLtd2 : keyNorm;
+        isShiftNorm    = isLimitedPw2 ? false : shiftDays.has(keyNorm);
+        isShiftLtdHere = isLimitedPw2 ? !!(shiftDaysLtd && shiftDaysLtd.has(key2)) : false;
+      }
+      const isShift = isShiftNorm || isShiftLtdHere;
 
       // サブラベル：実施日優先、次に申込/締切/公開予定
-      const hasSub = isShift ? null  // 実施日は件数をcal-countで別途表示
+      const hasSub = isShift ? null  // 実施日はインジケーターで別途表示
                    : isApply    ? '申込'
                    : isDeadline ? '締切'
                    : isOpen     ? '公開予定'
@@ -2990,31 +3022,62 @@ function buildCalendar() {
         el.appendChild(bar);
       }
 
-      // 実施日：件数表示＋クリックイベント
+      // 実施日：表示
       if (isShift) {
-        el.classList.add('shift-day');
+        if (isLimitedMember) {
+          // ===== 統合カレンダー表示 =====
+          el.classList.add('shift-day-unified');
+          const normTimes = NORMAL_SHIFT_DATES_MAP[keyNorm] || [];
+          const ltdTimes  = (shiftDaysMapLtd && shiftDaysMapLtd[keyLtd2]) || [];
 
-        // 件数（限定PWは年考慮マップ、通常PWはSHIFT_DATES_MAP）
-        const count = isLimitedPw2
-          ? (shiftDaysMapLtd && shiftDaysMapLtd[key] ? shiftDaysMapLtd[key].length : 0)
-          : (SHIFT_DATES_MAP[key] || []).length;
-        if (count > 0) {
-          const countEl = document.createElement('span');
-          countEl.className   = 'cal-count';
-          countEl.textContent = count + '件';
-          el.appendChild(countEl);
+          if (isShiftNorm) {
+            const row = document.createElement('div');
+            row.className = 'cal-shift-row csr-normal';
+            row.textContent = '🟢 PW' + (normTimes.length > 1 ? ' ' + normTimes.length + '件'
+                                        : normTimes.length === 1 ? ' ' + normTimes[0] : '');
+            el.appendChild(row);
+          }
+          if (isShiftLtdHere) {
+            const row = document.createElement('div');
+            row.className = 'cal-shift-row csr-limited';
+            row.textContent = '🟣 限定' + (ltdTimes.length > 1 ? ' ' + ltdTimes.length + '件'
+                                          : ltdTimes.length === 1 ? ' ' + ltdTimes[0] : '');
+            el.appendChild(row);
+          }
+
+          // 自分のシフトバッジ
+          if (myShiftDays.has(keyNorm)) {
+            const badge = document.createElement('div');
+            badge.className = 'cal-badge my-shift';
+            el.appendChild(badge);
+          }
+
+          el.addEventListener('click', () => {
+            toggleShiftTimeBoxUnified(keyNorm, keyLtd2, dispY, dispM, day, normTimes, ltdTimes);
+          });
+        } else {
+          // ===== 既存の単独表示 =====
+          el.classList.add('shift-day');
+          const key = isLimitedPw2 ? keyLtd2 : keyNorm;
+          const count = isLimitedPw2
+            ? (shiftDaysMapLtd && shiftDaysMapLtd[key] ? shiftDaysMapLtd[key].length : 0)
+            : (SHIFT_DATES_MAP[key] || []).length;
+          if (count > 0) {
+            const countEl = document.createElement('span');
+            countEl.className   = 'cal-count';
+            countEl.textContent = count + '件';
+            el.appendChild(countEl);
+          }
+
+          if (myShiftDays.has(key)) {
+            const badge = document.createElement('div');
+            badge.className = 'cal-badge my-shift';
+            el.appendChild(badge);
+          }
+
+          const _ltdTimes = isLimitedPw2 ? (shiftDaysMapLtd && shiftDaysMapLtd[key] || []) : null;
+          el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day, _ltdTimes));
         }
-
-        // 自分のシフトバッジ
-        if (myShiftDays.has(key)) {
-          const badge = document.createElement('div');
-          badge.className = 'cal-badge my-shift';
-          el.appendChild(badge);
-        }
-
-        // クリックで時間帯ボックスを表示/非表示
-        const _ltdTimes = isLimitedPw2 ? (shiftDaysMapLtd && shiftDaysMapLtd[key] || []) : null;
-        el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day, _ltdTimes));
       }
     }
     grid.appendChild(el);
@@ -3029,6 +3092,54 @@ function buildCalendar() {
 
 // ===== カレンダー実施日クリック：時間帯ボックス表示 =====
 let _selectedShiftKey = null;
+
+// 統合カレンダー用：通常PW・限定PW 両方の時間帯を表示
+function toggleShiftTimeBoxUnified(keyNorm, keyLtd, y, m, d, normTimes, ltdTimes) {
+  const box     = document.getElementById('shift-time-box');
+  const boxDate = document.getElementById('shift-time-box-date');
+  const boxList = document.getElementById('shift-time-box-list');
+
+  const unifiedKey = 'unified_' + keyNorm;
+  if (_selectedShiftKey === unifiedKey) {
+    _selectedShiftKey = null;
+    box.classList.remove('show');
+    document.querySelectorAll('.cal-day.shift-day-unified.selected').forEach(el => el.classList.remove('selected'));
+    return;
+  }
+  _selectedShiftKey = unifiedKey;
+  document.querySelectorAll('.cal-day.shift-day-unified.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.cal-day.shift-day-unified').forEach(el => {
+    const dayEl = el.querySelector('span');
+    if (dayEl && parseInt(dayEl.textContent) === d) el.classList.add('selected');
+  });
+
+  const DAY_NAMES = ['日','月','火','水','木','金','土'];
+  const dt = new Date(y, m - 1, d);
+  boxDate.textContent = m + '月' + d + '日（' + DAY_NAMES[dt.getDay()] + '）の時間帯';
+  boxList.innerHTML = '';
+
+  const makeItems = (times, prefix, cls) => {
+    if (times.length === 0) return;
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:0.75rem;font-weight:700;margin-top:4px;padding:2px 4px;border-radius:3px;';
+    lbl.style.background = cls === 'normal' ? '#dcfce7' : '#ede9fe';
+    lbl.style.color       = cls === 'normal' ? '#166534' : '#5b21b6';
+    lbl.textContent = prefix;
+    boxList.appendChild(lbl);
+    times.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'shift-time-item';
+      item.innerHTML = '🕐 ' + esc(t);
+      boxList.appendChild(item);
+    });
+  };
+  makeItems(normTimes, '🟢 通常PW', 'normal');
+  makeItems(ltdTimes,  '🟣 限定PW', 'limited');
+  if (normTimes.length === 0 && ltdTimes.length === 0) {
+    boxList.innerHTML = '<div class="shift-time-item">時間帯情報がありません</div>';
+  }
+  box.classList.add('show');
+}
 
 function toggleShiftTimeBox(key, y, m, d, times_override) {
   const box      = document.getElementById('shift-time-box');
@@ -4773,6 +4884,9 @@ async function switchFormPwType(type) {
         if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
         if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
       });
+      // 通常PWデータを統合カレンダー用に更新
+      NORMAL_SHIFT_DATES     = SHIFT_DATES.slice();
+      NORMAL_SHIFT_DATES_MAP = Object.assign({}, SHIFT_DATES_MAP);
     }
     buildMainScreen();
     await hideLoading();

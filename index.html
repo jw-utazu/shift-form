@@ -1749,6 +1749,7 @@ function gasJsonp(action, params, extraQuery) {
 let currentPwType = 'normal'; // 'normal' | 'limited'
 let limitedPwType = 'limited'; // 実際の限定PWタイプID（isLimitedMemberで確定）
 let isLimitedMember = false;   // 限定PWメンバーかどうか
+let limitedPwName = '限定PW'; // 限定PWの表示名
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
 let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
@@ -2437,7 +2438,7 @@ function logout() {
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
-  currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false;
+  currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
   _mainHistorySetup = false; // 再ログイン時に __bottom__ を再挿入するためリセット
   closeProfilePopup();
@@ -2465,10 +2466,13 @@ async function initApp() {
 
     isLimitedMember = limRes.ok && limRes.isLimited;
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
+    if (isLimitedMember && limRes.name) limitedPwName = limRes.name;
 
     // 限定PWタブの表示制御
     const pwBar = document.getElementById('pw-type-bar-form');
     if (pwBar) pwBar.style.display = isLimitedMember ? 'flex' : 'none';
+    const tabLimited = document.getElementById('pw-tab-form-limited');
+    if (tabLimited && isLimitedMember) tabLimited.textContent = limitedPwName;
 
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) {
@@ -2526,7 +2530,8 @@ async function initApp() {
 // ===== メイン画面構築 =====
 function buildMainScreen() {
   // バー年月表示
-  const yearMonthLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月' : '宇多津会衆PWアプリ';
+  const baseLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月PW' : '宇多津会衆PWアプリ';
+  const yearMonthLabel = (currentPwType !== 'normal') ? limitedPwName : baseLabel;
   document.getElementById('main-title').textContent = yearMonthLabel;
   document.getElementById('form-title') && (document.getElementById('form-title').textContent = yearMonthLabel);
   document.title = '宇多津会衆PWアプリ';

@@ -1331,7 +1331,7 @@ body::-webkit-scrollbar { display: none; }
       <div id="cal-shift-btn-area" style="display:none;margin-top:12px;">
         <button class="btn-nav" onclick="showScreen('shift')" style="margin:0;">
           <span class="nav-icon">📋</span>
-          <span class="nav-txt">シフト表を見る</span>
+          <span class="nav-txt" id="cal-shift-btn-txt">シフト表を見る</span>
           <span class="nav-arr">›</span>
         </button>
       </div>
@@ -1342,11 +1342,6 @@ body::-webkit-scrollbar { display: none; }
       <button class="btn-nav" id="btn-shift-form" onclick="showScreen('form')">
         <span class="nav-icon" id="btn-shift-form-icon">📝</span>
         <span class="nav-txt" id="btn-shift-form-txt">シフト希望を送る</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav" id="btn-shift-view" onclick="showScreen('shift')">
-        <span class="nav-icon">📋</span>
-        <span class="nav-txt" id="btn-shift-view-txt">シフト表を見る</span>
         <span class="nav-arr">›</span>
       </button>
       <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
@@ -2635,25 +2630,6 @@ function buildMainScreen() {
   // ── 希望一覧ボックスを構築 ──
   buildWishListBox(status, isOpenPassed);
 
-  // ── シフト表ボタン：公開済みのみ表示、それ以外は非表示 ──
-  const btnShiftView    = document.getElementById('btn-shift-view');
-  const btnShiftViewTxt = document.getElementById('btn-shift-view-txt');
-  if (btnShiftView && btnShiftViewTxt) {
-    if (isOpenPassed || _isPreviewMode) {
-      // 公開済み、またはプレビュー中 → 表示
-      btnShiftView.style.display = '';
-      btnShiftView.disabled = false;
-      btnShiftView.style.opacity = '';
-      btnShiftView.style.cursor  = '';
-      btnShiftView.onclick = () => showScreen('shift');
-      btnShiftViewTxt.textContent = 'シフト表を見る';
-      btnShiftViewTxt.style.fontSize = '';
-    } else {
-      // 公開前（未設定・未来） → 非表示
-      btnShiftView.style.display = 'none';
-    }
-  }
-
   // ── 要望ボタン：プレビュー中のみ非表示（オーナーも表示） ──
   const btnRequest = document.getElementById('btn-request');
   if (btnRequest) btnRequest.style.display = _isPreviewMode ? 'none' : '';
@@ -3104,7 +3080,13 @@ function buildCalendar() {
   const legendMyShift = document.getElementById('legend-my-shift');
   if (legendMyShift) legendMyShift.style.display = isOpenPassedForCal ? '' : 'none';
   const calShiftBtnArea = document.getElementById('cal-shift-btn-area');
-  if (calShiftBtnArea) calShiftBtnArea.style.display = isOpenPassedForCal ? '' : 'none';
+  if (calShiftBtnArea) {
+    calShiftBtnArea.style.display = (isOpenPassedForCal || _isPreviewMode) ? '' : 'none';
+    const calShiftBtnTxt = document.getElementById('cal-shift-btn-txt');
+    if (calShiftBtnTxt) {
+      calShiftBtnTxt.textContent = currentPwType === 'normal' ? '通常PWのシフト表を見る' : '限定PWのシフト表を見る';
+    }
+  }
 }
 
 // ===== カレンダー実施日クリック：時間帯ボックス表示 =====

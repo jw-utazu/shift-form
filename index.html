@@ -3233,7 +3233,11 @@ function buildWishListBox(status, isOpenPassed) {
     viewName = myName;
   } else {
     // ── ドロップダウン構築（代理送信権限がある場合のみ） ──
-    const targets = (SESSION && SESSION.proxyTargets) || [];
+    const _allProxyTargets2 = (SESSION && SESSION.proxyTargets) || [];
+    const _staffList2 = (APP_DATA && APP_DATA.staffJSON) || [];
+    const targets = currentPwType !== 'normal'
+      ? _allProxyTargets2.filter(uid => _staffList2.some(s => s.uid === uid))
+      : _allProxyTargets2;
     if (targets.length > 0) {
       if (!wishListViewUid) wishListViewUid = myUid;
       proxySel.innerHTML = '<option value="' + myUid + '">自分（' + esc(myName) + '）</option>';
@@ -3455,7 +3459,11 @@ function initFormScreen() {
   // 代理送信
   const proxyArea = document.getElementById('proxy-area');
   const proxySel  = document.getElementById('sel-proxy');
-  const targets   = SESSION.proxyTargets || [];
+  const _allProxyTargets = SESSION.proxyTargets || [];
+  const _staffList = APP_DATA.staffJSON || [];
+  const targets = currentPwType !== 'normal'
+    ? _allProxyTargets.filter(uid => _staffList.some(s => s.uid === uid))
+    : _allProxyTargets;
   if (targets.length > 0) {
     proxySel.innerHTML = '<option value="">自分（' + SESSION.name + '）</option>';
     // メンバー名を取得するためにAPP_DATAを使用

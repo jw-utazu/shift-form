@@ -2732,15 +2732,32 @@ function calNavMonth(delta) {
   if (newM < 1)  { newM = 12; newY--; }
   if (newM > 12) { newM = 1;  newY++; }
 
-  // 移動可能範囲：今日の月〜シフト当月
-  const shiftY = YEAR  || new Date().getFullYear();
-  const shiftM = MONTH || new Date().getMonth() + 1;
   const realToday = new Date();
   const realY = realToday.getFullYear();
   const realM = realToday.getMonth() + 1;
-
   const minVal = realY * 100 + realM;
-  const maxVal = Math.max(shiftY * 100 + shiftM, minVal);
+
+  let maxVal;
+  if (currentPwType !== 'normal') {
+    // 限定PW: 今日から6ヶ月 or 最終スロット月
+    const future = new Date(realToday);
+    future.setMonth(future.getMonth() + 6);
+    let futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
+    let lastSlotVal = minVal;
+    ((APP_DATA && APP_DATA.phases) || []).forEach(p => {
+      (p.slots || []).forEach(s => {
+        const v = s.y * 100 + s.m;
+        if (v > lastSlotVal) lastSlotVal = v;
+      });
+    });
+    maxVal = Math.max(futureVal, lastSlotVal);
+  } else {
+    // 通常PW: 今日の月〜シフト当月
+    const shiftY = YEAR  || realY;
+    const shiftM = MONTH || realM;
+    maxVal = Math.max(shiftY * 100 + shiftM, minVal);
+  }
+
   const targetVal = newY * 100 + newM;
   if (targetVal < minVal || targetVal > maxVal) return;
 

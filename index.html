@@ -1715,11 +1715,10 @@ const SS_KEY     = "shiftapp_session";
 // extraQueryはURLに直接付加するオブジェクト（email等）
 // fetch方式（リダイレクト追従対応・Android Chrome対応）
 function gasJsonp(action, params, extraQuery) {
-  const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
   // type パラメータを自動付与（明示的に渡された type が優先）
   const effectiveType = currentPwType === 'limited' ? limitedPwType : currentPwType;
   const p = Object.assign({ type: effectiveType }, params || {});
-  let url = GAS_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+  let url = GAS_URL + '?action=' + encodeURIComponent(action);
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
   if (extraQuery) {
     Object.entries(extraQuery).forEach(([k, v]) => {
@@ -1729,15 +1728,7 @@ function gasJsonp(action, params, extraQuery) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);
   return fetch(url, { redirect: 'follow', signal: controller.signal })
-    .then(r => r.text())
-    .then(text => {
-      clearTimeout(timer);
-      // "cbName({...})" 形式からJSONを取り出す
-      const start = text.indexOf('(');
-      const end   = text.lastIndexOf(')');
-      if (start === -1 || end === -1) throw new Error('レスポンス形式エラー');
-      return JSON.parse(text.slice(start + 1, end));
-    })
+    .then(r => { clearTimeout(timer); return r.json(); })
     .catch(err => {
       clearTimeout(timer);
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');

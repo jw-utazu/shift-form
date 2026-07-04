@@ -1705,21 +1705,21 @@ body::-webkit-scrollbar { display: none; }
 
 <script>
 // ===== 定数 =====
-const GAS_URL    = "https://nqtswiynoxawccldqcwi.supabase.co/functions/v1/api";
+const API_URL    = "https://nqtswiynoxawccldqcwi.supabase.co/functions/v1/api";
 const ANON_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdHN3aXlub3hhd2NjbGRxY3dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MzQxNjIsImV4cCI6MjA5ODMxMDE2Mn0.M-AnCBnXBI1FIyouoa5ttF6mb8PF2YqHfv180PqQWQU";
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
 
 // ===== JSONP通信ユーティリティ（CORSを回避）=====
-// actionはGASのdoGetで受け付けるアクション名
-// paramsはオブジェクト（GASのparams()で受け取る）
+// actionはAPIのルーターで受け付けるアクション名
+// paramsはオブジェクト（APIにJSONで渡す）
 // extraQueryはURLに直接付加するオブジェクト（email等）
 // fetch方式（リダイレクト追従対応・Android Chrome対応）
-function gasJsonp(action, params, extraQuery) {
+function apiGet(action, params, extraQuery) {
   // type パラメータを自動付与（明示的に渡された type が優先）
   const effectiveType = currentPwType === 'limited' ? limitedPwType : currentPwType;
   const p = Object.assign({ type: effectiveType }, params || {});
-  let url = GAS_URL + '?action=' + encodeURIComponent(action);
+  let url = API_URL + '?action=' + encodeURIComponent(action);
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
   if (extraQuery) {
     Object.entries(extraQuery).forEach(([k, v]) => {
@@ -1733,7 +1733,7 @@ function gasJsonp(action, params, extraQuery) {
     .catch(err => {
       clearTimeout(timer);
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');
-      throw new Error('通信エラー（GASへの接続に失敗）');
+      throw new Error('通信エラー（サーバーへの接続に失敗）');
     });
 }
 
@@ -1748,7 +1748,7 @@ let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
 let SESSION      = null; // { uid, name, email, token, isAdmin, isResponsible, isCart, proxyTargets }
 let _isPreviewMode         = false;
 let _previewOriginalSession = null;
-let APP_DATA     = null; // GASから取得したデータ
+let APP_DATA     = null; // APIから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
 let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
@@ -2038,7 +2038,7 @@ async function _showFormScreen() {
   }
   showLoading('フォームデータを読み込み中...');
   try {
-    const detail = await gasJsonp('getFormDetail');
+    const detail = await apiGet('getFormDetail');
     SLOTS      = detail.slots      || [];
     LAST_MONTH = detail.lastMonthData || {};
     // thisMonthDataはdataMini取得済みだが、getFormDetailが最新値を返すので上書き
@@ -2062,7 +2062,7 @@ async function _showShiftScreen() {
   }
   showLoading('シフト表を読み込み中...');
   try {
-    const shiftData = await gasJsonp('getShiftTable');
+    const shiftData = await apiGet('getShiftTable');
     SHIFT_DATA = shiftData;
     await hideLoading();
     initShiftScreen();
@@ -2123,17 +2123,17 @@ async function onGoogleCredential(response) {
     const email   = payload.email   || '';
     const name    = payload.name    || '';
     const picture = payload.picture || '';
-    await handleGASAuth(email, response.credential, name, picture);
+    await handleAuth(email, response.credential, name, picture);
   } catch (e) {
     hideLoading();
     showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてください。');
   }
 }
 
-async function handleGASAuth(email, token, displayName, picture) {
+async function handleAuth(email, token, displayName, picture) {
   showLoading('認証中...');
   try {
-    const data = await gasJsonp('auth', null, { source: 'form', email });
+    const data = await apiGet('auth', null, { source: 'form', email });
     hideLoading();
 
     if (!data.ok) {
@@ -2203,7 +2203,7 @@ async function doRegister() {
   btn.disabled = true;
   showLoading('登録中...');
   try {
-    const data = await gasJsonp('register', { email, name });
+    const data = await apiGet('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
     SESSION = {
       uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
@@ -2303,7 +2303,7 @@ async function openMemberPreview() {
   overlay.style.display = 'block';
   modal.style.display   = 'flex';
   try {
-    const data = await gasJsonp('getMemberList');
+    const data = await apiGet('getMemberList');
     _previewMemberList = (data.members || []);
     renderPreviewMemberList(_previewMemberList);
   } catch (e) {
@@ -2345,7 +2345,7 @@ async function startPreview(uid, name, email) {
   try {
     // 切替時もオーナーのセッションを使う（プレビュー中は SESSION がメンバーに置き換わっているため）
     const ownerSession = _isPreviewMode ? _previewOriginalSession : SESSION;
-    const data = await gasJsonp('previewMember', null, { adminEmail: ownerSession.email, targetUid: uid });
+    const data = await apiGet('previewMember', null, { adminEmail: ownerSession.email, targetUid: uid });
     if (!data.ok) throw new Error(data.reason || '取得失敗');
     if (!_isPreviewMode) _previewOriginalSession = Object.assign({}, SESSION); // 初回のみ保存
     _isPreviewMode = true;
@@ -2392,7 +2392,7 @@ let _updateCheckerListening = false;
 async function checkShiftUpdate() {
   if (!SESSION) return;
   try {
-    const res = await gasJsonp('getShiftLastUpdated');
+    const res = await apiGet('getShiftLastUpdated');
     if (!res || !res.ok) return;
     if (_knownTimestamp === null) {
       _knownTimestamp = res.lastUpdated;
@@ -2457,10 +2457,10 @@ async function initApp() {
     // isLimitedMember チェックと dataMini・getFormDetail・getShiftTable を並列取得
     const uid = SESSION ? SESSION.uid : '';
     const [limRes, formData, detail, shiftData] = await Promise.all([
-      uid ? gasJsonp('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
-      gasJsonp('dataMini', { type: 'normal' }),
-      gasJsonp('getFormDetail', { type: 'normal' }),
-      gasJsonp('getShiftTable', { type: 'normal' })
+      uid ? apiGet('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
+      apiGet('dataMini', { type: 'normal' }),
+      apiGet('getFormDetail', { type: 'normal' }),
+      apiGet('getShiftTable', { type: 'normal' })
     ]);
 
     isLimitedMember = limRes.ok && limRes.isLimited;
@@ -2476,9 +2476,9 @@ async function initApp() {
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) {
       const [limFormData, limDetail, limShiftData] = await Promise.all([
-        gasJsonp('dataMini',      { type: limitedPwType }),
-        gasJsonp('getFormDetail', { type: limitedPwType }),
-        gasJsonp('getShiftTable', { type: limitedPwType })
+        apiGet('dataMini',      { type: limitedPwType }),
+        apiGet('getFormDetail', { type: limitedPwType }),
+        apiGet('getShiftTable', { type: limitedPwType })
       ]);
       LIMITED_APP_DATA  = limFormData;
       LIMITED_SHIFT_DATA = limShiftData;
@@ -3681,7 +3681,7 @@ async function submitForm() {
     proxyFromUid: (currentFormUid !== SESSION.uid) ? SESSION.uid : ''
   };
   try {
-    const result = await gasJsonp('submitShift', payload);
+    const result = await apiGet('submitShift', payload);
     if (result && result.ok === false) throw new Error(result.error || '送信失敗');
 
     // THIS_MONTHをローカルで即時更新（メイン画面のボタン・希望一覧に反映するため）
@@ -3995,7 +3995,7 @@ function formatName(p) {
 async function _refreshShiftAndRedraw() {
   showLoading('シフト表を更新中...');
   try {
-    const shiftData = await gasJsonp('getShiftTable');
+    const shiftData = await apiGet('getShiftTable');
     SHIFT_DATA = shiftData;
     buildShiftDateList();
     if (shiftViewingDate) {
@@ -4036,7 +4036,7 @@ function openCancelInput() {
   const reason = prompt('中止理由を入力してください（空白でも可）:', '');
   if (reason === null) return; // キャンセル
   showLoading('中止情報を登録中...');
-  gasJsonp('cancelShift', { date, time, reason, uid: SESSION.uid }).then(async data => {
+  apiGet('cancelShift', { date, time, reason, uid: SESSION.uid }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
     else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
@@ -4048,7 +4048,7 @@ function openCancelUndo() {
   if (!confirm('この時間帯の中止を取り消しますか？')) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   showLoading('中止を取り消し中...');
-  gasJsonp('undoCancelShift', { date, time, uid: SESSION.uid }).then(async data => {
+  apiGet('undoCancelShift', { date, time, uid: SESSION.uid }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
     else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
@@ -4062,7 +4062,7 @@ function openMemoEdit() {
   const memo = prompt('責任者メモを入力してください:', current);
   if (memo === null) return;
   showLoading('メモを保存中...');
-  gasJsonp('saveMemo', { date, time, memo }).then(async data => {
+  apiGet('saveMemo', { date, time, memo }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
     else { hideLoading(); alert('エラー: ' + data.error); }
   }).catch(() => { hideLoading(); alert('通信エラー'); });
@@ -4140,7 +4140,7 @@ async function saveStaffEdits() {
 
   showLoading('シフトを保存中...');
   try {
-    const result = await gasJsonp('saveShiftBlock', {
+    const result = await apiGet('saveShiftBlock', {
       date: d.date,
       time: d.time,
       responsible,
@@ -4171,7 +4171,7 @@ async function submitRequest() {
   btn.disabled = true;
   showLoading('要望を送信中...');
   try {
-    const data = await gasJsonp('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
+    const data = await apiGet('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
     if (!data.ok) throw new Error(data.error);
     hideLoading();
     msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
@@ -4198,7 +4198,7 @@ async function submitBugReport() {
   btn.disabled = true;
   showLoading('バグ報告を送信中...');
   try {
-    const data = await gasJsonp('postBugReport', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
+    const data = await apiGet('postBugReport', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
     if (!data.ok) throw new Error(data.error);
     hideLoading();
     msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
@@ -4482,7 +4482,7 @@ function esc(s) {
 
 // ===== 起動処理 =====
 (async function init() {
-  // セッション復元を試みる（email/tokenのみ保存、権限は毎回GASから再取得）
+  // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
   const saved = loadSession();
   if (saved && saved.email) {
     if (saved.needsRegister) {
@@ -4490,10 +4490,10 @@ function esc(s) {
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
       return;
     }
-    // email+tokenがあればGASに再認証して最新データを取得
+    // email+tokenがあればサーバーに再認証して最新データを取得
     showLoading('認証中...');
     try {
-      const data = await gasJsonp('auth', null, { source: 'form', email: saved.email });
+      const data = await apiGet('auth', null, { source: 'form', email: saved.email });
       if (!data.ok) {
         hideLoading();
         clearSession();
@@ -4561,7 +4561,7 @@ async function openPhotoModal(category) {
   _photoCurrent = 0;
 
   try {
-    const res = await gasJsonp('getPhotos', { category, year: YEAR || new Date().getFullYear(), month: MONTH || (new Date().getMonth() + 1) });
+    const res = await apiGet('getPhotos', { category, year: YEAR || new Date().getFullYear(), month: MONTH || (new Date().getMonth() + 1) });
     _photoList = (res && res.photos) || [];
     if (_photoList.length === 0) {
       loadEl.textContent = '写真が登録されていません';
@@ -4612,10 +4612,10 @@ function openExhibitPhotoFromShift() {
   openPhotoModal('exhibit');
 }
 
-// ===== GAS POST（PDF等の大容量データ用） =====
-function gasPost(action, params) {
+// ===== API POST（PDF等の大容量データ用） =====
+function apiPost(action, params) {
   const payload = Object.assign({ action }, params);
-  return fetch(GAS_URL, {
+  return fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
     headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
@@ -4635,7 +4635,7 @@ async function openRoadPdfModal() {
   const body = document.getElementById('road-pdf-view-body');
   body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>';
   try {
-    const res = await gasJsonp('getRoadPdfs', {});
+    const res = await apiGet('getRoadPdfs', {});
     const allPdfs = (res && res.pdfs) || [];
     // "YYYY-MM-DD" を new Date() で解釈するとUTC深夜になり日本時間でずれるためローカル解釈する
     function _parseLocalDate(s) { const p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
@@ -4685,7 +4685,7 @@ async function _initRoadPermitScreen() {
   document.getElementById('road-permit-end-date').value     = _fmtDate(endOfMonth);
 
   try {
-    const res = await gasJsonp('getRoadPdfs', {});
+    const res = await apiGet('getRoadPdfs', {});
     const pdfs = (res && res.pdfs) || [];
     if (!pdfs.length) {
       card.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub);font-size:13px;">登録されているPDFはありません</div>';
@@ -4743,7 +4743,7 @@ async function onRoadPermitFileSelected(event) {
     });
     // PDF名をDriveのファイル名にも適用（上書き検索に使われる）
     const driveFileName = (displayName.endsWith('.pdf') ? displayName : displayName + '.pdf');
-    const res = await gasPost('uploadRoadPdf', { base64, fileName: driveFileName, displayName, startDate, endDate });
+    const res = await apiPost('uploadRoadPdf', { base64, fileName: driveFileName, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || 'アップロード失敗');
     await hideLoading();
     statusEl.style.display = 'block';
@@ -4761,7 +4761,7 @@ async function deleteRoadPdf(fileId, fileName) {
   if (!confirm('「' + fileName + '」を削除しますか？')) return;
   showLoading('削除中...');
   try {
-    const res = await gasJsonp('deleteRoadPdf', { fileId: fileId });
+    const res = await apiGet('deleteRoadPdf', { fileId: fileId });
     if (!res.ok) throw new Error(res.error || '削除失敗');
     await hideLoading();
     await _initRoadPermitScreen();
@@ -4825,7 +4825,7 @@ async function saveEditRoadPdf() {
   msgEl.textContent = '';
   showLoading('保存中...');
   try {
-    const res = await gasJsonp('updateRoadPdfMeta', { fileId, displayName, startDate, endDate });
+    const res = await apiGet('updateRoadPdfMeta', { fileId, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || '保存失敗');
     await hideLoading();
     closeEditRoadPdf();
@@ -4851,9 +4851,9 @@ async function switchFormPwType(type) {
       // 限定PW データを再フェッチ（キャッシュがあれば使う）
       if (!LIMITED_APP_DATA) {
         const [limFormData, limDetail, limShiftData] = await Promise.all([
-          gasJsonp('dataMini',      { type: limitedPwType }),
-          gasJsonp('getFormDetail', { type: limitedPwType }),
-          gasJsonp('getShiftTable', { type: limitedPwType })
+          apiGet('dataMini',      { type: limitedPwType }),
+          apiGet('getFormDetail', { type: limitedPwType }),
+          apiGet('getShiftTable', { type: limitedPwType })
         ]);
         LIMITED_APP_DATA   = limFormData;
         LIMITED_SHIFT_DATA = limShiftData;
@@ -4880,9 +4880,9 @@ async function switchFormPwType(type) {
     } else {
       // 通常PW に戻す（initApp で取得したデータを再フェッチ）
       const [formData, detail, shiftData] = await Promise.all([
-        gasJsonp('dataMini',      { type: 'normal' }),
-        gasJsonp('getFormDetail', { type: 'normal' }),
-        gasJsonp('getShiftTable', { type: 'normal' })
+        apiGet('dataMini',      { type: 'normal' }),
+        apiGet('getFormDetail', { type: 'normal' }),
+        apiGet('getShiftTable', { type: 'normal' })
       ]);
       APP_DATA   = formData;
       SHIFT_DATA = shiftData;

@@ -1732,9 +1732,27 @@ function apiGet(action, params, extraQuery) {
     .then(r => { clearTimeout(timer); return r.json(); })
     .catch(err => {
       clearTimeout(timer);
+      console.error('[api]', action, err);
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');
       throw new Error('通信エラー（サーバーへの接続に失敗）');
     });
+}
+
+// ===== API POST（PDF等の大容量データ用） =====
+function apiPost(action, params) {
+  const payload = Object.assign({ action }, params);
+  return fetch(API_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).then(d => {
+    if (d && d.error && !d.ok) throw new Error(d.error);
+    return d;
+  }).catch(err => {
+    console.error('[api]', action, err);
+    throw err;
+  });
 }
 
 // ===== グローバル状態 =====
@@ -4610,20 +4628,6 @@ function openAccountingSheet() {
 // ===== シフト表詳細：カート展示写真ボタン =====
 function openExhibitPhotoFromShift() {
   openPhotoModal('exhibit');
-}
-
-// ===== API POST（PDF等の大容量データ用） =====
-function apiPost(action, params) {
-  const payload = Object.assign({ action }, params);
-  return fetch(API_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).then(r => r.json()).then(d => {
-    if (d && d.error && !d.ok) throw new Error(d.error);
-    return d;
-  });
 }
 
 // ===== 道路使用許可書PDF閲覧モーダル（全ユーザー向け） =====

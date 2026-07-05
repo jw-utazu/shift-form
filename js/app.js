@@ -713,7 +713,7 @@ async function checkShiftUpdate() {
     if (res.lastUpdated !== _knownTimestamp) {
       document.getElementById('shift-update-banner').style.display = 'block';
     }
-  } catch (_) {}
+  } catch (e) { console.warn('[checkShiftUpdate]', e); }
 }
 
 async function reloadShiftData() {

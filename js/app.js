@@ -15,14 +15,30 @@ function getDebugFakeNow() {
   return localStorage.getItem('debugFakeNow') || '';
 }
 
+function _debugDateLabel(value) {
+  if (!value) return '実日付';
+  const DAY_NAMES = ['日','月','火','水','木','金','土'];
+  const [y, m, d] = value.split('-').map(Number);
+  return m + '/' + d + '(' + DAY_NAMES[new Date(y, m - 1, d).getDay()] + ')';
+}
 function initDebugDatePanel() {
   const panel = document.getElementById('debugDatePanel');
   if (!panel) return;
   if (!SESSION || SESSION.email !== TEST_EMAIL) { panel.style.display = 'none'; return; }
   panel.style.display = 'flex';
+  const toggleBtn = document.getElementById('debugDateToggleBtn');
+  const toggleLabel = document.getElementById('debugDateToggleLabel');
+  const card = document.getElementById('debugDateCard');
   const input = document.getElementById('debugFakeNowInput');
   const clearBtn = document.getElementById('debugFakeNowClearBtn');
-  input.value = localStorage.getItem('debugFakeNow') || '';
+  const savedValue = localStorage.getItem('debugFakeNow') || '';
+  input.value = savedValue;
+  toggleLabel.textContent = _debugDateLabel(savedValue);
+  toggleBtn.classList.toggle('active', !!savedValue);
+  toggleBtn.onclick = (e) => { e.stopPropagation(); card.classList.toggle('show'); };
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target)) card.classList.remove('show');
+  });
   input.onchange = () => {
     if (input.value) localStorage.setItem('debugFakeNow', input.value);
     else localStorage.removeItem('debugFakeNow');

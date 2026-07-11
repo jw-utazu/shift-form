@@ -42,10 +42,13 @@ function initDebugDatePanel() {
   input.onchange = () => {
     if (input.value) localStorage.setItem('debugFakeNow', input.value);
     else localStorage.removeItem('debugFakeNow');
-    location.reload(); // 現在表示中のデータも新しい疑似日付で再取得させる
+    // 古い表示のまま一瞬固まって見えないよう、reload前にオーバーレイを出す
+    showLoading('疑似日付を反映しています...');
+    location.reload();
   };
   clearBtn.onclick = () => {
     localStorage.removeItem('debugFakeNow');
+    showLoading('実際の日付に戻しています...');
     location.reload();
   };
 }
@@ -918,7 +921,11 @@ function buildMainScreen() {
   const isOwner = SESSION.isAdmin && !SESSION.uid;
   const ed      = APP_DATA.eventDates || {};
   let   status  = APP_DATA.status || '準備中';
-  const today   = new Date(); today.setHours(0,0,0,0);
+  const _fakeNowStr = getDebugFakeNow();
+  const today = _fakeNowStr
+    ? (() => { const [fy, fm, fd] = _fakeNowStr.split('-').map(Number); return new Date(fy, fm - 1, fd); })()
+    : new Date();
+  today.setHours(0,0,0,0);
   // 限定PWはフェーズ情報からstatus上書き
   if (currentPwType !== 'normal' && APP_DATA && APP_DATA.phases) {
     const _phases = APP_DATA.phases;

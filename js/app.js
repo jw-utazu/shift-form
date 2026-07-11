@@ -3291,12 +3291,17 @@ function _applyLimitedPwData() {
 // テストアカウント専用：限定PWメンバーでなくても全タイプを閲覧できるようにする
 // ============================================================
 let _testLimitedTypes = [];
-// ピッカーの表示は「テストアカウント・選択肢あり・現在限定PWタブを見ている」の場合のみ
+// ピッカーの表示は「テストアカウント・候補が2つ以上・現在限定PWタブを見ている」の場合のみ
+// （候補が1つしかない場合は切り替える意味がないので出さない）
 function _updateTestLimitedPickerVisibility() {
   const picker = document.getElementById('test-limited-type-picker');
   if (!picker) return;
   const isTest = SESSION && SESSION.email === TEST_EMAIL;
-  picker.classList.toggle('show', isTest && _testLimitedTypes.length > 0 && currentPwType === 'limited');
+  picker.classList.toggle('show', isTest && _testLimitedTypes.length > 1 && currentPwType === 'limited');
+}
+// 候補が複数あるときはタブ名は「限定PW」固定、1つだけならその限定PWの名前にする
+function _testLimitedTabLabel(name) {
+  return _testLimitedTypes.length > 1 ? '限定PW' : (name || '限定PW');
 }
 async function loadTestLimitedTypePicker() {
   const picker = document.getElementById('test-limited-type-picker');
@@ -3312,7 +3317,7 @@ async function loadTestLimitedTypePicker() {
   // 実在するタイプがあればデフォルト選択にする（未設定の可能性がある旧型'limited'は使わない）
   if (_testLimitedTypes.length > 0) {
     limitedPwType = _testLimitedTypes[0].id;
-    limitedPwName = _testLimitedTypes[0].name;
+    limitedPwName = _testLimitedTabLabel(_testLimitedTypes[0].name);
     const tabLimited = document.getElementById('pw-tab-form-limited');
     if (tabLimited) tabLimited.textContent = limitedPwName;
   }
@@ -3331,7 +3336,7 @@ async function selectTestLimitedType(newType, newName) {
   });
   if (limitedPwType === newType && currentPwType === 'limited') return;
   limitedPwType = newType;
-  limitedPwName = newName || newType;
+  limitedPwName = _testLimitedTabLabel(newName);
   const tabLimited = document.getElementById('pw-tab-form-limited');
   if (tabLimited) tabLimited.textContent = limitedPwName;
   currentPwType = 'limited';

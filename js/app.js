@@ -1596,29 +1596,32 @@ function buildWishListBox(status, isOpenPassed) {
       let role = '奉仕者';
       if ((d.responsible || []).includes(viewName)) role = '責任者';
       else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === viewName)) role = 'カート担当';
-      targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role, cancelled: d.cancelled, cancelReason: d.cancelReason });
+      targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role, cancelled: d.cancelled, cancelReason: d.cancelReason, dateObj: d });
     });
     title.textContent = '✅ 確定シフト一覧';
     if (targetShifts.length === 0) {
       card.style.display = 'none';
       return;
     } else {
-      body.innerHTML = targetShifts.map(s => {
+      body.innerHTML = targetShifts.map((s, i) => {
         if (s.cancelled) {
-          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+          return '<div class="confirmed-shift-item" data-idx="' + i + '" style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;">' +
             '<span style="font-weight:700;color:#9ca3af;text-decoration:line-through;">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
             ' <span style="color:#9ca3af;text-decoration:line-through;">' + esc(s.time) + '</span>' +
             ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">⛔ 中止</span>' +
             (s.cancelReason ? '<div style="font-size:12px;color:var(--danger-dark);margin-top:2px;">理由：' + esc(s.cancelReason) + '</div>' : '') +
             '</div>';
         }
-        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">' +
+        return '<div class="confirmed-shift-item" data-idx="' + i + '" style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;">' +
           '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
           ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
           ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
           '</div>';
       }).join('') +
         '<div style="margin-top:10px;font-size:12px;color:var(--sub);border-top:1px solid var(--border);padding-top:8px;">変更がある場合は、責任者に直接ご連絡ください。</div>';
+      body.querySelectorAll('.confirmed-shift-item').forEach(el => {
+        el.onclick = () => goToShiftDetail(targetShifts[parseInt(el.dataset.idx, 10)].dateObj);
+      });
     }
     card.style.display = '';
     return;
@@ -1728,6 +1731,13 @@ function openFormForUid(uid) {
   }, 50);
 }
 
+// 指定日付のシフト詳細画面を開く（次のシフト・確定シフト一覧のクリック用）
+function goToShiftDetail(dateObj) {
+  if (!dateObj) return;
+  showScreen('shift');
+  showShiftDetail(dateObj);
+}
+
 function buildNextShift(isOpenPassed) {
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
   if (!isOpenPassed) return; // 公開予定日前は表示しない
@@ -1745,6 +1755,7 @@ function buildNextShift(isOpenPassed) {
   if (!next) return;
   const card = document.getElementById('next-shift-card');
   card.style.display = '';
+  card.onclick = () => goToShiftDetail(next);
   if (next.cancelled) {
     card.classList.add('cancelled');
     const cancelEl = document.getElementById('next-shift-cancel');

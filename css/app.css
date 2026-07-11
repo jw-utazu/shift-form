@@ -322,6 +322,7 @@ body::-webkit-scrollbar { display: none; }
   border-radius: var(--radius);
   padding: 16px 14px;
   margin-bottom: 10px;
+  cursor: pointer;
 }
 .next-shift-label { font-size: 13px; opacity: .85; margin-bottom: 6px; }
 .next-shift-date  { font-size: 22px; font-weight: 700; }

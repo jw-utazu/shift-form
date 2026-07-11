@@ -96,9 +96,9 @@ function apiGet(action, params, extraQuery) {
   if (fakeNow) p.fakeNow = fakeNow;
   let url = API_URL + '?action=' + encodeURIComponent(action);
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
-  // fakeNowが有効＝テストアカウントでのログイン中。email未指定だとサーバー側で
-  // テストアカウント判定ができずfakeNowが無視されるため、ここで付与する
-  if (fakeNow && SESSION && SESSION.email && (!extraQuery || !extraQuery.email)) {
+  // テストアカウントでのログイン中はemailを常に送る。email未指定だとサーバー側で
+  // テストアカウント判定ができず、fakeNowや代理送信デモ用の候補などが無効化されるため
+  if (SESSION && SESSION.email === TEST_EMAIL && (!extraQuery || !extraQuery.email)) {
     url += '&email=' + encodeURIComponent(SESSION.email);
   }
   if (extraQuery) {

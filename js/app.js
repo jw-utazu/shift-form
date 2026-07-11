@@ -4,6 +4,36 @@ const ANON_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
 
+// ============================================================
+// テストアカウント専用：疑似日付シミュレーション
+// ============================================================
+const TEST_EMAIL = 'jw.utazu.test@gmail.com';
+
+// テストアカウントでログイン中かつ疑似日付が設定されている場合のみ値を返す
+function getDebugFakeNow() {
+  if (!SESSION || SESSION.email !== TEST_EMAIL) return '';
+  return localStorage.getItem('debugFakeNow') || '';
+}
+
+function initDebugDatePanel() {
+  const panel = document.getElementById('debugDatePanel');
+  if (!panel) return;
+  if (!SESSION || SESSION.email !== TEST_EMAIL) { panel.style.display = 'none'; return; }
+  panel.style.display = 'flex';
+  const input = document.getElementById('debugFakeNowInput');
+  const clearBtn = document.getElementById('debugFakeNowClearBtn');
+  input.value = localStorage.getItem('debugFakeNow') || '';
+  input.onchange = () => {
+    if (input.value) localStorage.setItem('debugFakeNow', input.value);
+    else localStorage.removeItem('debugFakeNow');
+    location.reload(); // 現在表示中のデータも新しい疑似日付で再取得させる
+  };
+  clearBtn.onclick = () => {
+    localStorage.removeItem('debugFakeNow');
+    location.reload();
+  };
+}
+
 // ===== JSONP通信ユーティリティ（CORSを回避）=====
 // actionはAPIのルーターで受け付けるアクション名
 // paramsはオブジェクト（APIにJSONで渡す）
@@ -13,6 +43,8 @@ function apiGet(action, params, extraQuery) {
   // type パラメータを自動付与（明示的に渡された type が優先）
   const effectiveType = currentPwType === 'limited' ? limitedPwType : currentPwType;
   const p = Object.assign({ type: effectiveType }, params || {});
+  const fakeNow = getDebugFakeNow();
+  if (fakeNow) p.fakeNow = fakeNow;
   let url = API_URL + '?action=' + encodeURIComponent(action);
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
   if (extraQuery) {
@@ -35,6 +67,8 @@ function apiGet(action, params, extraQuery) {
 // ===== API POST（PDF等の大容量データ用） =====
 function apiPost(action, params) {
   const payload = Object.assign({ action }, params);
+  const fakeNow = getDebugFakeNow();
+  if (fakeNow) payload.fakeNow = payload.fakeNow || fakeNow;
   return fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
@@ -333,7 +367,8 @@ window.addEventListener('popstate', function(e) {
   }
 
   // shift画面の詳細→一覧の内部遷移（前進で detail エントリに戻った場合）
-  if (screen === 'shift' && state.subScreen === 'detail') {
+  // ※ quickJump（メイン画面から直接開いた詳細）はこの内部遷移の対象外
+  if (screen === 'shift' && state.subScreen === 'detail' && !state.quickJump) {
     _shiftDetailBack();
     return;
   }
@@ -741,6 +776,7 @@ function logout() {
   document.getElementById('shift-update-banner').style.display = 'none';
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
+  { const panel = document.getElementById('debugDatePanel'); if (panel) panel.style.display = 'none'; }
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
@@ -757,6 +793,7 @@ function logout() {
 
 // ===== アプリ初期化 =====
 async function initApp() {
+  initDebugDatePanel();
   showLoading('データを読み込み中...');
   // 再読み込み時は一旦通常PWとして再構築し、必要なら最後に限定PWビューへ戻す
   const prevPwType = currentPwType;
@@ -1605,17 +1642,23 @@ function buildWishListBox(status, isOpenPassed) {
     } else {
       body.innerHTML = targetShifts.map((s, i) => {
         if (s.cancelled) {
-          return '<div class="confirmed-shift-item" data-idx="' + i + '" style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;">' +
+          return '<div class="confirmed-shift-item" data-idx="' + i + '">' +
+            '<div class="csi-main">' +
             '<span style="font-weight:700;color:#9ca3af;text-decoration:line-through;">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
             ' <span style="color:#9ca3af;text-decoration:line-through;">' + esc(s.time) + '</span>' +
             ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">⛔ 中止</span>' +
             (s.cancelReason ? '<div style="font-size:12px;color:var(--danger-dark);margin-top:2px;">理由：' + esc(s.cancelReason) + '</div>' : '') +
+            '</div>' +
+            '<span class="csi-arrow">›</span>' +
             '</div>';
         }
-        return '<div class="confirmed-shift-item" data-idx="' + i + '" style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;">' +
+        return '<div class="confirmed-shift-item" data-idx="' + i + '">' +
+          '<div class="csi-main">' +
           '<span style="font-weight:700;color:var(--green);">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
           ' <span style="color:var(--sub);">' + esc(s.time) + '</span>' +
           ' <span style="font-size:12px;background:var(--green-light);color:var(--green-dark);padding:2px 6px;border-radius:4px;margin-left:4px;">' + esc(s.role) + '</span>' +
+          '</div>' +
+          '<span class="csi-arrow">›</span>' +
           '</div>';
       }).join('') +
         '<div style="margin-top:10px;font-size:12px;color:var(--sub);border-top:1px solid var(--border);padding-top:8px;">変更がある場合は、責任者に直接ご連絡ください。</div>';
@@ -1732,10 +1775,33 @@ function openFormForUid(uid) {
 }
 
 // 指定日付のシフト詳細画面を開く（次のシフト・確定シフト一覧のクリック用）
+// 一覧を経由せず直接詳細を開き、履歴には詳細エントリ1つだけを積む
+// （戻るボタン・スワイプで一覧を経由せずメイン画面へ直接戻れるようにするため）
 function goToShiftDetail(dateObj) {
-  if (!dateObj) return;
-  showScreen('shift');
-  showShiftDetail(dateObj);
+  if (!dateObj || !SHIFT_DATA) return;
+  // 中止シフトで一般ユーザー（管理者・責任者以外）はポップアップのみ表示し、画面はメインのまま
+  if (dateObj.cancelled && SESSION) {
+    const isAssignedResp = (dateObj.responsible || []).includes(SESSION.name);
+    if (!SESSION.isAdmin && !SESSION.isResponsible && !isAssignedResp) {
+      showCancelInfoPopup(dateObj.cancelReason);
+      return;
+    }
+  }
+  SCREENS.forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (s === 'shift') {
+      el.style.display = SCREEN_DISPLAY[s] || 'block';
+      el.classList.remove('screen-enter-forward', 'screen-enter-back');
+      void el.offsetWidth;
+      el.classList.add('screen-enter-forward');
+    } else {
+      el.style.display = 'none';
+      el.classList.remove('screen-enter-forward', 'screen-enter-back');
+    }
+  });
+  _currentScreenName = 'shift';
+  initShiftScreen();
+  showShiftDetail(dateObj, true);
 }
 
 function buildNextShift(isOpenPassed) {
@@ -2105,7 +2171,7 @@ function closeCancelInfoPopup() {
   document.getElementById('cancel-info-overlay').classList.remove('show');
 }
 
-function showShiftDetail(dateObj) {
+function showShiftDetail(dateObj, quickJump) {
   // 中止シフトで一般ユーザー（管理者・責任者以外）はポップアップのみ表示
   if (dateObj.cancelled && SESSION) {
     const isAssignedResp = (dateObj.responsible || []).includes(SESSION.name);
@@ -2125,9 +2191,15 @@ function showShiftDetail(dateObj) {
   detailEl.classList.remove('screen-enter-forward', 'screen-enter-back');
   void detailEl.offsetWidth;
   detailEl.classList.add('screen-enter-forward');
-  document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
-  // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）
-  history.pushState({ screen: 'shift', subScreen: 'detail' }, '');
+  if (quickJump) {
+    // メイン画面から直接開いた場合：戻るとメイン画面へ（一覧を経由しない）
+    document.getElementById('shift-back-btn').onclick = () => history.back();
+    history.pushState({ screen: 'shift', subScreen: 'detail', quickJump: true }, '');
+  } else {
+    document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
+    // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）
+    history.pushState({ screen: 'shift', subScreen: 'detail' }, '');
+  }
   buildShiftDetail(dateObj);
 }
 

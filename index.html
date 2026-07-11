@@ -11,9 +11,16 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=2">
+<link rel="stylesheet" href="css/app.css?v=3">
 </head>
 <body>
+
+<!-- テストアカウント専用：疑似日付デバッグパネル -->
+<div id="debugDatePanel" style="display:none;position:fixed;right:10px;bottom:10px;z-index:9999;align-items:center;gap:6px;background:#fff3cd;border:1px solid #f0ad4e;border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+  <span>🧪疑似日付</span>
+  <input type="date" id="debugFakeNowInput" style="font-size:12px;padding:2px 4px;">
+  <button type="button" id="debugFakeNowClearBtn" style="font-size:11px;padding:2px 6px;">解除</button>
+</div>
 
 <!-- シフト更新通知バナー -->
 <div id="shift-update-banner" onclick="reloadShiftData()">
@@ -93,6 +100,7 @@
       <div class="next-shift-date" id="next-shift-date">-</div>
       <div class="next-shift-role" id="next-shift-role"></div>
       <div class="next-shift-cancel" id="next-shift-cancel" style="display:none;"></div>
+      <span class="next-shift-arrow">›</span>
     </div>
 
     <!-- 受付状況 -->
@@ -510,6 +518,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=4"></script>
 </body>
 </html>

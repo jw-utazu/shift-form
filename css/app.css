@@ -320,15 +320,42 @@ body::-webkit-scrollbar { display: none; }
   background: linear-gradient(135deg, var(--green) 0%, #15803d 100%);
   color: #fff;
   border-radius: var(--radius);
-  padding: 16px 14px;
+  padding: 16px 40px 16px 14px;
   margin-bottom: 10px;
   cursor: pointer;
+  position: relative;
 }
 .next-shift-label { font-size: 13px; opacity: .85; margin-bottom: 6px; }
 .next-shift-date  { font-size: 22px; font-weight: 700; }
 .next-shift-role  { font-size: 14px; opacity: .9; margin-top: 4px; }
 .next-shift-card.cancelled { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
 .next-shift-cancel { font-size: 13px; font-weight: 700; margin-top: 8px; }
+.next-shift-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 26px;
+  opacity: .85;
+}
+
+/* 確定シフト一覧の各項目（クリックで詳細へ） */
+.confirmed-shift-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  cursor: pointer;
+}
+.confirmed-shift-item .csi-main { flex: 1; min-width: 0; }
+.confirmed-shift-item .csi-arrow {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--sub);
+}
 
 /* カレンダー月ナビ */
 .cal-month-nav {

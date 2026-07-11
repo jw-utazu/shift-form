@@ -171,6 +171,7 @@ let staffEditMode = false;   // 奉仕者編集モード
 let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
+let _currentNotices = [];          // 現在表示可能なお知らせ一覧（ベルアイコンのバッジ・モーダル用）
 
 // ===== PWA =====
 const _isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -382,6 +383,7 @@ window.addEventListener('popstate', function(e) {
     const which = _modalInHistory;
     _modalInHistory = null;
     if (which === 'help')        document.getElementById('help-overlay').classList.remove('show');
+    else if (which === 'notices')  document.getElementById('notices-modal').style.display = 'none';
     else if (which === 'roadPdf')  document.getElementById('road-pdf-view-modal').style.display = 'none';
     else if (which === 'adminPdf') {
       document.getElementById('admin-pdf-preview-overlay').style.display = 'none';
@@ -1097,19 +1099,41 @@ function buildMainScreen() {
   // ── 次のシフト ──
   buildNextShift(isOpenPassed);
 
-  // ── お知らせ ──
-  const notices = APP_DATA.notices || [];
-  if (notices.length > 0) {
-    const nc = document.getElementById('notices-container');
-    nc.innerHTML = '';
-    notices.forEach(n => {
-      nc.innerHTML += `<div class="notice-item">
-        <div class="notice-date">${n.date}</div>
+  // ── お知らせ（ヘッダーのベルアイコン＋バッジに集約） ──
+  _currentNotices = APP_DATA.notices || [];
+  updateNoticeBadge();
+}
+
+function updateNoticeBadge() {
+  const badge = document.getElementById('notice-badge');
+  if (!badge) return;
+  const n = (_currentNotices || []).length;
+  badge.textContent = n > 99 ? '99+' : String(n);
+  badge.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function openNoticesModal() {
+  const modal = document.getElementById('notices-modal');
+  const body  = document.getElementById('notices-modal-body');
+  const list  = _currentNotices || [];
+  body.innerHTML = list.length > 0
+    ? list.map(n => `<div class="notice-item">
+        <div class="notice-date">${esc(n.date)}</div>
         <div class="notice-title">${esc(n.title)}</div>
         <div class="notice-body">${esc(n.body)}</div>
-      </div>`;
-    });
-    document.getElementById('notices-card').style.display = '';
+      </div>`).join('')
+    : '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">お知らせはありません</div>';
+  modal.style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'notices' }, '');
+  _modalInHistory = 'notices';
+}
+
+function closeNoticesModal() {
+  document.getElementById('notices-modal').style.display = 'none';
+  if (_modalInHistory === 'notices') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
   }
 }
 

@@ -47,8 +47,10 @@ body::-webkit-scrollbar { display: none; }
   z-index: 100;
   box-shadow: 0 2px 8px rgba(22,163,74,0.3);
 }
-.hdr-left  { display: flex; align-items: center; justify-content: flex-start; }
+.hdr-left  { display: flex; align-items: center; justify-content: flex-start; gap: 6px; }
 .hdr h1    { font-size: 17px; font-weight: 700; text-align: center; }
+/* メイン画面のみヘッダー左に「?」＋お知らせベルの2ボタンが並ぶため左カラムを広げる */
+#screen-main .hdr { grid-template-columns: 84px 1fr 44px; }
 .hdr-right { display: flex; align-items: center; justify-content: flex-end; }
 
 /* バー右アイコン */
@@ -984,6 +986,17 @@ body::-webkit-scrollbar { display: none; }
   padding: 0;
 }
 .help-btn:active { background: rgba(255,255,255,0.4); }
+
+/* お知らせベルボタン（ヘッダー内） */
+.notice-btn { position: relative; font-size: 15px; }
+.notice-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: 999px; background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  border: 2px solid var(--green);
+  display: flex; align-items: center; justify-content: center;
+}
 
 /* ログイン画面ヘルプボタン */
 #screen-login { position: relative; }

@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=6">
+<link rel="stylesheet" href="css/app.css?v=7">
 </head>
 <body>
 
@@ -84,7 +84,12 @@
 <!-- ===== メイン画面 ===== -->
 <div id="screen-main">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('main')">?</button></div>
+    <div class="hdr-left">
+      <button class="help-btn" onclick="openHelp('main')">?</button>
+      <button class="help-btn notice-btn" onclick="openNoticesModal()" title="お知らせ">
+        🔔<span class="notice-badge" id="notice-badge" style="display:none;"></span>
+      </button>
+    </div>
     <h1 id="main-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
@@ -100,12 +105,6 @@
   <!-- テストアカウント専用：限定PWタイプ選択（横スクロール） -->
   <div id="test-limited-type-picker"></div>
   <div class="container">
-    <!-- お知らせ -->
-    <div class="card" id="notices-card" style="display:none;">
-      <div class="card-title">📢 お知らせ</div>
-      <div id="notices-container"></div>
-    </div>
-
     <!-- 次のシフト -->
     <div class="next-shift-card" id="next-shift-card" style="display:none;">
       <div class="next-shift-label">📅 次のシフト</div>
@@ -438,6 +437,17 @@
   </div>
 </div>
 
+<!-- ===== お知らせモーダル ===== -->
+<div id="notices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center;padding:12px;" onclick="if(event.target===this)closeNoticesModal()">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3);display:flex;flex-direction:column;max-height:80vh;">
+    <div style="background:var(--green);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <span style="color:#fff;font-size:15px;font-weight:700;">📢 お知らせ</span>
+      <button onclick="closeNoticesModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div id="notices-modal-body" style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
+  </div>
+</div>
+
 <!-- ===== 道路使用許可書PDFモーダル（閲覧用） ===== -->
 <div id="road-pdf-view-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center;padding:12px;" onclick="if(event.target===this)closeRoadPdfModal()">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3);display:flex;flex-direction:column;height:96vh;">
@@ -532,6 +542,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=13"></script>
+<script src="js/app.js?v=14"></script>
 </body>
 </html>

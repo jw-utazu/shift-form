@@ -15,6 +15,14 @@ function getDebugFakeNow() {
   return localStorage.getItem('debugFakeNow') || '';
 }
 
+// 「未登録状態を試す」ワンショットフラグを読み取り、即座にクリアする
+// （次回以降のauth呼び出しには影響させないため）
+function _consumeSimulateRegisterFlag() {
+  const v = sessionStorage.getItem('debugSimulateRegisterOnce');
+  sessionStorage.removeItem('debugSimulateRegisterOnce');
+  return !!v;
+}
+
 // 「今日」判定はすべてこれを介す：疑似日付が設定されていればそれを、なければ実際の現在時刻を返す
 function getSimulatedToday() {
   const fakeNow = getDebugFakeNow();
@@ -65,6 +73,14 @@ function initDebugDatePanel() {
     showLoading('実際の日付に戻しています...');
     location.reload();
   };
+  const simulateBtn = document.getElementById('debugSimulateRegisterBtn');
+  if (simulateBtn) {
+    simulateBtn.onclick = () => {
+      sessionStorage.setItem('debugSimulateRegisterOnce', '1');
+      showLoading('未登録状態を再現しています...');
+      location.reload();
+    };
+  }
 }
 
 // ===== JSONP通信ユーティリティ（CORSを回避）=====
@@ -521,7 +537,9 @@ async function onGoogleCredential(response) {
 async function handleAuth(email, token, displayName, picture) {
   showLoading('認証中...');
   try {
-    const data = await apiGet('auth', null, { source: 'form', email });
+    const authQuery = { source: 'form', email };
+    if (_consumeSimulateRegisterFlag()) authQuery.simulateRegister = '1';
+    const data = await apiGet('auth', null, authQuery);
     hideLoading();
 
     if (!data.ok) {
@@ -2936,7 +2954,9 @@ function esc(s) {
     // email+tokenがあればサーバーに再認証して最新データを取得
     showLoading('認証中...');
     try {
-      const data = await apiGet('auth', null, { source: 'form', email: saved.email });
+      const restoreAuthQuery = { source: 'form', email: saved.email };
+      if (_consumeSimulateRegisterFlag()) restoreAuthQuery.simulateRegister = '1';
+      const data = await apiGet('auth', null, restoreAuthQuery);
       if (!data.ok) {
         hideLoading();
         clearSession();

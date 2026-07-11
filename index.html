@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=5">
+<link rel="stylesheet" href="css/app.css?v=6">
 </head>
 <body>
 
@@ -22,6 +22,9 @@
     <div class="debug-date-card-sub">指定した日付を「今日」として動作確認できます（テストアカウント専用）</div>
     <input type="date" id="debugFakeNowInput" class="debug-date-input">
     <button type="button" id="debugFakeNowClearBtn" class="debug-date-clear-btn">実際の日付に戻す</button>
+    <hr class="debug-date-divider">
+    <div class="debug-date-card-sub">初期登録画面の動作確認用（1回だけ表示されます）</div>
+    <button type="button" id="debugSimulateRegisterBtn" class="debug-simulate-btn">未登録状態を試す</button>
   </div>
   <button type="button" id="debugDateToggleBtn" class="debug-date-toggle">
     <span class="debug-date-toggle-icon">🧪</span>
@@ -529,6 +532,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=11"></script>
+<script src="js/app.js?v=12"></script>
 </body>
 </html>

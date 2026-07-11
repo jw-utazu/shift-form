@@ -1239,4 +1239,7 @@ body::-webkit-scrollbar { display: none; }
 .debug-date-input:focus{outline:2px solid var(--purple-dark);outline-offset:1px;}
 .debug-date-clear-btn{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:10px;background:none;color:var(--sub);font-size:11px;font-family:inherit;cursor:pointer;}
 .debug-date-clear-btn:active{background:var(--bg);}
+.debug-date-divider{border:none;border-top:1px solid var(--border);margin:2px 0;}
+.debug-simulate-btn{width:100%;padding:7px 10px;border:1px solid #93c5fd;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-family:inherit;cursor:pointer;}
+.debug-simulate-btn:active{background:#dbeafe;}
 .cal-day.shift-day-unified.selected{background:#f0fdf4;}

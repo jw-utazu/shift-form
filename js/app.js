@@ -2211,29 +2211,32 @@ function buildShiftDateList() {
     const cartAll = d.cart ? [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name) : [];
     let subHtml = '';
     if (respNames.length > 0) {
-      subHtml += '<div><span class="sdb-sub-label">責任者：</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">👤 責任者</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
     }
     if (cartAll.length > 0 && d.cart) {
       const bringStr = (d.cart.bring || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
       const takeStr = (d.cart.take || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
-      subHtml += '<div><span class="sdb-sub-label">カート：</span>' +
-        (bringStr ? '持込 <span class="sdb-sub-val">' + bringStr + '</span>' : '') +
-        (bringStr && takeStr ? '　' : '') +
-        (takeStr ? '持帰 <span class="sdb-sub-val">' + takeStr + '</span>' : '') +
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">🛒 カート</span>' +
+        (bringStr ? '<span class="sdb-sub-val">持込 ' + bringStr + '</span>' : '') +
+        (bringStr && takeStr ? '<span style="color:var(--border);">/</span>' : '') +
+        (takeStr ? '<span class="sdb-sub-val">持帰 ' + takeStr + '</span>' : '') +
         '</div>';
     }
 
     btn.innerHTML =
       '<div class="sdb-main">' +
-        '<div class="sdb-date"><span class="sdb-date-text">' + esc(d.date) + '（' + esc(d.weekday) + '）</span><span class="sdb-time">　' + esc(d.time) + '</span></div>' +
+        '<div class="sdb-head"><span class="sdb-date"><span class="sdb-date-text">' + esc(d.date) + '（' + esc(d.weekday) + '）</span></span><span class="sdb-time">' + esc(d.time) + '</span></div>' +
         (d.cancelled
           ? '<div class="sdb-cancel-reason">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
           : (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '')) +
       '</div>' +
-      (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
-          : hasMyShift ? '<span class="sdb-badge">参加</span>' : '');
+      '<div class="sdb-right">' +
+        (d.cancelled ? '<span class="sdb-badge cancelled">中止</span>'
+            : hasMyShift ? '<span class="sdb-badge">参加</span>' : '') +
+        '<span class="sdb-arrow">›</span>' +
+      '</div>';
     btn.onclick = () => showShiftDetail(d);
     container.appendChild(btn);
   });
@@ -2374,6 +2377,9 @@ function buildShiftDetail(d) {
         );
 
     if (placeNames.length > 0) {
+      if (placeNames.length > 2) {
+        html += '<div class="stv2-scroll-hint">↔ 横にスクロールして全ての場所を確認できます</div>';
+      }
       html += '<div class="area-section" style="overflow-x:auto;">';
       html += '<table class="shift-tbl-v2"><thead>';
 

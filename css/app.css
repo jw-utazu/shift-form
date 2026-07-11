@@ -780,31 +780,35 @@ body::-webkit-scrollbar { display: none; }
 
 /* ===================== シフト表画面 ===================== */
 #screen-shift { display: none; }
-.shift-dates { display: flex; flex-direction: column; gap: 8px; }
+.shift-dates { display: flex; flex-direction: column; gap: 10px; }
 .shift-date-btn {
-  background: #fff;
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 14px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--green);
+  border-radius: var(--radius);
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
-  transition: border-color .15s, background .15s;
+  transition: transform .1s, background .15s;
   -webkit-tap-highlight-color: transparent;
 }
-.shift-date-btn:active { background: var(--green-light); border-color: var(--green); }
-.shift-date-btn.cancelled { border-color: var(--danger); border-width: 2px; background: #fff1f2; }
+.shift-date-btn:active { background: var(--green-light); transform: scale(.98); }
+.shift-date-btn.cancelled { border-left-color: var(--danger); background: #fff1f2; }
 .shift-date-btn.cancelled .sdb-date { color: #9ca3af; }
 .shift-date-btn.cancelled .sdb-date-text { text-decoration: line-through; }
 .shift-date-btn.cancelled .sdb-time { color: #9ca3af; text-decoration: line-through; }
-.sdb-cancel-reason { margin-top: 4px; font-size: 12px; color: var(--danger-dark); font-weight: 600; }
+.sdb-cancel-reason { margin-top: 6px; font-size: 13px; color: var(--danger-dark); font-weight: 700; }
 .sdb-main { flex: 1; min-width: 0; }
-.sdb-date  { font-size: 18px; font-weight: 700; }
-.sdb-time  { font-size: 15px; color: var(--sub); }
-.sdb-sub       { margin-top: 4px; font-size: 13px; color: var(--text); line-height: 1.6; }
-.sdb-sub-label { color: var(--sub); font-weight: 700; margin-right: 2px; }
-.sdb-sub-val   { font-weight: 700; }
+.sdb-head  { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sdb-date  { font-size: 18px; font-weight: 700; color: var(--green-dark); }
+.sdb-time  { font-size: 14px; font-weight: 700; color: var(--sub); }
+.sdb-sub       { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.sdb-sub-row   { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; background: #f8fafc; border-radius: 8px; padding: 5px 9px; }
+.sdb-sub-label { color: var(--sub); font-weight: 700; }
+.sdb-sub-val   { color: var(--text); font-weight: 700; }
+.sdb-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .sdb-badge {
   font-size: 11px;
   font-weight: 700;
@@ -815,6 +819,7 @@ body::-webkit-scrollbar { display: none; }
   flex-shrink: 0;
 }
 .sdb-badge.cancelled { background: var(--danger); color: #fff; }
+.sdb-arrow { font-size: 20px; color: var(--sub); opacity: .45; flex-shrink: 0; }
 
 /* シフト表詳細 */
 .shift-detail { display: none; }
@@ -1194,14 +1199,20 @@ body::-webkit-scrollbar { display: none; }
 }
 
 /* ===== 改良版シフト表テーブル（管理アプリ風） ===== */
-.shift-tbl-v2 { width:100%; border-collapse:collapse; font-size:13px; min-width:280px; }
+.stv2-scroll-hint {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--green-dark);
+  background: var(--green-light); border-radius: 8px;
+  padding: 6px 10px; margin-bottom: 8px;
+}
+.shift-tbl-v2 { width:100%; border-collapse:collapse; font-size:14px; min-width:280px; }
 .shift-tbl-v2 th, .shift-tbl-v2 td { border:1px solid #e5e7eb; vertical-align:middle; }
-.stv2-hdr-time { background:#f9fafb; padding:8px 6px; text-align:center; font-weight:700; color:var(--sub); font-size:11px; min-width:70px; white-space:nowrap; }
-.stv2-hdr-place { padding:8px 10px; text-align:center; font-weight:700; font-size:12px; min-width:100px; }
-.stv2-cart-row td { font-size:10px; font-weight:700; color:var(--sub); padding:4px 8px; background:#f8fafc; text-align:center; border-bottom:2px solid #e5e7eb; }
-.stv2-time-cell { background:#f9fafb; padding:8px 6px; font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; text-align:center; }
+.stv2-hdr-time { background:#f9fafb; padding:8px 6px; text-align:center; font-weight:700; color:var(--sub); font-size:12px; min-width:70px; white-space:nowrap; }
+.stv2-hdr-place { padding:8px 10px; text-align:center; font-weight:700; font-size:13px; min-width:100px; }
+.stv2-cart-row td { font-size:11px; font-weight:700; color:var(--sub); padding:4px 8px; background:#f8fafc; text-align:center; border-bottom:2px solid #e5e7eb; }
+.stv2-time-cell { background:#f9fafb; padding:8px 6px; font-size:13px; font-weight:700; color:var(--sub); white-space:nowrap; text-align:center; }
 .stv2-place-cell { padding:6px 8px; text-align:left; }
-.stv2-staff-name { padding:2px 4px; border-radius:4px; margin-bottom:2px; font-size:13px; display:block; }
+.stv2-staff-name { padding:2px 4px; border-radius:4px; margin-bottom:2px; font-size:14px; display:block; }
 .stv2-staff-name:last-child { margin-bottom:0; }
 .stv2-staff-name.my-cell-staff { background:var(--amber); }
 .stv2-staff-name.my-cell-resp  { background:#fca5a5; }

@@ -1209,6 +1209,11 @@ body::-webkit-scrollbar { display: none; }
 .pw-type-tab-form:last-child{border-radius:0 7px 7px 0;border-left:none;}
 .pw-type-tab-form.active{background:#16a34a;color:#fff;border-color:#16a34a;}
 .pw-type-tab-form.active.limited{background:#7c3aed;border-color:#7c3aed;}
+/* テストアカウント専用：限定PWタイプ選択（横スクロール） */
+#test-limited-type-picker{display:none;gap:8px;padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#f8f8f8;border-bottom:1px solid #e5e7eb;}
+#test-limited-type-picker.show{display:flex;}
+.test-limited-chip{flex:0 0 auto;padding:6px 14px;border-radius:999px;border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.test-limited-chip.active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
 /* 限定PW カレンダー表示 */
 .cal-event-limited{background:#ede9fe;color:#5b21b6;border-left:3px solid #7c3aed;}
 /* 統合カレンダー: 実施日インジケーター行 */

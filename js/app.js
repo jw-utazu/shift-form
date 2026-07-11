@@ -817,6 +817,8 @@ function logout() {
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
+  _testLimitedTypes = [];
+  { const picker = document.getElementById('test-limited-type-picker'); if (picker) { picker.classList.remove('show'); picker.innerHTML = ''; } }
   _mainHistorySetup = false; // 再ログイン時に __bottom__ を再挿入するためリセット
   closeProfilePopup();
   google.accounts.id.disableAutoSelect();
@@ -853,6 +855,12 @@ async function initApp() {
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
     if (isLimitedMember && limRes.name) limitedPwName = limRes.name;
 
+    // テストアカウント：限定PWメンバーでなくても全タイプを閲覧できるようにする
+    if (SESSION && SESSION.email === TEST_EMAIL) {
+      isLimitedMember = true;
+      await loadTestLimitedTypePicker();
+    }
+
     // 限定PWタブの表示制御
     const pwBar = document.getElementById('pw-type-bar-form');
     if (pwBar) pwBar.style.display = isLimitedMember ? 'flex' : 'none';
@@ -860,16 +868,7 @@ async function initApp() {
     if (tabLimited && isLimitedMember) tabLimited.textContent = limitedPwName;
 
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
-    if (isLimitedMember) {
-      const [limFormData, limDetail, limShiftData] = await Promise.all([
-        apiGet('dataMini',      { type: limitedPwType }),
-        apiGet('getFormDetail', { type: limitedPwType }),
-        apiGet('getShiftTable', { type: limitedPwType })
-      ]);
-      LIMITED_APP_DATA  = limFormData;
-      LIMITED_SHIFT_DATA = limShiftData;
-      LIMITED_DETAIL    = limDetail;
-    }
+    if (isLimitedMember) await _loadLimitedPwData(limitedPwType);
 
     APP_DATA    = formData;
     SHIFT_DATA  = shiftData;
@@ -3254,6 +3253,87 @@ async function saveEditRoadPdf() {
 }
 
 // ===== PW モード切り替え（奉仕者アプリ） =====
+// 限定PWデータをサーバーから取得し LIMITED_* に格納
+async function _loadLimitedPwData(type) {
+  const [limFormData, limDetail, limShiftData] = await Promise.all([
+    apiGet('dataMini',      { type }),
+    apiGet('getFormDetail', { type }),
+    apiGet('getShiftTable', { type })
+  ]);
+  LIMITED_APP_DATA   = limFormData;
+  LIMITED_SHIFT_DATA = limShiftData;
+  LIMITED_DETAIL     = limDetail;
+}
+
+// LIMITED_* を画面用のグローバル状態に反映
+function _applyLimitedPwData() {
+  // 通常PW のデータを退避し限定PW のデータで上書き
+  APP_DATA   = LIMITED_APP_DATA;
+  SHIFT_DATA = LIMITED_SHIFT_DATA;
+  const ld = LIMITED_DETAIL || {};
+  THIS_MONTH  = (ld.thisMonthData && Object.keys(ld.thisMonthData).length > 0)
+                  ? ld.thisMonthData : (LIMITED_APP_DATA.thisMonthData || {});
+  SLOTS       = ld.slots         || [];
+  LAST_MONTH  = ld.lastMonthData || {};
+  if (APP_DATA) APP_DATA.staffJSON = ld.staffJSON || [];
+  YEAR        = LIMITED_APP_DATA.year  || 0;
+  MONTH       = LIMITED_APP_DATA.month || 0;
+  SHIFT_DATES = LIMITED_APP_DATA.shiftDates || [];
+  SHIFT_DATES_MAP = {};
+  (LIMITED_APP_DATA.shiftSlots || []).forEach(s => {
+    const key = s.m + '_' + s.d;
+    if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
+    if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
+  });
+}
+
+// ============================================================
+// テストアカウント専用：限定PWメンバーでなくても全タイプを閲覧できるようにする
+// ============================================================
+let _testLimitedTypes = [];
+async function loadTestLimitedTypePicker() {
+  const picker = document.getElementById('test-limited-type-picker');
+  if (!picker) return;
+  try {
+    const res = await apiGet('getLimitedSlots', {});
+    const extra = (res && res.slots) || [];
+    _testLimitedTypes = [{ id: 'limited', name: '限定PW' }].concat(extra);
+  } catch (e) {
+    _testLimitedTypes = [{ id: 'limited', name: '限定PW' }];
+  }
+  picker.classList.toggle('show', _testLimitedTypes.length > 0);
+  picker.innerHTML = _testLimitedTypes.map(t =>
+    '<button type="button" class="test-limited-chip' + (t.id === limitedPwType ? ' active' : '') +
+    '" data-type="' + esc(t.id) + '" onclick="selectTestLimitedType(\'' + esc(t.id) + '\',\'' + esc(t.name) + '\')">' +
+    esc(t.name) + '</button>'
+  ).join('');
+}
+
+// テストアカウントが特定の限定PWタイプを選択したときの切り替え
+async function selectTestLimitedType(newType, newName) {
+  document.querySelectorAll('#test-limited-type-picker .test-limited-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.type === newType);
+  });
+  if (limitedPwType === newType && currentPwType === 'limited') return;
+  limitedPwType = newType;
+  limitedPwName = newName || newType;
+  const tabLimited = document.getElementById('pw-tab-form-limited');
+  if (tabLimited) tabLimited.textContent = limitedPwName;
+  currentPwType = 'limited';
+  document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form';
+  document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited active';
+  showLoading('限定PWデータを読み込み中...');
+  try {
+    await _loadLimitedPwData(newType);
+    _applyLimitedPwData();
+    buildMainScreen();
+    await hideLoading();
+  } catch(e) {
+    hideLoading();
+    alert('データ読み込みエラー: ' + e.message);
+  }
+}
+
 async function switchFormPwType(type) {
   if (currentPwType === type) return;
   currentPwType = type;
@@ -3264,34 +3344,8 @@ async function switchFormPwType(type) {
   try {
     if (type === 'limited') {
       // 限定PW データを再フェッチ（キャッシュがあれば使う）
-      if (!LIMITED_APP_DATA) {
-        const [limFormData, limDetail, limShiftData] = await Promise.all([
-          apiGet('dataMini',      { type: limitedPwType }),
-          apiGet('getFormDetail', { type: limitedPwType }),
-          apiGet('getShiftTable', { type: limitedPwType })
-        ]);
-        LIMITED_APP_DATA   = limFormData;
-        LIMITED_SHIFT_DATA = limShiftData;
-        LIMITED_DETAIL     = limDetail;
-      }
-      // 通常PW のデータを退避し限定PW のデータで上書き
-      APP_DATA   = LIMITED_APP_DATA;
-      SHIFT_DATA = LIMITED_SHIFT_DATA;
-      const ld = LIMITED_DETAIL || {};
-      THIS_MONTH  = (ld.thisMonthData && Object.keys(ld.thisMonthData).length > 0)
-                      ? ld.thisMonthData : (LIMITED_APP_DATA.thisMonthData || {});
-      SLOTS       = ld.slots         || [];
-      LAST_MONTH  = ld.lastMonthData || {};
-      if (APP_DATA) APP_DATA.staffJSON = ld.staffJSON || [];
-      YEAR        = LIMITED_APP_DATA.year  || 0;
-      MONTH       = LIMITED_APP_DATA.month || 0;
-      SHIFT_DATES = LIMITED_APP_DATA.shiftDates || [];
-      SHIFT_DATES_MAP = {};
-      (LIMITED_APP_DATA.shiftSlots || []).forEach(s => {
-        const key = s.m + '_' + s.d;
-        if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
-        if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
-      });
+      if (!LIMITED_APP_DATA) await _loadLimitedPwData(limitedPwType);
+      _applyLimitedPwData();
     } else {
       // 通常PW に戻す（initApp で取得したデータを再フェッチ）
       const [formData, detail, shiftData] = await Promise.all([

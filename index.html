@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=4">
+<link rel="stylesheet" href="css/app.css?v=5">
 </head>
 <body>
 
@@ -94,6 +94,8 @@
     <button class="pw-type-tab-form active" id="pw-tab-form-normal" onclick="switchFormPwType('normal')">通常PW</button>
     <button class="pw-type-tab-form limited" id="pw-tab-form-limited" onclick="switchFormPwType('limited')">限定PW</button>
   </div>
+  <!-- テストアカウント専用：限定PWタイプ選択（横スクロール） -->
+  <div id="test-limited-type-picker"></div>
   <div class="container">
     <!-- お知らせ -->
     <div class="card" id="notices-card" style="display:none;">
@@ -527,6 +529,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=7"></script>
+<script src="js/app.js?v=8"></script>
 </body>
 </html>

@@ -3291,22 +3291,37 @@ function _applyLimitedPwData() {
 // テストアカウント専用：限定PWメンバーでなくても全タイプを閲覧できるようにする
 // ============================================================
 let _testLimitedTypes = [];
+// ピッカーの表示は「テストアカウント・選択肢あり・現在限定PWタブを見ている」の場合のみ
+function _updateTestLimitedPickerVisibility() {
+  const picker = document.getElementById('test-limited-type-picker');
+  if (!picker) return;
+  const isTest = SESSION && SESSION.email === TEST_EMAIL;
+  picker.classList.toggle('show', isTest && _testLimitedTypes.length > 0 && currentPwType === 'limited');
+}
 async function loadTestLimitedTypePicker() {
   const picker = document.getElementById('test-limited-type-picker');
   if (!picker) return;
   try {
     const res = await apiGet('getLimitedSlots', {});
-    const extra = (res && res.slots) || [];
-    _testLimitedTypes = [{ id: 'limited', name: '限定PW' }].concat(extra);
+    // 旧型の既定枠'limited'は実際に使われていないケースがあるため含めない。
+    // 管理者が実際に作成した限定PWタイプのみを候補にする
+    _testLimitedTypes = (res && res.slots) || [];
   } catch (e) {
-    _testLimitedTypes = [{ id: 'limited', name: '限定PW' }];
+    _testLimitedTypes = [];
   }
-  picker.classList.toggle('show', _testLimitedTypes.length > 0);
+  // 実在するタイプがあればデフォルト選択にする（未設定の可能性がある旧型'limited'は使わない）
+  if (_testLimitedTypes.length > 0) {
+    limitedPwType = _testLimitedTypes[0].id;
+    limitedPwName = _testLimitedTypes[0].name;
+    const tabLimited = document.getElementById('pw-tab-form-limited');
+    if (tabLimited) tabLimited.textContent = limitedPwName;
+  }
   picker.innerHTML = _testLimitedTypes.map(t =>
     '<button type="button" class="test-limited-chip' + (t.id === limitedPwType ? ' active' : '') +
     '" data-type="' + esc(t.id) + '" onclick="selectTestLimitedType(\'' + esc(t.id) + '\',\'' + esc(t.name) + '\')">' +
     esc(t.name) + '</button>'
   ).join('');
+  _updateTestLimitedPickerVisibility();
 }
 
 // テストアカウントが特定の限定PWタイプを選択したときの切り替え
@@ -3322,6 +3337,7 @@ async function selectTestLimitedType(newType, newName) {
   currentPwType = 'limited';
   document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form';
   document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited active';
+  _updateTestLimitedPickerVisibility();
   showLoading('限定PWデータを読み込み中...');
   try {
     await _loadLimitedPwData(newType);
@@ -3339,6 +3355,7 @@ async function switchFormPwType(type) {
   currentPwType = type;
   document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form' + (type === 'normal'  ? ' active' : '');
   document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
+  _updateTestLimitedPickerVisibility();
 
   showLoading(type === 'limited' ? '限定PWデータを読み込み中...' : '通常PWデータを読み込み中...');
   try {

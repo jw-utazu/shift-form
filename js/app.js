@@ -3396,6 +3396,8 @@ async function selectTestLimitedType(newType, newName) {
   const tabLimited = document.getElementById('pw-tab-form-limited');
   if (tabLimited) tabLimited.textContent = limitedPwName;
   currentPwType = 'limited';
+  // type切替：直前のtypeで覚えたタイムスタンプのまま比較すると誤検知するのでリセット
+  _knownTimestamp = null;
   document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form';
   document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited active';
   _updateTestLimitedPickerVisibility();
@@ -3414,6 +3416,8 @@ async function selectTestLimitedType(newType, newName) {
 async function switchFormPwType(type) {
   if (currentPwType === type) return;
   currentPwType = type;
+  // type切替：直前のtypeで覚えたタイムスタンプのまま比較すると誤検知するのでリセット
+  _knownTimestamp = null;
   document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form' + (type === 'normal'  ? ' active' : '');
   document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
   _updateTestLimitedPickerVisibility();

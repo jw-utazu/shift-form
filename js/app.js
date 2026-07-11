@@ -63,6 +63,11 @@ function apiGet(action, params, extraQuery) {
   if (fakeNow) p.fakeNow = fakeNow;
   let url = API_URL + '?action=' + encodeURIComponent(action);
   url += '&params=' + encodeURIComponent(JSON.stringify(p));
+  // fakeNowが有効＝テストアカウントでのログイン中。email未指定だとサーバー側で
+  // テストアカウント判定ができずfakeNowが無視されるため、ここで付与する
+  if (fakeNow && SESSION && SESSION.email && (!extraQuery || !extraQuery.email)) {
+    url += '&email=' + encodeURIComponent(SESSION.email);
+  }
   if (extraQuery) {
     Object.entries(extraQuery).forEach(([k, v]) => {
       url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
@@ -84,7 +89,10 @@ function apiGet(action, params, extraQuery) {
 function apiPost(action, params) {
   const payload = Object.assign({ action }, params);
   const fakeNow = getDebugFakeNow();
-  if (fakeNow) payload.fakeNow = payload.fakeNow || fakeNow;
+  if (fakeNow) {
+    payload.fakeNow = payload.fakeNow || fakeNow;
+    if (SESSION && SESSION.email) payload.email = payload.email || SESSION.email;
+  }
   return fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',

@@ -802,8 +802,9 @@ body::-webkit-scrollbar { display: none; }
 .sdb-main { flex: 1; min-width: 0; }
 .sdb-date  { font-size: 18px; font-weight: 700; }
 .sdb-time  { font-size: 15px; color: var(--sub); }
-.sdb-sub   { margin-top: 4px; font-size: 12px; color: var(--sub); line-height: 1.5; }
-.sdb-sub b { color: var(--ink, #1f2937); font-weight: 700; }
+.sdb-sub       { margin-top: 4px; font-size: 13px; color: var(--text); line-height: 1.6; }
+.sdb-sub-label { color: var(--sub); font-weight: 700; margin-right: 2px; }
+.sdb-sub-val   { font-weight: 700; }
 .sdb-badge {
   font-size: 11px;
   font-weight: 700;

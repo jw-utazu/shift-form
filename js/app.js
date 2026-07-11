@@ -2211,17 +2211,17 @@ function buildShiftDateList() {
     const cartAll = d.cart ? [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name) : [];
     let subHtml = '';
     if (respNames.length > 0) {
-      subHtml += '<div>責任者：<b>' + respNames.map(esc).join('、') + '</b></div>';
+      subHtml += '<div><span class="sdb-sub-label">責任者：</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
     }
     if (cartAll.length > 0 && d.cart) {
       const bringStr = (d.cart.bring || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
       const takeStr = (d.cart.take || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
-      subHtml += '<div>カート：' +
-        (bringStr ? '持込 <b>' + bringStr + '</b>' : '') +
+      subHtml += '<div><span class="sdb-sub-label">カート：</span>' +
+        (bringStr ? '持込 <span class="sdb-sub-val">' + bringStr + '</span>' : '') +
         (bringStr && takeStr ? '　' : '') +
-        (takeStr ? '持帰 <b>' + takeStr + '</b>' : '') +
+        (takeStr ? '持帰 <span class="sdb-sub-val">' + takeStr + '</span>' : '') +
         '</div>';
     }
 

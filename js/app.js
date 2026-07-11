@@ -50,8 +50,12 @@ function initDebugDatePanel() {
     if (!panel.contains(e.target)) card.classList.remove('show');
   });
   input.onchange = () => {
-    if (input.value) localStorage.setItem('debugFakeNow', input.value);
-    else localStorage.removeItem('debugFakeNow');
+    if (input.value) {
+      localStorage.setItem('debugFakeNow', input.value);
+      sessionStorage.setItem('debugFakeNowKeepOnce', '1'); // このreloadだけはリセットしない
+    } else {
+      localStorage.removeItem('debugFakeNow');
+    }
     // 古い表示のまま一瞬固まって見えないよう、reload前にオーバーレイを出す
     showLoading('疑似日付を反映しています...');
     location.reload();
@@ -2913,6 +2917,14 @@ function esc(s) {
 
 // ===== 起動処理 =====
 (async function init() {
+  // 疑似日付は「日付ピッカーで変更した直後のreload」以外では毎回リセットする
+  // （閉じ忘れて実日付だと勘違いする事故を防ぐため）
+  if (sessionStorage.getItem('debugFakeNowKeepOnce')) {
+    sessionStorage.removeItem('debugFakeNowKeepOnce');
+  } else {
+    localStorage.removeItem('debugFakeNow');
+  }
+
   // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
   const saved = loadSession();
   if (saved && saved.email) {

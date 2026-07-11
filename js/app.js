@@ -15,6 +15,16 @@ function getDebugFakeNow() {
   return localStorage.getItem('debugFakeNow') || '';
 }
 
+// 「今日」判定はすべてこれを介す：疑似日付が設定されていればそれを、なければ実際の現在時刻を返す
+function getSimulatedToday() {
+  const fakeNow = getDebugFakeNow();
+  if (fakeNow) {
+    const [y, m, d] = fakeNow.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date();
+}
+
 function _debugDateLabel(value) {
   if (!value) return '実日付';
   const DAY_NAMES = ['日','月','火','水','木','金','土'];
@@ -921,11 +931,7 @@ function buildMainScreen() {
   const isOwner = SESSION.isAdmin && !SESSION.uid;
   const ed      = APP_DATA.eventDates || {};
   let   status  = APP_DATA.status || '準備中';
-  const _fakeNowStr = getDebugFakeNow();
-  const today = _fakeNowStr
-    ? (() => { const [fy, fm, fd] = _fakeNowStr.split('-').map(Number); return new Date(fy, fm - 1, fd); })()
-    : new Date();
-  today.setHours(0,0,0,0);
+  const today   = getSimulatedToday(); today.setHours(0,0,0,0);
   // 限定PWはフェーズ情報からstatus上書き
   if (currentPwType !== 'normal' && APP_DATA && APP_DATA.phases) {
     const _phases = APP_DATA.phases;
@@ -1062,7 +1068,7 @@ function buildMainScreen() {
   if (receptionCard) receptionCard.style.display = (isOpenPassed && !_isPreviewMode) ? 'none' : '';
 
   // カレンダー描画（今日が含まれる月を初期表示）
-  const todayForCal = new Date();
+  const todayForCal = getSimulatedToday();
   calDisplayYear  = todayForCal.getFullYear();
   calDisplayMonth = todayForCal.getMonth() + 1;
   buildCalendar();
@@ -1096,7 +1102,7 @@ function calNavMonth(delta) {
   if (newM < 1)  { newM = 12; newY--; }
   if (newM > 12) { newM = 1;  newY++; }
 
-  const realToday = new Date();
+  const realToday = getSimulatedToday();
   const realY = realToday.getFullYear();
   const realM = realToday.getMonth() + 1;
   const minVal = realY * 100 + realM;
@@ -1142,13 +1148,13 @@ function buildCalendar() {
   const dispM = calDisplayMonth;
   document.getElementById('cal-title').textContent = dispY + '年' + dispM + '月';
 
-  // 実際の今日（ハイライト用）
-  const today = new Date(); today.setHours(0,0,0,0);
+  // 今日（ハイライト用。疑似日付が設定されていればそれを使う）
+  const today = getSimulatedToday(); today.setHours(0,0,0,0);
 
   // ナビボタンの活性制御（今日の月〜シフト当月）
-  const shiftY = YEAR  || new Date().getFullYear();
-  const shiftM = MONTH || new Date().getMonth() + 1;
-  const realToday2 = new Date();
+  const shiftY = YEAR  || getSimulatedToday().getFullYear();
+  const shiftM = MONTH || getSimulatedToday().getMonth() + 1;
+  const realToday2 = getSimulatedToday();
   const realY2 = realToday2.getFullYear();
   const realM2 = realToday2.getMonth() + 1;
   const minVal2 = realY2 * 100 + realM2;
@@ -1711,7 +1717,7 @@ function buildWishListBox(status, isOpenPassed) {
       if (!deadlineStr) return false;
       const p = deadlineStr.split('/');
       if (p.length !== 2) return false;
-      const today = new Date(); today.setHours(0,0,0,0);
+      const today = getSimulatedToday(); today.setHours(0,0,0,0);
       const deadlineDate = new Date(YEAR || today.getFullYear(), parseInt(p[0]) - 1, parseInt(p[1]));
       return today.getTime() >= deadlineDate.getTime();
     })();
@@ -1776,7 +1782,7 @@ function _renderWishListBody() {
   const body  = document.getElementById('wish-list-body');
   if (!card || !body) return;
   const status      = APP_DATA ? (APP_DATA.status || '準備中') : '準備中';
-  const today       = new Date(); today.setHours(0,0,0,0);
+  const today       = getSimulatedToday(); today.setHours(0,0,0,0);
   const ed          = APP_DATA ? (APP_DATA.eventDates || {}) : {};
   const openStr     = ed['シフト公開'];
   let isOpenPassed  = false;
@@ -1840,7 +1846,7 @@ function buildNextShift(isOpenPassed) {
   if (!isOpenPassed) return; // 公開予定日前は表示しない
   const status = APP_DATA ? (APP_DATA.status || '準備中') : '準備中';
   if (status === '受付中' || status === '準備中') return; // 受付中・準備中は表示しない
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = getSimulatedToday(); today.setHours(0,0,0,0);
   const name  = SESSION.name;
   const next  = SHIFT_DATA.dates.find(d => {
     const p = d.date.split('/');
@@ -2435,7 +2441,7 @@ async function _refreshShiftAndRedraw() {
     }
     // メイン画面の確定シフト一覧・次のシフトカードも最新化
     _renderWishListBody();
-    const _today = new Date(); _today.setHours(0,0,0,0);
+    const _today = getSimulatedToday(); _today.setHours(0,0,0,0);
     const _openStr = APP_DATA ? ((APP_DATA.eventDates || {})['シフト公開'] || '') : '';
     let _isOpenPassed = false;
     if (_openStr) {
@@ -3048,7 +3054,7 @@ async function openRoadPdfModal() {
     const allPdfs = (res && res.pdfs) || [];
     // "YYYY-MM-DD" を new Date() で解釈するとUTC深夜になり日本時間でずれるためローカル解釈する
     function _parseLocalDate(s) { const p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = getSimulatedToday(); today.setHours(0, 0, 0, 0);
     const pdfs = allPdfs.filter(p => {
       if (!p.startDate && !p.endDate) return true;
       if (p.startDate && today < _parseLocalDate(p.startDate)) return false;

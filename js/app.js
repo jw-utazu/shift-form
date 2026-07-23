@@ -3,6 +3,7 @@ const API_URL    = "https://nqtswiynoxawccldqcwi.supabase.co/functions/v1/api";
 const ANON_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdHN3aXlub3hhd2NjbGRxY3dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MzQxNjIsImV4cCI6MjA5ODMxMDE2Mn0.M-AnCBnXBI1FIyouoa5ttF6mb8PF2YqHfv180PqQWQU";
 const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleusercontent.com";
 const SS_KEY     = "shiftapp_session";
+const VAPID_PUBLIC_KEY = "BJHGZvJP5c29-zK_c2XT5ZIx5-XSYPBKna4RW05tqtGcZfdjkmU5O_Lyab1061jZBpBtp517hCg-K4py8TsHfbY";
 
 // ============================================================
 // テストアカウント専用：疑似日付シミュレーション
@@ -698,6 +699,47 @@ function toggleProfilePopup() {
 function closeProfilePopup() {
   document.getElementById('profile-popup').classList.remove('show');
   document.getElementById('profile-overlay').classList.remove('show');
+}
+
+// ===== プッシュ通知（Web Push, POC） =====
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function enablePushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('この端末・ブラウザは通知に対応していません');
+    return;
+  }
+  if (!SESSION || !SESSION.uid) { alert('ログインしてから設定してください'); return; }
+  try {
+    const reg = await navigator.serviceWorker.register('./sw.js');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { alert('通知が許可されませんでした'); return; }
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const json = sub.toJSON();
+    const res = await apiGet('savePushSubscription', {
+      uid: SESSION.uid,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+    });
+    if (!res.ok) throw new Error(res.error || '登録に失敗しました');
+    alert('通知を有効にしました');
+  } catch (e) {
+    alert('通知の設定に失敗しました: ' + e.message);
+  }
 }
 
 // ===== メンバープレビュー（オーナー専用） =====

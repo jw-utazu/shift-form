@@ -106,6 +106,13 @@ body::-webkit-scrollbar { display: none; }
   text-align: center; font-family: inherit;
 }
 .pp-logout:active { background: #fee2e2; }
+.pp-action {
+  display: block; width: 100%; padding: 14px;
+  background: none; border: none; border-bottom: 1px solid var(--green-light); cursor: pointer;
+  font-size: 15px; font-weight: 700; color: var(--green);
+  text-align: center; font-family: inherit;
+}
+.pp-action:active { background: #f0fdf4; }
 #profile-overlay {
   display: none; position: fixed; inset: 0; z-index: 199;
 }

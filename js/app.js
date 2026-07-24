@@ -305,7 +305,7 @@ function _startProgress() {
 }
 
 // ===== 画面切替 =====
-const SCREENS = ['login','register','main','form','shift','request','bug','road-permit'];
+const SCREENS = ['login','register','main','form','shift','request','bug','road-permit','distrib-report'];
 // 画面ごとの display 値
 const SCREEN_DISPLAY = {
   login:    'flex',
@@ -315,14 +315,15 @@ const SCREEN_DISPLAY = {
   shift:          'block',
   request:        'block',
   bug:            'block',
-  'road-permit':  'block'
+  'road-permit':  'block',
+  'distrib-report': 'block'
 };
 // ===== History API による戻るボタン対応 =====
 // 戻るボタンで履歴を積まない画面（ログイン画面のみ底とする）
 const HISTORY_NO_PUSH = new Set(['login']);
 
 // 画面の「深さ」（進む/戻るの方向判定用）
-const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3 };
+const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
 let _currentScreenName = 'login';
 
 function showScreen(name, fromPopstate) {
@@ -349,6 +350,7 @@ function showScreen(name, fromPopstate) {
   if (name === 'form')          _showFormScreen();
   if (name === 'shift')         _showShiftScreen();
   if (name === 'road-permit')   _initRoadPermitScreen();
+  if (name === 'distrib-report') _showDistribReportScreen();
 
   // form-back-btnのonclickを設定（動的IDのため）
   const formBackBtn = document.getElementById('form-back-btn');
@@ -2821,6 +2823,48 @@ async function submitBugReport() {
     hideLoading();
     msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
     ta.value = '';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } catch (e) {
+    hideLoading();
+    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
+  } finally {
+    btn.disabled = false; btn.textContent = '送信する';
+  }
+}
+
+// ===== 配布報告送信 =====
+function _showDistribReportScreen() {
+  const dateInput = document.getElementById('distrib-date');
+  if (dateInput && !dateInput.value) {
+    const t = getSimulatedToday();
+    const y = t.getFullYear(), m = String(t.getMonth() + 1).padStart(2, '0'), d = String(t.getDate()).padStart(2, '0');
+    dateInput.value = `${y}-${m}-${d}`;
+  }
+}
+
+async function submitDistributionReport() {
+  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
+  const dateInput  = document.getElementById('distrib-date');
+  const timeInput  = document.getElementById('distrib-time');
+  const itemsInput = document.getElementById('distrib-items');
+  const notesInput = document.getElementById('distrib-notes');
+  const btn = document.getElementById('btn-distrib-submit');
+  const msg = document.getElementById('distrib-msg');
+  if (!dateInput.value) { alert('日付を入力してください。'); return; }
+  if (!itemsInput.value.trim()) { alert('配布物を入力してください。'); return; }
+  btn.disabled = true;
+  showLoading('配布報告を送信中...');
+  try {
+    const data = await apiGet('postDistributionReport', {
+      uid: SESSION.uid, name: SESSION.name,
+      reportDate: dateInput.value, reportTime: timeInput.value || '',
+      items: itemsInput.value.trim(), notes: notesInput.value.trim(),
+    });
+    if (!data.ok) throw new Error(data.error);
+    hideLoading();
+    msg.className = 'msg success'; msg.textContent = '✅ 配布報告を送信しました！';
+    timeInput.value = ''; itemsInput.value = ''; notesInput.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } catch (e) {
     hideLoading();

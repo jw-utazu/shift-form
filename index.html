@@ -187,6 +187,11 @@
         <span class="nav-txt">道路使用許可書を更新する</span>
         <span class="nav-arr">›</span>
       </button>
+      <button class="btn-nav secondary" id="btn-distrib-report" onclick="showScreen('distrib-report')">
+        <span class="nav-icon">📦</span>
+        <span class="nav-txt">配布報告を送る</span>
+        <span class="nav-arr">›</span>
+      </button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="font-size:15px;padding:14px 10px;">
           <span class="nav-icon">💬</span>
@@ -360,6 +365,41 @@
       <textarea class="req-textarea" id="bug-textarea" placeholder="例：〇〇の画面で△△をしたら、エラーが出て送信できなかった"></textarea>
       <div id="bug-msg"></div>
       <button class="btn-primary" id="btn-bug-submit" onclick="submitBugReport()" style="background:#b91c1c;">送信する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 配布報告画面 ===== -->
+<div id="screen-distrib-report">
+  <div class="hdr">
+    <div class="hdr-left"><button class="help-btn" onclick="openHelp('distrib-report')">?</button></div>
+    <h1>宇多津会衆PWアプリ</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
+    <div class="card">
+      <div class="card-title">📦 配布報告</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📅 日付</label>
+        <input type="date" id="distrib-date" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">🕐 時刻（だいたいで可・任意）</label>
+        <input type="time" id="distrib-time" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📚 配布物</label>
+        <textarea class="req-textarea" id="distrib-items" style="min-height:80px;" placeholder="例：暮らせます冊子×1"></textarea>
+      </div>
+      <div style="margin-bottom:4px;">
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📝 備考</label>
+        <textarea class="req-textarea" id="distrib-notes" placeholder="相手の様子や会話の内容など"></textarea>
+      </div>
+      <div id="distrib-msg"></div>
+      <button class="btn-primary" id="btn-distrib-submit" onclick="submitDistributionReport()">送信する</button>
     </div>
   </div>
 </div>
@@ -559,6 +599,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=20"></script>
+<script src="js/app.js?v=21"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=10">
+<link rel="stylesheet" href="css/app.css?v=11">
 </head>
 <body>
 
@@ -248,7 +248,13 @@
     </div>
   </div>
   <div class="pp-roles" id="pp-roles"></div>
-  <button class="pp-action" onclick="enablePushNotifications()">🔔 通知を有効にする（テスト）</button>
+  <button class="pp-action" onclick="enablePushNotifications()">🔔 通知を有効にする</button>
+  <div class="pp-pref-section" id="push-pref-section" style="display:none;">
+    <div class="pp-pref-title">通知の種類</div>
+    <label class="pp-pref-row"><input type="checkbox" id="pref-published" onchange="onPushPrefChange()"> シフト公開時</label>
+    <label class="pp-pref-row"><input type="checkbox" id="pref-changed" onchange="onPushPrefChange()"> 担当変更・中止時</label>
+    <label class="pp-pref-row"><input type="checkbox" id="pref-deadline" onchange="onPushPrefChange()"> 締切リマインド</label>
+  </div>
   <button class="pp-logout" onclick="logout()">ログアウト</button>
 </div>
 
@@ -543,6 +549,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=18"></script>
+<script src="js/app.js?v=19"></script>
 </body>
 </html>

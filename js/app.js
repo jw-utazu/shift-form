@@ -694,6 +694,7 @@ function toggleProfilePopup() {
     updateAvatarUI();
     popup.classList.add('show');
     overlay.classList.add('show');
+    refreshPushPrefSection();
   }
 }
 function closeProfilePopup() {
@@ -737,9 +738,40 @@ async function enablePushNotifications() {
     });
     if (!res.ok) throw new Error(res.error || '登録に失敗しました');
     alert('通知を有効にしました');
+    await refreshPushPrefSection();
   } catch (e) {
     alert('通知の設定に失敗しました: ' + e.message);
   }
+}
+
+// 購読済みなら通知の種類トグルを表示し、現在の設定を反映する
+async function refreshPushPrefSection() {
+  const section = document.getElementById('push-pref-section');
+  if (!section || !SESSION || !SESSION.uid) return;
+  try {
+    if (!('serviceWorker' in navigator)) { section.style.display = 'none'; return; }
+    const reg = await navigator.serviceWorker.getRegistration('./sw.js');
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (!sub) { section.style.display = 'none'; return; }
+    const res = await apiGet('getPushPreferences', { uid: SESSION.uid });
+    if (!res.ok) { section.style.display = 'none'; return; }
+    document.getElementById('pref-published').checked = res.notifyPublished !== false;
+    document.getElementById('pref-changed').checked   = res.notifyChanged   !== false;
+    document.getElementById('pref-deadline').checked  = res.notifyDeadline  !== false;
+    section.style.display = '';
+  } catch (e) { section.style.display = 'none'; }
+}
+
+async function onPushPrefChange() {
+  if (!SESSION || !SESSION.uid) return;
+  try {
+    await apiGet('savePushPreferences', {
+      uid: SESSION.uid,
+      notifyPublished: document.getElementById('pref-published').checked,
+      notifyChanged:   document.getElementById('pref-changed').checked,
+      notifyDeadline:  document.getElementById('pref-deadline').checked,
+    });
+  } catch (e) { alert('設定の保存に失敗しました: ' + e.message); }
 }
 
 // ===== メンバープレビュー（オーナー専用） =====

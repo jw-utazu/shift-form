@@ -106,13 +106,6 @@ body::-webkit-scrollbar { display: none; }
   text-align: center; font-family: inherit;
 }
 .pp-logout:active { background: #fee2e2; }
-.pp-action {
-  display: block; width: 100%; padding: 14px;
-  background: none; border: none; border-bottom: 1px solid var(--green-light); cursor: pointer;
-  font-size: 15px; font-weight: 700; color: var(--green);
-  text-align: center; font-family: inherit;
-}
-.pp-action:active { background: #f0fdf4; }
 .pp-pref-section { padding: 8px 14px 10px; border-bottom: 1px solid var(--green-light); text-align: left; }
 .pp-pref-title { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .pp-pref-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; color: var(--text); }
@@ -533,6 +526,12 @@ body::-webkit-scrollbar { display: none; }
 .notice-body  { font-size: 14px; color: var(--sub); line-height: 1.7; white-space: pre-wrap; }
 .notif-unread { background: #f0fdf4; margin: 0 -14px; padding: 10px 14px; }
 .notif-unread .notice-title::before { content: '● '; color: var(--green); font-size: 10px; }
+.notif-clickable { cursor: pointer; }
+.notif-clickable:active { background: #f9fafb; margin: 0 -14px; padding: 10px 14px; }
+.notif-detail-back {
+  display: block; margin-bottom: 10px; padding: 0; border: none; background: none;
+  color: var(--green); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
 
 .notif-tabs { display: flex; border-bottom: 1px solid var(--green-light); flex-shrink: 0; }
 .notif-tab {

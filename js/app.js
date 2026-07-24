@@ -710,7 +710,7 @@ function closeProfilePopup() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'openNotif') {
-      openNoticesModal('history');
+      openNotifFromTap(event.data.notifId);
     }
   });
 }
@@ -724,16 +724,31 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+async function onPushEnableToggle() {
+  const toggle = document.getElementById('push-enable-toggle');
+  if (toggle.checked) {
+    await enablePushNotifications();
+  } else {
+    await disablePushNotifications();
+  }
+}
+
 async function enablePushNotifications() {
+  const toggle = document.getElementById('push-enable-toggle');
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     alert('この端末・ブラウザは通知に対応していません');
+    if (toggle) toggle.checked = false;
     return;
   }
-  if (!SESSION || !SESSION.uid) { alert('ログインしてから設定してください'); return; }
+  if (!SESSION || !SESSION.uid) {
+    alert('ログインしてから設定してください');
+    if (toggle) toggle.checked = false;
+    return;
+  }
   try {
     const reg = await navigator.serviceWorker.register('./sw.js');
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') { alert('通知が許可されませんでした'); return; }
+    if (permission !== 'granted') { alert('通知が許可されませんでした'); if (toggle) toggle.checked = false; return; }
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -749,21 +764,41 @@ async function enablePushNotifications() {
       auth: json.keys.auth,
     });
     if (!res.ok) throw new Error(res.error || '登録に失敗しました');
-    alert('通知を有効にしました');
     await refreshPushPrefSection();
   } catch (e) {
     alert('通知の設定に失敗しました: ' + e.message);
+    if (toggle) toggle.checked = false;
   }
 }
 
-// 購読済みなら通知の種類トグルを表示し、現在の設定を反映する
+async function disablePushNotifications() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration('./sw.js');
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        if (SESSION && SESSION.uid) {
+          await apiGet('deletePushSubscription', { uid: SESSION.uid, endpoint });
+        }
+      }
+    }
+  } catch (e) { /* 解除失敗は無視（端末側の購読は消えている可能性が高いため） */ }
+  const section = document.getElementById('push-pref-section');
+  if (section) section.style.display = 'none';
+}
+
+// 購読済みなら「通知を有効にする」トグルをONにし、種類トグルを表示して現在の設定を反映する
 async function refreshPushPrefSection() {
+  const enableToggle = document.getElementById('push-enable-toggle');
   const section = document.getElementById('push-pref-section');
   if (!section || !SESSION || !SESSION.uid) return;
   try {
-    if (!('serviceWorker' in navigator)) { section.style.display = 'none'; return; }
+    if (!('serviceWorker' in navigator)) { if (enableToggle) enableToggle.checked = false; section.style.display = 'none'; return; }
     const reg = await navigator.serviceWorker.getRegistration('./sw.js');
     const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (enableToggle) enableToggle.checked = !!sub;
     if (!sub) { section.style.display = 'none'; return; }
     const res = await apiGet('getPushPreferences', { uid: SESSION.uid });
     if (!res.ok) { section.style.display = 'none'; return; }
@@ -1027,7 +1062,7 @@ async function initApp() {
     const notifParam = new URLSearchParams(location.search).get('notif');
     if (notifParam) {
       history.replaceState({}, '', location.pathname);
-      openNoticesModal('history');
+      await openNotifFromTap(notifParam);
     }
   } catch (e) {
     hideLoading();
@@ -1229,12 +1264,35 @@ function renderNotifHistory() {
   const body = document.getElementById('notif-history-body');
   const list = _notifHistoryItems || [];
   body.innerHTML = list.length > 0
-    ? list.map(n => `<div class="notice-item${n.is_read ? '' : ' notif-unread'}">
+    ? list.map(n => `<div class="notice-item notif-clickable${n.is_read ? '' : ' notif-unread'}" onclick="openNotifDetail(${n.id})">
         <div class="notice-date">${esc(new Date(n.created_at).toLocaleString('ja-JP', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))}</div>
         <div class="notice-title">${esc(n.title)}</div>
         <div class="notice-body">${esc(n.body)}</div>
       </div>`).join('')
     : '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">通知履歴はありません</div>';
+}
+
+// 通知履歴の1件を詳細表示する（一覧の項目クリック、または通知タップ時の直接遷移で使う）
+function openNotifDetail(id) {
+  const item = (_notifHistoryItems || []).find(n => n.id === id);
+  const body = document.getElementById('notif-history-body');
+  if (!item) { renderNotifHistory(); return; }
+  body.innerHTML = `
+    <button class="notif-detail-back" onclick="renderNotifHistory()">‹ 通知履歴に戻る</button>
+    <div class="notice-item" style="border-bottom:none;">
+      <div class="notice-date">${esc(new Date(item.created_at).toLocaleString('ja-JP', {year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))}</div>
+      <div class="notice-title">${esc(item.title)}</div>
+      <div class="notice-body">${esc(item.body)}</div>
+    </div>`;
+}
+
+// 通知タップ（?notif=<id> または postMessage）から開く場合：最新データを取得してから
+// 通知履歴タブでその項目の詳細へ直接遷移する
+async function openNotifFromTap(notifId) {
+  await refreshNotifUnreadCount();
+  openNoticesModal('history');
+  const id = parseInt(notifId, 10);
+  if (id) openNotifDetail(id);
 }
 
 async function switchNotifTab(tab) {

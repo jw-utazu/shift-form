@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=13">
+<link rel="stylesheet" href="css/app.css?v=14">
 </head>
 <body>
 
@@ -492,7 +492,9 @@
     <div id="notices-modal-body" style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
     <div id="notif-history-body" style="display:none;flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
     <div id="notif-settings-body" style="display:none;flex:1;min-height:0;overflow-y:auto;">
-      <button class="pp-action" onclick="enablePushNotifications()">🔔 通知を有効にする</button>
+      <div class="pp-pref-section" style="border-bottom:1px solid var(--green-light);">
+        <label class="pp-pref-row"><span>🔔 通知を有効にする</span><span class="toggle-switch"><input type="checkbox" id="push-enable-toggle" onchange="onPushEnableToggle()"><span class="toggle-slider"></span></span></label>
+      </div>
       <div class="pp-pref-section" id="push-pref-section" style="display:none;">
         <div class="pp-pref-title">通知の種類</div>
         <label class="pp-pref-row"><span>シフト公開時</span><span class="toggle-switch"><input type="checkbox" id="pref-published" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
@@ -599,6 +601,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=22"></script>
+<script src="js/app.js?v=23"></script>
 </body>
 </html>

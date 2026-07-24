@@ -703,7 +703,18 @@ function closeProfilePopup() {
   document.getElementById('profile-overlay').classList.remove('show');
 }
 
-// ===== プッシュ通知（Web Push, POC） =====
+// ===== プッシュ通知（Web Push） =====
+// アプリが既に開いている状態で通知をタップされた場合、sw.jsのnotificationclickから
+// postMessageで直接届く（openWindowだと既存タブを前面に出すだけでページ再読み込みが
+// 起きず、?notif=パラメータでの判定が効かない端末があるため）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'openNotif') {
+      openNoticesModal('history');
+    }
+  });
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');

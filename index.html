@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=12">
+<link rel="stylesheet" href="css/app.css?v=13">
 </head>
 <body>
 
@@ -495,11 +495,11 @@
       <button class="pp-action" onclick="enablePushNotifications()">🔔 通知を有効にする</button>
       <div class="pp-pref-section" id="push-pref-section" style="display:none;">
         <div class="pp-pref-title">通知の種類</div>
-        <label class="pp-pref-row"><input type="checkbox" id="pref-published" onchange="onPushPrefChange()"> シフト公開時</label>
-        <label class="pp-pref-row"><input type="checkbox" id="pref-changed" onchange="onPushPrefChange()"> 担当変更・中止時</label>
-        <label class="pp-pref-row"><input type="checkbox" id="pref-deadline" onchange="onPushPrefChange()"> 締切リマインド</label>
-        <label class="pp-pref-row"><input type="checkbox" id="pref-notice" onchange="onPushPrefChange()"> お知らせ配信時</label>
-        <label class="pp-pref-row"><input type="checkbox" id="pref-today" onchange="onPushPrefChange()"> 本日のシフトリマインド</label>
+        <label class="pp-pref-row"><span>シフト公開時</span><span class="toggle-switch"><input type="checkbox" id="pref-published" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>担当変更・中止時</span><span class="toggle-switch"><input type="checkbox" id="pref-changed" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>締切リマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-deadline" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>お知らせ配信時</span><span class="toggle-switch"><input type="checkbox" id="pref-notice" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>本日のシフトリマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-today" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
       </div>
     </div>
   </div>

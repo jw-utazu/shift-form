@@ -517,6 +517,16 @@ body::-webkit-scrollbar { display: none; }
 .notice-date  { font-size: 12px; color: var(--sub); margin-bottom: 3px; }
 .notice-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
 .notice-body  { font-size: 14px; color: var(--sub); line-height: 1.7; white-space: pre-wrap; }
+.notif-unread { background: #f0fdf4; margin: 0 -14px; padding: 10px 14px; }
+.notif-unread .notice-title::before { content: '● '; color: var(--green); font-size: 10px; }
+
+.notif-tabs { display: flex; border-bottom: 1px solid var(--green-light); flex-shrink: 0; }
+.notif-tab {
+  flex: 1; padding: 10px 4px; border: none; background: none; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--sub); font-family: inherit;
+  border-bottom: 2px solid transparent;
+}
+.notif-tab.on { color: var(--green); border-bottom-color: var(--green); }
 
 /* ロールバッジ */
 .role-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }

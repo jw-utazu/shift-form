@@ -1,5 +1,5 @@
 // ============================================================
-// プッシュ通知（Web Push, POC）用の最小Service Worker
+// プッシュ通知（Web Push）用の最小Service Worker
 // ============================================================
 self.addEventListener('push', (event) => {
   let data = {};
@@ -9,11 +9,14 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: './logo.png',
     badge: './logo.png',
+    data: { notifId: data.notifId },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(self.clients.openWindow('./'));
+  const notifId = event.notification.data && event.notification.data.notifId;
+  const url = './' + (notifId ? '?notif=' + notifId : '');
+  event.waitUntil(self.clients.openWindow(url));
 });

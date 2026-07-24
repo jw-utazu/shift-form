@@ -694,7 +694,6 @@ function toggleProfilePopup() {
     updateAvatarUI();
     popup.classList.add('show');
     overlay.classList.add('show');
-    refreshPushPrefSection();
   }
 }
 function closeProfilePopup() {
@@ -758,6 +757,8 @@ async function refreshPushPrefSection() {
     document.getElementById('pref-published').checked = res.notifyPublished !== false;
     document.getElementById('pref-changed').checked   = res.notifyChanged   !== false;
     document.getElementById('pref-deadline').checked  = res.notifyDeadline  !== false;
+    document.getElementById('pref-notice').checked    = res.notifyNotice    !== false;
+    document.getElementById('pref-today').checked     = res.notifyToday     !== false;
     section.style.display = '';
   } catch (e) { section.style.display = 'none'; }
 }
@@ -770,6 +771,8 @@ async function onPushPrefChange() {
       notifyPublished: document.getElementById('pref-published').checked,
       notifyChanged:   document.getElementById('pref-changed').checked,
       notifyDeadline:  document.getElementById('pref-deadline').checked,
+      notifyNotice:    document.getElementById('pref-notice').checked,
+      notifyToday:     document.getElementById('pref-today').checked,
     });
   } catch (e) { alert('設定の保存に失敗しました: ' + e.message); }
 }
@@ -1006,6 +1009,13 @@ async function initApp() {
       await switchFormPwType(prevPwType);
     }
     startUpdateChecker();
+
+    // 通知タップで開かれた場合（?notif=<id>）、その内容を最初に表示する
+    const notifParam = new URLSearchParams(location.search).get('notif');
+    if (notifParam) {
+      history.replaceState({}, '', location.pathname);
+      openNoticesModal('history');
+    }
   } catch (e) {
     hideLoading();
     console.error('initApp error:', e);
@@ -1176,17 +1186,67 @@ function buildMainScreen() {
   // ── お知らせ（ヘッダーのベルアイコン＋バッジに集約） ──
   _currentNotices = APP_DATA.notices || [];
   updateNoticeBadge();
+  refreshNotifUnreadCount();
 }
+
+// ===== 通知履歴（システム自動通知。既存の「お知らせ」＝noticesとは別データ） =====
+let _notifHistoryItems = [];
+let _notifUnreadCount  = 0;
 
 function updateNoticeBadge() {
   const badge = document.getElementById('notice-badge');
   if (!badge) return;
-  const n = (_currentNotices || []).length;
+  const n = (_currentNotices || []).length + (_notifUnreadCount || 0);
   badge.textContent = n > 99 ? '99+' : String(n);
   badge.style.display = n > 0 ? 'flex' : 'none';
 }
 
-function openNoticesModal() {
+async function refreshNotifUnreadCount() {
+  if (!SESSION || !SESSION.uid) return;
+  try {
+    const res = await apiGet('getNotificationLog', { uid: SESSION.uid });
+    if (!res.ok) return;
+    _notifHistoryItems = res.items || [];
+    _notifUnreadCount  = res.unreadCount || 0;
+    updateNoticeBadge();
+  } catch (e) { /* バッジ更新の失敗は無視 */ }
+}
+
+function renderNotifHistory() {
+  const body = document.getElementById('notif-history-body');
+  const list = _notifHistoryItems || [];
+  body.innerHTML = list.length > 0
+    ? list.map(n => `<div class="notice-item${n.is_read ? '' : ' notif-unread'}">
+        <div class="notice-date">${esc(new Date(n.created_at).toLocaleString('ja-JP', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))}</div>
+        <div class="notice-title">${esc(n.title)}</div>
+        <div class="notice-body">${esc(n.body)}</div>
+      </div>`).join('')
+    : '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">通知履歴はありません</div>';
+}
+
+async function switchNotifTab(tab) {
+  ['notices','history','settings'].forEach(t => {
+    document.getElementById('notif-tab-' + t).classList.toggle('on', t === tab);
+  });
+  document.getElementById('notices-modal-body').style.display   = tab === 'notices'  ? '' : 'none';
+  document.getElementById('notif-history-body').style.display   = tab === 'history'  ? '' : 'none';
+  document.getElementById('notif-settings-body').style.display  = tab === 'settings' ? '' : 'none';
+
+  if (tab === 'history') {
+    renderNotifHistory();
+    if (_notifUnreadCount > 0 && SESSION && SESSION.uid) {
+      await apiGet('markNotificationsRead', { uid: SESSION.uid });
+      (_notifHistoryItems || []).forEach(n => { n.is_read = true; });
+      _notifUnreadCount = 0;
+      updateNoticeBadge();
+      renderNotifHistory();
+    }
+  } else if (tab === 'settings') {
+    refreshPushPrefSection();
+  }
+}
+
+function openNoticesModal(tab) {
   const modal = document.getElementById('notices-modal');
   const body  = document.getElementById('notices-modal-body');
   const list  = _currentNotices || [];
@@ -1200,6 +1260,7 @@ function openNoticesModal() {
   modal.style.display = 'flex';
   history.pushState({ screen: _currentScreenName, modal: 'notices' }, '');
   _modalInHistory = 'notices';
+  switchNotifTab(tab || 'notices');
 }
 
 function closeNoticesModal() {

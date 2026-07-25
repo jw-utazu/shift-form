@@ -495,13 +495,13 @@
       <div class="pp-pref-section" style="border-bottom:1px solid var(--green-light);">
         <label class="pp-pref-row"><span>🔔 通知を有効にする</span><span class="toggle-switch"><input type="checkbox" id="push-enable-toggle" onchange="onPushEnableToggle()"><span class="toggle-slider"></span></span></label>
       </div>
-      <div class="pp-pref-section" id="push-pref-section" style="display:none;">
+      <div class="pp-pref-section" id="push-pref-section">
         <div class="pp-pref-title">通知の種類</div>
-        <label class="pp-pref-row"><span>シフト公開時</span><span class="toggle-switch"><input type="checkbox" id="pref-published" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>担当変更・中止時</span><span class="toggle-switch"><input type="checkbox" id="pref-changed" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>締切リマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-deadline" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>お知らせ配信時</span><span class="toggle-switch"><input type="checkbox" id="pref-notice" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>本日のシフトリマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-today" onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>シフト公開時</span><span class="toggle-switch"><input type="checkbox" id="pref-published" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>担当変更・中止時</span><span class="toggle-switch"><input type="checkbox" id="pref-changed" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>締切リマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-deadline" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>お知らせ配信時</span><span class="toggle-switch"><input type="checkbox" id="pref-notice" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        <label class="pp-pref-row"><span>本日のシフトリマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-today" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
       </div>
     </div>
   </div>
@@ -601,6 +601,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=23"></script>
+<script src="js/app.js?v=25"></script>
 </body>
 </html>

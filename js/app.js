@@ -785,30 +785,27 @@ async function disablePushNotifications() {
       }
     }
   } catch (e) { /* 解除失敗は無視（端末側の購読は消えている可能性が高いため） */ }
-  const section = document.getElementById('push-pref-section');
-  if (section) section.style.display = 'none';
 }
 
-// 購読済みなら「通知を有効にする」トグルをONにし、種類トグルを表示して現在の設定を反映する
+// 種類トグルは常に表示しておき（HTML側でデフォルトON）、購読・設定状況が分かり次第
+// 「通知を有効にする」トグルと各トグルのチェック状態だけを更新する
 async function refreshPushPrefSection() {
   const enableToggle = document.getElementById('push-enable-toggle');
-  const section = document.getElementById('push-pref-section');
-  if (!section || !SESSION || !SESSION.uid) return;
+  if (!SESSION || !SESSION.uid) return;
   try {
-    if (!('serviceWorker' in navigator)) { if (enableToggle) enableToggle.checked = false; section.style.display = 'none'; return; }
+    if (!('serviceWorker' in navigator)) { if (enableToggle) enableToggle.checked = false; return; }
     const reg = await navigator.serviceWorker.getRegistration('./sw.js');
     const sub = reg ? await reg.pushManager.getSubscription() : null;
     if (enableToggle) enableToggle.checked = !!sub;
-    if (!sub) { section.style.display = 'none'; return; }
+    if (!sub) return;
     const res = await apiGet('getPushPreferences', { uid: SESSION.uid });
-    if (!res.ok) { section.style.display = 'none'; return; }
+    if (!res.ok) return;
     document.getElementById('pref-published').checked = res.notifyPublished !== false;
     document.getElementById('pref-changed').checked   = res.notifyChanged   !== false;
     document.getElementById('pref-deadline').checked  = res.notifyDeadline  !== false;
     document.getElementById('pref-notice').checked    = res.notifyNotice    !== false;
     document.getElementById('pref-today').checked     = res.notifyToday     !== false;
-    section.style.display = '';
-  } catch (e) { section.style.display = 'none'; }
+  } catch (e) { /* 取得失敗時はデフォルト表示のまま */ }
 }
 
 async function onPushPrefChange() {
@@ -1312,8 +1309,6 @@ async function switchNotifTab(tab) {
       updateNoticeBadge();
       renderNotifHistory();
     }
-  } else if (tab === 'settings') {
-    refreshPushPrefSection();
   }
 }
 
@@ -1332,6 +1327,8 @@ function openNoticesModal(tab) {
   history.pushState({ screen: _currentScreenName, modal: 'notices' }, '');
   _modalInHistory = 'notices';
   switchNotifTab(tab || 'notices');
+  // 設定タブに切り替えるまで待たず、開いた時点で購読状況・個人設定をまとめて取得しておく
+  refreshPushPrefSection();
 }
 
 function closeNoticesModal() {

@@ -1113,7 +1113,8 @@ function buildMainScreen() {
   const isDeadlineToday = deadlineD && deadlineD.getTime() === today.getTime();
   const openD          = parseEventDate(ed['シフト公開']);
   const isOpenDateSet  = !!openD;
-  const isOpenPassed   = openD && openD.getTime() <= today.getTime();
+  // 公開予定日の推測に加え、サーバー側が実際に公開済み（早期の手動公開含む）ならそれを優先する
+  const isOpenPassed   = (openD && openD.getTime() <= today.getTime()) || !!(SHIFT_DATA && SHIFT_DATA.published);
 
   // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
   const btnForm    = document.getElementById('btn-shift-form');
@@ -1521,6 +1522,11 @@ function buildCalendar() {
     applyStart = applyD    ? applyD.getTime()    : null;
     applyEnd   = deadlineD ? deadlineD.getTime() : null;
   }
+
+  // isOpenPassedForCalは公開予定日から推測した日付ベースの判定でしかないため、
+  // 管理者が予定日より前に手動で公開した場合はSHIFT_DATA.published（サーバー側の
+  // 実際の公開フラグ）があればそちらを優先する
+  isOpenPassedForCal = isOpenPassedForCal || !!(SHIFT_DATA && SHIFT_DATA.published);
 
   // 限定PW：年考慮スロットセット
   let shiftDaysLtd, shiftDaysMapLtd;
@@ -2041,6 +2047,8 @@ function _renderWishListBody() {
       isOpenPassed = openD.getTime() <= today.getTime();
     }
   }
+  // 早期の手動公開にも対応するため、サーバー側の実際の公開フラグも見る
+  isOpenPassed = isOpenPassed || !!(SHIFT_DATA && SHIFT_DATA.published);
   // buildWishListBoxを再呼び出し（ドロップダウンは再構築せずbodyのみ更新される）
   buildWishListBox(status, isOpenPassed);
 }
@@ -2711,6 +2719,7 @@ async function _refreshShiftAndRedraw() {
         _isOpenPassed = _openD.getTime() <= _today.getTime();
       }
     }
+    _isOpenPassed = _isOpenPassed || !!(SHIFT_DATA && SHIFT_DATA.published);
     buildNextShift(_isOpenPassed);
     await hideLoading();
   } catch (e) {

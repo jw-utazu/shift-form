@@ -431,7 +431,7 @@ window.addEventListener('popstate', function(e) {
   // shift画面の詳細→一覧の内部遷移（前進で detail エントリに戻った場合）
   // ※ quickJump（メイン画面から直接開いた詳細）はこの内部遷移の対象外
   if (screen === 'shift' && state.subScreen === 'detail' && !state.quickJump) {
-    _shiftDetailBack();
+    _shiftDetailBack(true);
     return;
   }
 
@@ -2491,7 +2491,9 @@ function showShiftDetail(dateObj, quickJump) {
   buildShiftDetail(dateObj);
 }
 
-function _shiftDetailBack() {
+// fromPopstate: true の場合は popstate 経由（履歴は既に移動済み）。
+// false/未指定の場合は戻るボタンからの直接呼び出しなので、履歴エントリも合わせて破棄する。
+function _shiftDetailBack(fromPopstate) {
   staffEditMode = false;
   _modalInHistory = null;
   const listEl   = document.getElementById('shift-date-list');
@@ -2504,6 +2506,10 @@ function _shiftDetailBack() {
   void listEl.offsetWidth;
   listEl.classList.add('screen-enter-back');
   document.getElementById('shift-back-btn').onclick = () => history.back();
+  if (!fromPopstate) {
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 function buildShiftDetail(d) {

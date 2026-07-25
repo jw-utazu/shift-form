@@ -2629,7 +2629,9 @@ function buildShiftDetail(d) {
             for (let pi = 0; pi < 3; pi++) {
               const person = people[pi];
               const curUid = person ? (person.uid || nameToUid(person.name)) : '';
-              html += '<select class="staff-edit-sel" id="staff-sel-' + ri + '-' + li + '-' + pi + '">';
+              const curWatch = !!(person && person.watch);
+              html += '<select class="staff-edit-sel" id="staff-sel-' + ri + '-' + li + '-' + pi
+                   + '" data-watch="' + (curWatch ? '1' : '0') + '">';
               html += '<option value="">—</option>';
               (APP_DATA && APP_DATA.staffJSON || []).forEach(m => {
                 const sel = (m.uid && m.uid === curUid) ? ' selected' : '';
@@ -2806,17 +2808,25 @@ async function saveStaffEdits() {
   const placeNames    = allPlaceNames; // 編集モードでは全場所を対象
 
   // 各スロット×場所のドロップダウン値を収集
+  // 列番号順の配列で送る（管理アプリと同じ新形式）。
+  // 1番目は固定枠なので空欄でも詰めずに位置を保ち、見守りは元の状態を引き継ぐ。
+  // 以前は空欄を捨てて詰めていたため位置がずれ、slot.watch は元データに
+  // 存在しないキーだったため、保存するたび見守りが全部外れていた
   const slotsPayload = (d.slots || []).map((slot, ri) => {
-    const places = {};
-    const watch  = {};
+    const places = [];
+    const watch  = [];
     placeNames.forEach((loc, li) => {
       const uids = [];
+      let cellWatch = false;
       for (let pi = 0; pi < 3; pi++) {
         const sel = document.getElementById('staff-sel-' + ri + '-' + li + '-' + pi);
-        if (sel && sel.value) uids.push(sel.value);
+        const v = sel ? sel.value : '';
+        uids.push(v);
+        if (pi === 0 && v && sel && sel.dataset.watch === '1') cellWatch = true;
       }
-      places[loc] = uids;
-      watch[loc]  = !!(slot.watch && slot.watch[loc]);
+      while (uids.length && !uids[uids.length - 1]) uids.pop();  // 末尾の空欄だけ落とす
+      places.push(uids);
+      watch.push(cellWatch);
     });
     return { time: slot.time, places, watch };
   });

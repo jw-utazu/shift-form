@@ -2892,6 +2892,7 @@ function openCancelUndo() {
 
 // メモ編集
 function openMemoEdit() {
+  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   const current = (shiftViewingDate && shiftViewingDate.memo) || '';
@@ -2931,14 +2932,24 @@ function exitStaffEditMode() {
 }
 
 async function saveStaffEdits() {
+  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const d   = shiftViewingDate;
+  // 場所列が取れない（スロットが無い）状態で保存すると usedPlaces が空で送られ、
+  // 保存済みの場所設定ごと消える。何も編集できていないので保存しない
+  if (!d.slots || d.slots.length === 0) { alert('この時間帯には編集できる枠がありません。'); return; }
   const btn = document.getElementById('btn-save-staff');
   if (btn) btn.disabled = true;
 
-  const placeCart     = d.placeCart || {};
-  const allPlaceNames = Object.keys((d.slots && d.slots[0] && d.slots[0].places) || {});
-  const placeNames    = allPlaceNames; // 編集モードでは全場所を対象
+  // 画面の列は「表示ラベル」（名前が空の列は「場所N」）で引いているが、
+  // 保存するのは実際の場所名。ラベルをそのまま送ると空欄の列に「場所2」という
+  // 名前が付いてしまう。列の対応は名前ではなく並び順（列番号）で決まる
+  const labels     = Object.keys((d.slots[0] && d.slots[0].places) || {});
+  const placeNames = Array.isArray(d.placeNames) && d.placeNames.length === labels.length
+    ? d.placeNames : labels;
+  // カート番号もラベルキーの連想配列ではなく列番号順の配列で送る
+  // （実際の場所名が空の列はラベルで引き当てられないため）
+  const placeCartArr = labels.map(loc => (d.placeCart || {})[loc] || '');
 
   // 各スロット×場所のドロップダウン値を収集
   // 列番号順の配列で送る（管理アプリと同じ新形式）。
@@ -2964,22 +2975,26 @@ async function saveStaffEdits() {
     return { time: slot.time, places, watch };
   });
 
-  // 責任者をUID形式に変換
-  const respNames  = d.responsible || [];
+  // 責任者・カート担当は API が返す uid をそのまま使う。
+  // 名前から引き直すと、同姓同名で取り違えたり、staffJSON に載らない人
+  // （無効化されたメンバー・限定PW対象外の人）が引けずに黙って消えてしまう。
+  // uid を返さない古いAPIレスポンス向けに名前引きのフォールバックだけ残す
+  const respUids = Array.isArray(d.responsibleUids) ? d.responsibleUids : [];
+  const respNames = d.responsible || [];
   const responsible = {
-    r1: nameToUid(respNames[0] || ''),
-    r2: nameToUid(respNames[1] || '')
+    r1: respUids[0] || nameToUid(respNames[0] || ''),
+    r2: respUids[1] || nameToUid(respNames[1] || '')
   };
 
-  // カート担当をUID形式に変換
   const cart = { ki1:'', kc1:'', ki2:'', kc2:'', ko1:'', oc1:'', ko2:'', oc2:'' };
   if (d.cart) {
+    const cartUid = c => c.uid || nameToUid(c.name) || '';
     const bring = (d.cart.bring || []).filter(c => c.name);
     const take  = (d.cart.take  || []).filter(c => c.name);
-    if (bring[0]) { cart.ki1 = nameToUid(bring[0].name) || bring[0].name; cart.kc1 = bring[0].cartNo || ''; }
-    if (bring[1]) { cart.ki2 = nameToUid(bring[1].name) || bring[1].name; cart.kc2 = bring[1].cartNo || ''; }
-    if (take[0])  { cart.ko1 = nameToUid(take[0].name)  || take[0].name;  cart.oc1 = take[0].cartNo  || ''; }
-    if (take[1])  { cart.ko2 = nameToUid(take[1].name)  || take[1].name;  cart.oc2 = take[1].cartNo  || ''; }
+    if (bring[0]) { cart.ki1 = cartUid(bring[0]); cart.kc1 = bring[0].cartNo || ''; }
+    if (bring[1]) { cart.ki2 = cartUid(bring[1]); cart.kc2 = bring[1].cartNo || ''; }
+    if (take[0])  { cart.ko1 = cartUid(take[0]);  cart.oc1 = take[0].cartNo  || ''; }
+    if (take[1])  { cart.ko2 = cartUid(take[1]);  cart.oc2 = take[1].cartNo  || ''; }
   }
 
   showLoading('シフトを保存中...');
@@ -2989,7 +3004,7 @@ async function saveStaffEdits() {
       time: d.time,
       responsible,
       cart,
-      placeCart,
+      placeCart: placeCartArr,
       usedPlaces: placeNames,
       slots: slotsPayload,
       uid: SESSION ? SESSION.uid : ''

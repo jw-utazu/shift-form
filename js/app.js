@@ -2229,10 +2229,113 @@ function groupSlots(slots) {
   return g;
 }
 
+// ── 備考（選択式） ──────────────────────────────
+// 表記ゆれを防ぐため備考は自由入力ではなくパターン選択とし、
+// 下の4フォーマットのいずれかの文字列を生成する（例外のみ「その他」で自由入力）。
+const NOTE_TYPES = [
+  { key: 'none',    label: 'なし' },
+  { key: 'late',    label: '遅れて参加' },
+  { key: 'early',   label: '早めに退出' },
+  { key: 'partial', label: '一部のみ' },
+  { key: 'other',   label: 'その他' }
+];
+
+function parseNote(s) {
+  s = (s || '').trim();
+  if (!s) return { type: 'none', from: '', to: '', text: '' };
+  let m = s.match(/^(\d{1,2}:\d{2})\s*[〜~]\s*(\d{1,2}:\d{2})のみ参加$/);
+  if (m) return { type: 'partial', from: m[1], to: m[2], text: '' };
+  m = s.match(/^(\d{1,2}:\d{2})から参加$/);
+  if (m) return { type: 'late', from: m[1], to: '', text: '' };
+  m = s.match(/^(\d{1,2}:\d{2})まで参加$/);
+  if (m) return { type: 'early', from: '', to: m[1], text: '' };
+  return { type: 'other', from: '', to: '', text: s };   // 旧・自由入力の備考はここに入る
+}
+
+function buildNote(st) {
+  if (st.type === 'late')    return st.from ? st.from + 'から参加' : '';
+  if (st.type === 'early')   return st.to   ? st.to   + 'まで参加' : '';
+  if (st.type === 'partial') return (st.from && st.to) ? st.from + '〜' + st.to + 'のみ参加' : '';
+  if (st.type === 'other')   return (st.text || '').trim();
+  return '';
+}
+
+// スロットの時間帯（例 "9:00~11:00"）を区切り時間で刻んだ中間時刻の一覧
+function noteTimeOptions(time, interval) {
+  const m = String(time).match(/(\d{1,2}):(\d{2})\s*[~〜]\s*(\d{1,2}):(\d{2})/);
+  if (!m) return [];
+  const step = parseInt(interval, 10) > 0 ? parseInt(interval, 10) : 15;
+  const st = (+m[1]) * 60 + (+m[2]), en = (+m[3]) * 60 + (+m[4]);
+  const out = [];
+  for (let t = st + step; t < en; t += step) out.push(Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'));
+  return out;
+}
+
+function noteAreaHtml(time, interval, st) {
+  const opts  = noteTimeOptions(time, interval);
+  const types = opts.length ? NOTE_TYPES : NOTE_TYPES.filter(nt => nt.key === 'none' || nt.key === 'other');
+  const chips = types.map(nt =>
+    '<button type="button" class="note-chip' + (st.type === nt.key ? ' on' : '') + '"'
+    + ' data-type="' + nt.key + '" onclick="setNoteType(this)">' + nt.label + '</button>').join('');
+  const sel = (which, cur, suffix) =>
+    '<span class="note-sel-item"><select class="note-sel" data-which="' + which + '" onchange="onNoteInput(this)">'
+    + '<option value="">--:--</option>'
+    + opts.map(o => '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('')
+    + '</select><span class="note-sel-suffix">' + suffix + '</span></span>';
+  const showFrom = st.type === 'late'  || st.type === 'partial';
+  const showTo   = st.type === 'early' || st.type === 'partial';
+  return '<div class="note-area" data-ntype="' + st.type + '" data-nfrom="' + (st.from || '') + '" data-nto="' + (st.to || '') + '">'
+    + '<label>備考（途中参加・早退など）</label>'
+    + '<div class="note-chips">' + chips + '</div>'
+    + '<div class="note-detail' + ((showFrom || showTo) ? '' : ' hidden') + '">'
+    +   (showFrom ? sel('from', st.from, st.type === 'partial' ? '〜' : 'から参加') : '')
+    +   (showTo   ? sel('to',   st.to,   st.type === 'partial' ? 'のみ参加' : 'まで参加') : '')
+    + '</div>'
+    + '<textarea class="note-other' + (st.type === 'other' ? '' : ' hidden') + '" maxlength="50"'
+    +   ' placeholder="その他の連絡事項（50字まで）" oninput="onNoteInput(this)">' + esc(st.text || '') + '</textarea>'
+    + '</div>';
+}
+
+function readNoteState(area) {
+  const ta = area.querySelector('.note-other');
+  return { type: area.dataset.ntype || 'none', from: area.dataset.nfrom || '',
+           to: area.dataset.nto || '', text: ta ? ta.value : '' };
+}
+
+function commitNote(row) {
+  const area = row.querySelector('.note-area');
+  const key  = row.dataset.group + ' ' + row.dataset.time;
+  const v    = buildNote(readNoteState(area));
+  if (v) formState.noteMap[key] = v; else delete formState.noteMap[key];
+}
+
+function setNoteType(el) {
+  const row  = el.closest('.slot-row'), area = el.closest('.note-area');
+  const st   = readNoteState(area);
+  st.type = el.dataset.type;
+  if (st.type === 'late')  st.to   = '';
+  if (st.type === 'early') st.from = '';
+  if (st.type === 'none')  { st.from = ''; st.to = ''; }
+  if (st.type !== 'other') st.text = '';
+  area.outerHTML = noteAreaHtml(row.dataset.time, row.dataset.interval, st);
+  commitNote(row);
+  if (st.type === 'other') { const ta = row.querySelector('.note-other'); if (ta) ta.focus(); }
+}
+
+function onNoteInput(el) {
+  const row = el.closest('.slot-row'), area = el.closest('.note-area');
+  if (el.classList.contains('note-sel')) {
+    area.dataset[el.dataset.which === 'from' ? 'nfrom' : 'nto'] = el.value;
+  }
+  commitNote(row);
+}
+
 function renderSlots(uid) {
   const container = document.getElementById('slots-container');
   const grouped   = groupSlots(SLOTS);
   if (grouped.length === 0) { container.innerHTML = '<p class="empty-note">スロットがありません</p>'; return; }
+  const intervalMap = {};
+  SLOTS.forEach(s => { intervalMap[s.week + ' ' + s.dateLabel + ' ' + s.time] = s.interval; });
   container.innerHTML = '';
   grouped.forEach(g => {
     const groupKey = g.week + ' ' + g.dateLabel;
@@ -2248,6 +2351,7 @@ function renderSlots(uid) {
       const row = document.createElement('div');
       row.className = 'slot-row' + (isChecked ? ' checked' : '');
       row.dataset.group = groupKey; row.dataset.time = time;
+      row.dataset.interval = intervalMap[slotKey] || 15;
       const badge = isLast ? '<span class="last-badge">先月も参加</span>' : '';
       row.innerHTML =
         '<div class="slot-main" onclick="toggleSlot(this)">'
@@ -2258,8 +2362,7 @@ function renderSlots(uid) {
         + '<div class="cart-row' + (isCartUser ? ' visible' : '') + '" onclick="toggleCart(this)">'
         + '<div class="cart-check' + (cartNgChecked ? ' on' : '') + '"></div>'
         + '<span class="cart-label">この時間はカート担当不可</span></div>'
-        + '<div class="note-area"><label>備考（途中参加・早退など）</label>'
-        + '<textarea placeholder="例: 10:00から / 14:00まで" oninput="saveNote(this)">' + noteVal + '</textarea></div>'
+        + noteAreaHtml(time, intervalMap[slotKey], parseNote(noteVal))
         + '</div>';
       div.appendChild(row);
     });
@@ -2274,6 +2377,8 @@ function toggleSlot(el) {
     if (formState.checkedMap[gk]) formState.checkedMap[gk].delete(time);
     if (formState.cartNgMap[gk])  formState.cartNgMap[gk].delete(time);
     delete formState.noteMap[gk + ' ' + time];
+    const area = row.querySelector('.note-area');
+    if (area) area.outerHTML = noteAreaHtml(time, row.dataset.interval, { type: 'none', from: '', to: '', text: '' });
   } else {
     row.classList.add('checked');
     if (!formState.checkedMap[gk]) formState.checkedMap[gk] = new Set();
@@ -2285,10 +2390,6 @@ function toggleCart(el) {
   const ch  = el.querySelector('.cart-check');
   if (ch.classList.contains('on')) { ch.classList.remove('on'); if (formState.cartNgMap[gk]) formState.cartNgMap[gk].delete(time); }
   else { ch.classList.add('on'); if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set(); formState.cartNgMap[gk].add(time); }
-}
-function saveNote(el) {
-  const row = el.closest('.slot-row');
-  formState.noteMap[row.dataset.group + ' ' + row.dataset.time] = el.value.trim();
 }
 function toggleLastMonth() {
   lastMonthOn = !lastMonthOn;
@@ -3042,8 +3143,9 @@ const HELP_CONTENTS = {
       {
         title: '備考欄について',
         items: [
-          { icon: '📝', text: '「途中から参加」「早退あり」などの場合は備考欄に記入してください' },
-          { icon: '例', text: '「10:00から」「14:00まで」など' },
+          { icon: '📝', text: '途中参加・早退などがある場合はボタンで種類を選んでください' },
+          { icon: '🕐', text: '「遅れて参加」「早めに退出」「一部のみ」を選ぶと時刻を選択できます' },
+          { icon: '✏️', text: 'それ以外の連絡事項は「その他」を選んで入力してください' },
         ]
       },
       {

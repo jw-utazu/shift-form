@@ -774,6 +774,7 @@ body::-webkit-scrollbar { display: none; }
   width: 100%;
   font-size: 15px;
   padding: 8px;
+  margin-top: 8px;
   border: 1.5px solid #e5e7eb;
   border-radius: 8px;
   resize: vertical;
@@ -781,6 +782,32 @@ body::-webkit-scrollbar { display: none; }
   font-family: inherit;
 }
 .note-area textarea:focus { outline: none; border-color: var(--green); }
+.note-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-chip {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 7px 11px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--sub);
+  cursor: pointer;
+}
+.note-chip.on { border-color: var(--green); background: #ecfdf5; color: var(--green); }
+.note-detail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.note-detail.hidden, .note-area textarea.hidden { display: none; }
+.note-sel-item { display: flex; align-items: center; gap: 4px; }
+.note-sel {
+  font-size: 15px;
+  font-family: inherit;
+  padding: 7px 8px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+.note-sel:focus { outline: none; border-color: var(--green); }
+.note-sel-suffix { font-size: 14px; color: var(--sub); }
 .empty-note { text-align: center; color: var(--sub); font-size: 15px; padding: 20px 0; }
 #last-month-card {
   background: #fffbeb;
@@ -977,6 +1004,7 @@ body::-webkit-scrollbar { display: none; }
 /* ===================== 要望・バグ報告画面 ===================== */
 #screen-request { display: none; }
 #screen-bug     { display: none; }
+#screen-distrib-report { display: none; }
 .req-textarea {
   width: 100%;
   font-size: 16px;

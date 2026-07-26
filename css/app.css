@@ -808,6 +808,7 @@ body::-webkit-scrollbar { display: none; }
 }
 .note-sel:focus { outline: none; border-color: var(--green); }
 .note-sel-suffix { font-size: 14px; color: var(--sub); }
+.note-warn { font-size: 13px; color: var(--danger); font-weight: 600; margin-top: 6px; }
 .empty-note { text-align: center; color: var(--sub); font-size: 15px; padding: 20px 0; }
 #last-month-card {
   background: #fffbeb;

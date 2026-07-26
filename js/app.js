@@ -2244,7 +2244,8 @@ function parseNote(s) {
   s = (s || '').trim();
   if (!s) return { type: 'none', from: '', to: '', text: '' };
   let m = s.match(/^(\d{1,2}:\d{2})\s*[〜~]\s*(\d{1,2}:\d{2})のみ参加$/);
-  if (m) return { type: 'partial', from: m[1], to: m[2], text: '' };
+  // 開始 < 終了 でない壊れた値は「その他」として原文を残す（黙って消さない）
+  if (m && hhmmToMin(m[1]) < hhmmToMin(m[2])) return { type: 'partial', from: m[1], to: m[2], text: '' };
   m = s.match(/^(\d{1,2}:\d{2})から参加$/);
   if (m) return { type: 'late', from: m[1], to: '', text: '' };
   m = s.match(/^(\d{1,2}:\d{2})まで参加$/);
@@ -2255,9 +2256,16 @@ function parseNote(s) {
 function buildNote(st) {
   if (st.type === 'late')    return st.from ? st.from + 'から参加' : '';
   if (st.type === 'early')   return st.to   ? st.to   + 'まで参加' : '';
-  if (st.type === 'partial') return (st.from && st.to) ? st.from + '〜' + st.to + 'のみ参加' : '';
+  // 「一部のみ」は開始 < 終了 が成立しないと文言を作らない（＝保存されない）
+  if (st.type === 'partial') return (st.from && st.to && hhmmToMin(st.from) < hhmmToMin(st.to))
+    ? st.from + '〜' + st.to + 'のみ参加' : '';
   if (st.type === 'other')   return (st.text || '').trim();
   return '';
+}
+
+function hhmmToMin(s) {
+  const m = String(s).match(/^(\d{1,2}):(\d{2})$/);
+  return m ? (+m[1]) * 60 + (+m[2]) : -1;
 }
 
 // スロットの時間帯（例 "9:00~11:00"）を区切り時間で刻んだ中間時刻の一覧
@@ -2272,28 +2280,46 @@ function noteTimeOptions(time, interval) {
 }
 
 function noteAreaHtml(time, interval, st) {
-  const opts  = noteTimeOptions(time, interval);
-  const types = opts.length ? NOTE_TYPES : NOTE_TYPES.filter(nt => nt.key === 'none' || nt.key === 'other');
+  const opts = noteTimeOptions(time, interval);
+  // 選べる時刻が1つしかないスロットでは「一部のみ」は成立しない
+  const types = NOTE_TYPES.filter(nt =>
+    nt.key === 'none' || nt.key === 'other' ||
+    (nt.key === 'partial' ? opts.length >= 2 : opts.length >= 1));
   const chips = types.map(nt =>
     '<button type="button" class="note-chip' + (st.type === nt.key ? ' on' : '') + '"'
     + ' data-type="' + nt.key + '" onclick="setNoteType(this)">' + nt.label + '</button>').join('');
-  const sel = (which, cur, suffix) =>
+  const sel = (which, cur, suffix, list) =>
     '<span class="note-sel-item"><select class="note-sel" data-which="' + which + '" onchange="onNoteInput(this)">'
     + '<option value="">--:--</option>'
-    + opts.map(o => '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('')
+    + list.map(o => '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('')
     + '</select><span class="note-sel-suffix">' + suffix + '</span></span>';
   const showFrom = st.type === 'late'  || st.type === 'partial';
   const showTo   = st.type === 'early' || st.type === 'partial';
+  // 「一部のみ」は開始に最終候補を出さず、終了は開始より後の時刻だけに絞る
+  const fromList = st.type === 'partial' ? opts.slice(0, -1) : opts;
+  const toList   = st.type !== 'partial' ? opts
+                 : (st.from ? opts.filter(o => hhmmToMin(o) > hhmmToMin(st.from)) : opts.slice(1));
+  const needTo   = st.type === 'partial' && st.from && !st.to;
   return '<div class="note-area" data-ntype="' + st.type + '" data-nfrom="' + (st.from || '') + '" data-nto="' + (st.to || '') + '">'
     + '<label>備考（途中参加・早退など）</label>'
     + '<div class="note-chips">' + chips + '</div>'
     + '<div class="note-detail' + ((showFrom || showTo) ? '' : ' hidden') + '">'
-    +   (showFrom ? sel('from', st.from, st.type === 'partial' ? '〜' : 'から参加') : '')
-    +   (showTo   ? sel('to',   st.to,   st.type === 'partial' ? 'のみ参加' : 'まで参加') : '')
+    +   (showFrom ? sel('from', st.from, st.type === 'partial' ? '〜' : 'から参加', fromList) : '')
+    +   (showTo   ? sel('to',   st.to,   st.type === 'partial' ? 'のみ参加' : 'まで参加', toList) : '')
     + '</div>'
+    + (needTo ? '<div class="note-warn">終了時刻も選んでください（未選択だと備考は保存されません）</div>' : '')
     + '<textarea class="note-other' + (st.type === 'other' ? '' : ' hidden') + '" maxlength="50"'
     +   ' placeholder="その他の連絡事項（50字まで）" oninput="onNoteInput(this)">' + esc(st.text || '') + '</textarea>'
     + '</div>';
+}
+
+// 「一部のみ」で選択肢に無い／逆転している時刻を落とす
+function normalizeNote(st, time, interval) {
+  if (st.type !== 'partial') return st;
+  const opts = noteTimeOptions(time, interval);
+  if (st.from && (opts.indexOf(st.from) < 0 || st.from === opts[opts.length - 1])) st.from = '';
+  if (st.to && (opts.indexOf(st.to) < 0 || (st.from && hhmmToMin(st.to) <= hhmmToMin(st.from)))) st.to = '';
+  return st;
 }
 
 function readNoteState(area) {
@@ -2317,6 +2343,7 @@ function setNoteType(el) {
   if (st.type === 'early') st.from = '';
   if (st.type === 'none')  { st.from = ''; st.to = ''; }
   if (st.type !== 'other') st.text = '';
+  normalizeNote(st, row.dataset.time, row.dataset.interval);
   area.outerHTML = noteAreaHtml(row.dataset.time, row.dataset.interval, st);
   commitNote(row);
   if (st.type === 'other') { const ta = row.querySelector('.note-other'); if (ta) ta.focus(); }
@@ -2326,6 +2353,11 @@ function onNoteInput(el) {
   const row = el.closest('.slot-row'), area = el.closest('.note-area');
   if (el.classList.contains('note-sel')) {
     area.dataset[el.dataset.which === 'from' ? 'nfrom' : 'nto'] = el.value;
+    // 開始を変えたら終了の選択肢を絞り直す（開始以前になった終了は解除）
+    if (area.dataset.ntype === 'partial' && el.dataset.which === 'from') {
+      const st = normalizeNote(readNoteState(area), row.dataset.time, row.dataset.interval);
+      area.outerHTML = noteAreaHtml(row.dataset.time, row.dataset.interval, st);
+    }
   }
   commitNote(row);
 }

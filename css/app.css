@@ -19,7 +19,7 @@
   --shadow-lg:   0 4px 24px rgba(0,0,0,0.12);
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scrollbar-width: none; -ms-overflow-style: none; }
+html { scrollbar-width: none; -ms-overflow-style: none; overflow-x: hidden; }
 html::-webkit-scrollbar { display: none; }
 body {
   font-family: "Noto Sans JP", sans-serif;
@@ -30,6 +30,7 @@ body {
   padding-bottom: 32px;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overflow-x: hidden;
 }
 body::-webkit-scrollbar { display: none; }
 
@@ -523,7 +524,7 @@ body::-webkit-scrollbar { display: none; }
 .notice-item:last-child { border-bottom: none; }
 .notice-date  { font-size: 12px; color: var(--sub); margin-bottom: 3px; }
 .notice-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.notice-body  { font-size: 14px; color: var(--sub); line-height: 1.7; white-space: pre-wrap; }
+.notice-body  { font-size: 14px; color: var(--sub); line-height: 1.7; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
 .notif-unread { background: #f0fdf4; margin: 0 -14px; padding: 10px 14px; }
 .notif-unread .notice-title::before { content: '● '; color: var(--green); font-size: 10px; }
 .notif-clickable { cursor: pointer; }

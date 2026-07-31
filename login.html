@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>宇多津会衆PWアプリ ログイン</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="./logo.png" type="image/png">
+<link rel="apple-touch-icon" href="./logo.png">
+<script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
+<link rel="stylesheet" href="css/login.css?v=1">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="card">
+    <img class="logo" src="./logo.png" alt="">
+    <div class="title">宇多津会衆PWアプリ</div>
+
+    <div class="err" id="err" style="display:none;"></div>
+
+    <!-- ログイン -->
+    <div id="sec-signin">
+      <div class="sub">Googleアカウントでログインしてください</div>
+      <div class="g-wrap" id="g-btn"></div>
+      <button class="link" onclick="openRecovery()">Googleアカウントでログインできない場合</button>
+    </div>
+
+    <!-- 行き先の選択（管理者のみ） -->
+    <div id="sec-choose" style="display:none;">
+      <div class="sub"><span id="choose-name"></span><br>使用するアプリを選んでください</div>
+      <button class="app-btn" onclick="goApp('form')">
+        <span class="app-ic">📋</span>
+        <span class="app-tx"><b>フォームアプリ</b><small>シフト希望の提出・シフト表の閲覧</small></span>
+      </button>
+      <button class="app-btn" onclick="goApp('admin')">
+        <span class="app-ic">🛡</span>
+        <span class="app-tx"><b>PW管理アプリ</b><small>募集・公開・メンバー管理</small></span>
+      </button>
+      <button class="app-btn" onclick="goApp('create')">
+        <span class="app-ic">🗂</span>
+        <span class="app-tx"><b>シフト管理アプリ</b><small>シフト作成・希望確認</small></span>
+      </button>
+      <button class="link" onclick="switchAccount()">別のアカウントでログイン</button>
+    </div>
+
+    <!-- 救済ログイン -->
+    <div id="sec-recovery" style="display:none;">
+      <div class="sec-title">🔑 ログインできない場合</div>
+
+      <div id="rec-step-form">
+        <div class="sub small">
+          お名前・これまで使っていたメールアドレス・合言葉を入力して申請してください。<br>
+          申請後、<b>区域係からご連絡</b>し、パスコードをお伝えします。
+        </div>
+        <label class="lbl">お名前</label>
+        <input type="text" id="rec-name" class="inp" placeholder="例：宇多津 太郎" autocomplete="name">
+        <label class="lbl">これまで使っていたメールアドレス</label>
+        <input type="email" id="rec-email" class="inp" placeholder="例：example@gmail.com" autocomplete="email">
+        <label class="lbl">合言葉</label>
+        <input type="text" id="rec-key" class="inp" placeholder="区域係から案内されている合言葉" autocomplete="off">
+        <button class="primary" id="btn-rec-submit" onclick="submitRecoveryRequest()">申請する</button>
+        <div class="rec-msg" id="rec-msg"></div>
+      </div>
+
+      <div id="rec-step-otp" style="display:none;">
+        <div class="sub small">
+          申請を受け付けました。<br>
+          <b>区域係からご連絡があるまでお待ちください。</b><br>
+          パスコードを受け取ったら、下に入力してください。
+        </div>
+        <label class="lbl">パスコード（6桁）</label>
+        <input type="text" id="rec-otp" class="inp otp" placeholder="000000"
+               inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        <button class="primary" id="btn-rec-otp" onclick="submitRecoveryOtp()">ログインする</button>
+        <div class="rec-msg" id="rec-otp-msg"></div>
+      </div>
+
+      <button class="link" onclick="backToSignin()">ログイン画面に戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- 処理中オーバーレイ -->
+<div class="busy" id="busy" style="display:none;">
+  <div class="spin"></div>
+  <div id="busy-text">確認中...</div>
+</div>
+
+<script src="js/session.js?v=1"></script>
+<script src="js/login.js?v=1"></script>
+</body>
+</html>

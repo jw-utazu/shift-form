@@ -1,0 +1,175 @@
+/* ============================================================
+   PW_GWS 共通ログイン画面
+   3アプリ共通の入口。フォームアプリ（緑）と管理アプリ（青）の
+   どちらにも寄りすぎない中立的な配色にしてある
+   ============================================================ */
+:root {
+  --main:   #1a73e8;
+  --ink:    #1f2933;
+  --sub:    #5f6b76;
+  --border: #d8dee4;
+  --bg:     #eef2f6;
+  --err:    #c5221f;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 41, 51, .12);
+  padding: 32px 24px 24px;
+  text-align: center;
+}
+
+.logo { width: 72px; height: 72px; object-fit: contain; border-radius: 16px; }
+.title { font-size: 19px; font-weight: 700; margin: 12px 0 4px; }
+.sub { font-size: 14px; color: var(--sub); line-height: 1.7; margin-bottom: 18px; }
+.sub.small { font-size: 13px; text-align: left; }
+.sec-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+
+.g-wrap { display: flex; justify-content: center; min-height: 44px; }
+
+.err {
+  background: #fdeded;
+  border: 1px solid #f5c2c0;
+  color: var(--err);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+/* 行き先の選択 */
+.app-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.app-btn:hover { border-color: var(--main); background: #f5f9ff; }
+.app-ic { font-size: 24px; flex-shrink: 0; }
+.app-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.app-tx b { font-size: 14px; }
+.app-tx small { font-size: 11px; color: var(--sub); }
+
+/* 入力 */
+.lbl {
+  display: block;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub);
+  margin: 14px 0 6px;
+}
+.inp {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;               /* iOS で拡大されないよう 16px を維持 */
+  font-family: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color .15s;
+}
+.inp:focus { outline: none; border-color: var(--main); }
+.inp.otp {
+  text-align: center;
+  letter-spacing: .5em;
+  text-indent: .5em;             /* letter-spacing で右にずれる分の補正 */
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.primary {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px;
+  background: var(--main);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.primary:disabled { opacity: .5; cursor: default; }
+
+.link {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link:hover { color: var(--main); }
+
+.rec-msg { font-size: 13px; line-height: 1.6; margin-top: 12px; text-align: left; color: var(--sub); }
+.rec-msg.err { color: var(--err); }
+
+/* 処理中オーバーレイ */
+.busy {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--sub);
+  z-index: 8000;
+}
+.spin {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--border);
+  border-top-color: var(--main);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 2s; }
+}

@@ -305,10 +305,11 @@ function _startProgress() {
 }
 
 // ===== 画面切替 =====
-const SCREENS = ['login','register','main','form','shift','request','bug','road-permit','distrib-report'];
+const SCREENS = ['login','recovery','register','main','form','shift','request','bug','road-permit','distrib-report'];
 // 画面ごとの display 値
 const SCREEN_DISPLAY = {
   login:    'flex',
+  recovery: 'block',
   register: 'flex',
   main:     'block',
   form:           'block',
@@ -323,7 +324,7 @@ const SCREEN_DISPLAY = {
 const HISTORY_NO_PUSH = new Set(['login']);
 
 // 画面の「深さ」（進む/戻るの方向判定用）
-const SCREEN_DEPTH = { login: 0, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
+const SCREEN_DEPTH = { login: 0, recovery: 1, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
 let _currentScreenName = 'login';
 
 function showScreen(name, fromPopstate) {
@@ -490,6 +491,9 @@ function loadSession() {
 }
 function clearSession() {
   try { localStorage.removeItem(SS_KEY); } catch (_) {}
+  // 救済ログイン中のログアウトでも確実に抜けられるようにする
+  // （端末トークンは残す。再申請時に同じ端末だと分かるようにするため）
+  try { localStorage.removeItem('pwgws_recovery_session'); } catch (_) {}
 }
 
 // ===== Google Identity Services 初期化 =====
@@ -586,6 +590,156 @@ function showLoginError(msg) {
   el.textContent = msg;
   el.classList.add('show');
   showScreen('login');
+}
+
+// ============================================================
+// 救済ログイン（Googleアカウントにログインできない場合）
+//
+// 「申請 → 管理者が承認 → 管理者が電話等でパスコードを伝える → パスコード入力」
+// という流れ。パスコードは管理者の画面にしか出ないため、承認だけで
+// ログインできてしまうことはなく、本人への連絡が必ず発生する
+// ============================================================
+const REC_DEVICE_KEY  = 'pwgws_device_token';
+const REC_SESSION_KEY = 'pwgws_recovery_session';
+
+// 端末を識別するためのトークン。承認をこの端末だけに結び付けるために使う
+function getDeviceToken() {
+  let t = '';
+  try { t = localStorage.getItem(REC_DEVICE_KEY) || ''; } catch (_) {}
+  if (!t) {
+    t = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2));
+    try { localStorage.setItem(REC_DEVICE_KEY, t); } catch (_) {}
+  }
+  return t;
+}
+
+function setRecMsg(id, text, kind) {
+  const el = document.getElementById(id);
+  el.className = 'msg' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+}
+
+async function submitRecoveryRequest() {
+  const name      = document.getElementById('rec-name').value.trim();
+  const email     = document.getElementById('rec-email').value.trim();
+  const sharedKey = document.getElementById('rec-key').value.trim();
+  if (!name)      { setRecMsg('rec-msg', '⚠️ お名前を入力してください。', 'error'); return; }
+  if (!sharedKey) { setRecMsg('rec-msg', '⚠️ 合言葉を入力してください。', 'error'); return; }
+
+  const btn = document.getElementById('btn-rec-submit');
+  btn.disabled = true;
+  setRecMsg('rec-msg', '送信中...', '');
+  try {
+    const res = await apiGet('requestRecoveryLogin', {
+      name, email, sharedKey, deviceToken: getDeviceToken()
+    });
+    if (!res.ok) {
+      if (res.reason === 'bad_key') {
+        setRecMsg('rec-msg', '⚠️ 合言葉が違います。区域係にご確認ください。', 'error');
+      } else if (res.reason === 'rate_limited') {
+        setRecMsg('rec-msg', '⚠️ 試行回数が多すぎます。しばらく時間をおいてからお試しください。', 'error');
+      } else {
+        setRecMsg('rec-msg', '⚠️ 申請できませんでした。入力内容をご確認ください。', 'error');
+      }
+      btn.disabled = false;
+      return;
+    }
+    // 申請成功。以降はパスコード入力画面（管理者からの連絡待ち）
+    document.getElementById('rec-step-form').style.display = 'none';
+    document.getElementById('rec-step-otp').style.display  = 'block';
+    setRecMsg('rec-msg', '', '');
+  } catch (e) {
+    setRecMsg('rec-msg', '⚠️ 通信エラーが発生しました。', 'error');
+    btn.disabled = false;
+  }
+}
+
+async function submitRecoveryOtp() {
+  const otp = document.getElementById('rec-otp').value.trim();
+  if (!/^\d{6}$/.test(otp)) {
+    setRecMsg('rec-otp-msg', '⚠️ 6桁の数字を入力してください。', 'error');
+    return;
+  }
+  const btn = document.getElementById('btn-rec-otp');
+  btn.disabled = true;
+  setRecMsg('rec-otp-msg', '確認中...', '');
+  try {
+    const res = await apiGet('verifyRecoveryOtp', { otp, deviceToken: getDeviceToken() });
+    if (!res.ok) {
+      const msgs = {
+        not_approved:      'まだ承認されていません。区域係からの連絡をお待ちください。',
+        otp_expired:       'パスコードの有効期限が切れました。もう一度申請してください。',
+        too_many_attempts: '入力を間違えた回数が上限に達しました。もう一度申請してください。',
+        bad_otp:           'パスコードが違います。' +
+                           (typeof res.remaining === 'number' ? '（残り' + res.remaining + '回）' : ''),
+        rate_limited:      '試行回数が多すぎます。しばらく時間をおいてからお試しください。',
+      };
+      setRecMsg('rec-otp-msg', '⚠️ ' + (msgs[res.reason] || 'ログインできませんでした。'), 'error');
+      btn.disabled = false;
+      return;
+    }
+    // 救済セッションを保存してログイン
+    try { localStorage.setItem(REC_SESSION_KEY, res.sessionToken); } catch (_) {}
+    SESSION = {
+      uid: res.uid, name: res.name, email: '', token: '',
+      isAdmin: res.isAdmin, isResponsible: res.isResponsible,
+      isCart: res.isCart, isAccountant: res.isAccountant || false,
+      proxyTargets: res.proxyTargets || [], picture: '', isRecoverySession: true
+    };
+    showLoading('ログイン中...');
+    await initApp();
+    setTimeout(() => alert(
+      'ログインしました。\n\nこのログインは ' + res.days + '日間 有効です。\n' +
+      '期限が切れる前に、区域係に連絡して新しいメールアドレスへの変更を済ませてください。'
+    ), 600);
+  } catch (e) {
+    setRecMsg('rec-otp-msg', '⚠️ 通信エラーが発生しました。', 'error');
+    btn.disabled = false;
+  }
+}
+
+function cancelRecovery() {
+  document.getElementById('rec-step-form').style.display = 'block';
+  document.getElementById('rec-step-otp').style.display  = 'none';
+  ['rec-name','rec-email','rec-key','rec-otp'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  setRecMsg('rec-msg', '', ''); setRecMsg('rec-otp-msg', '', '');
+  document.getElementById('btn-rec-submit').disabled = false;
+  document.getElementById('btn-rec-otp').disabled    = false;
+  showScreen('login');
+}
+
+// 保存済みの救済セッションでログインを試みる。
+// 有効期限はサーバー側で管理しているため、起動のたびに必ず問い合わせる
+async function tryRecoverySession() {
+  let token = '';
+  try { token = localStorage.getItem(REC_SESSION_KEY) || ''; } catch (_) {}
+  if (!token) return false;
+  try {
+    const res = await apiGet('validateRecoverySession', { sessionToken: token });
+    if (!res.ok) {
+      try { localStorage.removeItem(REC_SESSION_KEY); } catch (_) {}
+      return false;
+    }
+    SESSION = {
+      uid: res.uid, name: res.name, email: '', token: '',
+      isAdmin: res.isAdmin, isResponsible: res.isResponsible,
+      isCart: res.isCart, isAccountant: res.isAccountant || false,
+      proxyTargets: res.proxyTargets || [], picture: '', isRecoverySession: true
+    };
+    await initApp();
+    // 期限が近づいたらメールアドレス変更を促す
+    if (res.daysLeft <= 7) {
+      setTimeout(() => alert(
+        'この一時ログインはあと ' + res.daysLeft + '日で終了します。\n' +
+        '区域係に連絡して、新しいメールアドレスへの変更をお願いしてください。'
+      ), 800);
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ===== 初回登録 =====
@@ -3391,6 +3545,12 @@ function esc(s) {
   } else {
     localStorage.removeItem('debugFakeNow');
   }
+
+  // 救済ログインのセッションを先に確認する（Googleアカウントが使えない人のため、
+  // 通常のGoogle認証より前に判定する）。有効期限はサーバー側で検証される
+  showLoading('認証中...');
+  if (await tryRecoverySession()) return;
+  hideLoading();
 
   // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
   const saved = loadSession();

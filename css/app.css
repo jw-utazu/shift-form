@@ -292,6 +292,47 @@ body::-webkit-scrollbar { display: none; }
 }
 .register-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
 .register-sub   { font-size: 14px; color: var(--sub); margin-bottom: 20px; line-height: 1.7; }
+
+/* ===== 救済ログイン ===== */
+#screen-recovery { display: none; background: var(--bg); min-height: 100vh; }
+.rec-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub);
+  margin: 14px 0 6px;
+}
+.rec-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  font-size: 16px;           /* iOS で入力時に拡大されないよう 16px を維持 */
+  border: 1.5px solid #d5ddd8;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color .15s;
+}
+.rec-input:focus { outline: none; border-color: var(--main); }
+.rec-otp {
+  text-align: center;
+  letter-spacing: .5em;
+  text-indent: .5em;         /* letter-spacing で右にずれる分を補正 */
+  font-size: 24px;
+  font-weight: 700;
+}
+.rec-link {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.rec-link:hover { color: var(--main); }
 .select-wrap {
   position: relative;
   margin-bottom: 16px;

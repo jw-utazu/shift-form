@@ -5,6 +5,21 @@ const CLIENT_ID  = "538467678510-7ltuvmuj0d1mmgngtj980me3daenqmm7.apps.googleuse
 const SS_KEY     = "shiftapp_session";
 const VAPID_PUBLIC_KEY = "BJHGZvJP5c29-zK_c2XT5ZIx5-XSYPBKna4RW05tqtGcZfdjkmU5O_Lyab1061jZBpBtp517hCg-K4py8TsHfbY";
 
+// session.js（共通セッション）が読み込めなかった場合の安全網。
+// 共通ログイン画面へのリダイレクトを無効化し、従来のログイン画面にフォールバックさせる。
+// これが無いと session.js の配信失敗で誰もログインできなくなる
+if (typeof pwgwsGetSession !== 'function') {
+  console.warn('[session] session.js が読み込めませんでした。従来のログイン画面を使用します');
+  window.pwgwsGetSession           = function () { return null; };
+  window.pwgwsSaveSession          = function () {};
+  window.pwgwsClearSession         = function () {
+    try { localStorage.removeItem('pwgws_session'); } catch (_) {}
+    try { localStorage.removeItem('pwgws_recovery_session'); } catch (_) {}
+  };
+  window.pwgwsGoToLogin            = function () {};
+  window.pwgwsShouldRedirectToLogin = function () { return false; };
+}
+
 // ============================================================
 // テストアカウント専用：疑似日付シミュレーション
 // ============================================================
@@ -491,9 +506,9 @@ function loadSession() {
 }
 function clearSession() {
   try { localStorage.removeItem(SS_KEY); } catch (_) {}
-  // 救済ログイン中のログアウトでも確実に抜けられるようにする
-  // （端末トークンは残す。再申請時に同じ端末だと分かるようにするため）
-  try { localStorage.removeItem('pwgws_recovery_session'); } catch (_) {}
+  // 共通セッションと救済ログインも併せて破棄する（3アプリ共通のログアウト）。
+  // 端末トークンは残す。再申請時に同じ端末だと分かるようにするため
+  pwgwsClearSession();
 }
 
 // ===== Google Identity Services 初期化 =====
@@ -575,6 +590,8 @@ async function handleAuth(email, token, displayName, picture) {
       picture: picture || ''
     };
     saveSession({ email, token, picture: picture || '' });
+    // 他の2アプリでもログイン済みとして扱えるよう共通セッションにも保存する
+    pwgwsSaveSession(email, displayName || data.name || '', picture || '');
     // One Tapが表示中なら閉じる
     shouldShowOneTap = false;
     try { google.accounts.id.cancel(); } catch(_) {}
@@ -3553,7 +3570,15 @@ function esc(s) {
   hideLoading();
 
   // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
-  const saved = loadSession();
+  // 共通ログイン画面でログイン済みなら、このアプリ固有のセッションが無くても引き継ぐ
+  let saved = loadSession();
+  if (!saved || !saved.email) {
+    const shared = pwgwsGetSession();
+    if (shared) {
+      saved = { email: shared.email, token: '', picture: shared.picture || '' };
+      saveSession(saved);
+    }
+  }
   if (saved && saved.email) {
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
@@ -3598,7 +3623,11 @@ function esc(s) {
       return;
     }
   }
-  // 未ログイン：One Tapを許可してからログイン画面を表示
+  // 未ログイン：共通ログイン画面へ送る。
+  // ?direct=1 が付いている場合は従来のログイン画面を出す（共通ログイン画面に
+  // 不具合が出たときにアプリへ入れなくならないための緊急脱出口）
+  if (pwgwsShouldRedirectToLogin()) { pwgwsGoToLogin(); return; }
+
   shouldShowOneTap = true;
   // GISがすでに初期化済みなら直接prompt()を呼ぶ
   try {

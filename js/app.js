@@ -6,18 +6,20 @@ const SS_KEY     = "shiftapp_session";
 const VAPID_PUBLIC_KEY = "BJHGZvJP5c29-zK_c2XT5ZIx5-XSYPBKna4RW05tqtGcZfdjkmU5O_Lyab1061jZBpBtp517hCg-K4py8TsHfbY";
 
 // session.js（共通セッション）が読み込めなかった場合の安全網。
-// 共通ログイン画面へのリダイレクトを無効化し、従来のログイン画面にフォールバックさせる。
-// これが無いと session.js の配信失敗で誰もログインできなくなる
+// このアプリは認証画面を持たないため、最低限リダイレクトだけは動くようにしておく
 if (typeof pwgwsGetSession !== 'function') {
-  console.warn('[session] session.js が読み込めませんでした。従来のログイン画面を使用します');
+  console.warn('[session] session.js が読み込めませんでした。最低限の動作で継続します');
   window.pwgwsGetSession           = function () { return null; };
   window.pwgwsSaveSession          = function () {};
   window.pwgwsClearSession         = function () {
     try { localStorage.removeItem('pwgws_session'); } catch (_) {}
     try { localStorage.removeItem('pwgws_recovery_session'); } catch (_) {}
   };
-  window.pwgwsGoToLogin            = function () {};
-  window.pwgwsShouldRedirectToLogin = function () { return false; };
+  window.pwgwsGoToLogin            = function (reason) {
+    location.replace('login.html?return=' + encodeURIComponent(location.href) +
+      (reason ? '&reason=' + encodeURIComponent(reason) : ''));
+  };
+  window.pwgwsShouldRedirectToLogin = function () { return true; };
 }
 
 // ============================================================
@@ -181,7 +183,6 @@ let isCartUser = false;
 let lastMonthOn = false;
 const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
 let deferredPrompt = null;
-let shouldShowOneTap = false; // セッションなしの時だけtrueにしてOne Tapを表示
 let shiftViewingDate = null; // 現在表示中のシフト日付
 let staffEditMode = false;   // 奉仕者編集モード
 let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
@@ -320,11 +321,11 @@ function _startProgress() {
 }
 
 // ===== 画面切替 =====
-const SCREENS = ['login','recovery','register','main','form','shift','request','bug','road-permit','distrib-report'];
+// 認証はこのアプリ内では行わず、共通ログイン画面（login.html）に一本化したため
+// login / recovery 画面は持たない
+const SCREENS = ['register','main','form','shift','request','bug','road-permit','distrib-report'];
 // 画面ごとの display 値
 const SCREEN_DISPLAY = {
-  login:    'flex',
-  recovery: 'block',
   register: 'flex',
   main:     'block',
   form:           'block',
@@ -335,12 +336,12 @@ const SCREEN_DISPLAY = {
   'distrib-report': 'block'
 };
 // ===== History API による戻るボタン対応 =====
-// 戻るボタンで履歴を積まない画面（ログイン画面のみ底とする）
-const HISTORY_NO_PUSH = new Set(['login']);
+// 戻るボタンで履歴を積まない画面（初回登録画面を底とする）
+const HISTORY_NO_PUSH = new Set(['register']);
 
 // 画面の「深さ」（進む/戻るの方向判定用）
-const SCREEN_DEPTH = { login: 0, recovery: 1, register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
-let _currentScreenName = 'login';
+const SCREEN_DEPTH = { register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
+let _currentScreenName = 'register';
 
 function showScreen(name, fromPopstate) {
   window.scrollTo(0, 0);
@@ -511,221 +512,14 @@ function clearSession() {
   pwgwsClearSession();
 }
 
-// ===== Google Identity Services 初期化 =====
-// GISライブラリ読み込み後に自動で呼ばれるコールバック
-function initGoogleLogin() {
-  try {
-    google.accounts.id.initialize({
-      client_id: CLIENT_ID,
-      callback: onGoogleCredential,
-      auto_select: false,
-      cancel_on_tap_outside: false,
-      ux_mode: 'popup',        // リダイレクトではなくポップアップ
-    });
-    const btnDiv = document.getElementById('g-btn-container');
-    if (btnDiv) {
-      google.accounts.id.renderButton(btnDiv, {
-        type: 'standard',
-        theme: 'filled_green',
-        size: 'large',
-        width: 280,
-        text: 'signin_with',
-        locale: 'ja',
-      });
-    }
-    // One Tap：セッションなし（未ログイン）の時だけ表示
-    if (shouldShowOneTap) {
-      google.accounts.id.prompt();
-    }
-  } catch (e) {
-    // GISが未ロードなら何もしない（ボタンはHTMLに既にある）
-    console.warn('GIS init error:', e);
-  }
-}
-
-async function onGoogleCredential(response) {
-  showLoading('認証中...');
-  try {
-    const parts   = response.credential.split('.');
-    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
-    const email   = payload.email   || '';
-    const name    = payload.name    || '';
-    const picture = payload.picture || '';
-    await handleAuth(email, response.credential, name, picture);
-  } catch (e) {
-    hideLoading();
-    showLoginError('ユーザー情報の取得に失敗しました。ページを再読み込みしてください。');
-  }
-}
-
-async function handleAuth(email, token, displayName, picture) {
-  showLoading('認証中...');
-  try {
-    const authQuery = { source: 'form', email };
-    if (_consumeSimulateRegisterFlag()) authQuery.simulateRegister = '1';
-    const data = await apiGet('auth', null, authQuery);
-    hideLoading();
-
-    if (!data.ok) {
-      if (data.reason === 'unauthorized') {
-        showLoginError('このアカウントはアクセス許可されていません。\n管理者にお問い合わせください。');
-      } else {
-        showLoginError('認証エラーが発生しました: ' + (data.reason || ''));
-      }
-      return;
-    }
-
-    if (data.needsRegister) {
-      saveSession({ email, token, needsRegister: true, members: data.members, picture: picture || '' });
-      buildRegisterScreen(data.members, email, token, displayName, picture || '');
-      return;
-    }
-
-    // ログイン成功
-    SESSION = {
-      uid: data.uid, name: data.name, email: email, token: token,
-      isAdmin: data.isAdmin, isResponsible: data.isResponsible,
-      isCart: data.isCart, isAccountant: data.isAccountant || false,
-      proxyTargets: data.proxyTargets || [],
-      picture: picture || ''
-    };
-    saveSession({ email, token, picture: picture || '' });
-    // 他の2アプリでもログイン済みとして扱えるよう共通セッションにも保存する
-    pwgwsSaveSession(email, displayName || data.name || '', picture || '');
-    // One Tapが表示中なら閉じる
-    shouldShowOneTap = false;
-    try { google.accounts.id.cancel(); } catch(_) {}
-    await initApp();
-  } catch (e) {
-    hideLoading();
-    showLoginError('通信エラーが発生しました。ページを再読み込みしてください。');
-  }
-}
-
-function showLoginError(msg) {
-  const el = document.getElementById('login-err');
-  el.textContent = msg;
-  el.classList.add('show');
-  showScreen('login');
-}
 
 // ============================================================
-// 救済ログイン（Googleアカウントにログインできない場合）
+// 救済ログイン
 //
-// 「申請 → 管理者が承認 → 管理者が電話等でパスコードを伝える → パスコード入力」
-// という流れ。パスコードは管理者の画面にしか出ないため、承認だけで
-// ログインできてしまうことはなく、本人への連絡が必ず発生する
+// 申請とパスコード入力の画面は共通ログイン画面（login.html）に移した。
+// ここに残しているのは「発行済みの救済セッションでログイン状態を復元する」処理だけ
 // ============================================================
-const REC_DEVICE_KEY  = 'pwgws_device_token';
 const REC_SESSION_KEY = 'pwgws_recovery_session';
-
-// 端末を識別するためのトークン。承認をこの端末だけに結び付けるために使う
-function getDeviceToken() {
-  let t = '';
-  try { t = localStorage.getItem(REC_DEVICE_KEY) || ''; } catch (_) {}
-  if (!t) {
-    t = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2));
-    try { localStorage.setItem(REC_DEVICE_KEY, t); } catch (_) {}
-  }
-  return t;
-}
-
-function setRecMsg(id, text, kind) {
-  const el = document.getElementById(id);
-  el.className = 'msg' + (kind ? ' ' + kind : '');
-  el.textContent = text;
-}
-
-async function submitRecoveryRequest() {
-  const name      = document.getElementById('rec-name').value.trim();
-  const email     = document.getElementById('rec-email').value.trim();
-  const sharedKey = document.getElementById('rec-key').value.trim();
-  if (!name)      { setRecMsg('rec-msg', '⚠️ お名前を入力してください。', 'error'); return; }
-  if (!sharedKey) { setRecMsg('rec-msg', '⚠️ 合言葉を入力してください。', 'error'); return; }
-
-  const btn = document.getElementById('btn-rec-submit');
-  btn.disabled = true;
-  setRecMsg('rec-msg', '送信中...', '');
-  try {
-    const res = await apiGet('requestRecoveryLogin', {
-      name, email, sharedKey, deviceToken: getDeviceToken()
-    });
-    if (!res.ok) {
-      if (res.reason === 'bad_key') {
-        setRecMsg('rec-msg', '⚠️ 合言葉が違います。区域係にご確認ください。', 'error');
-      } else if (res.reason === 'rate_limited') {
-        setRecMsg('rec-msg', '⚠️ 試行回数が多すぎます。しばらく時間をおいてからお試しください。', 'error');
-      } else {
-        setRecMsg('rec-msg', '⚠️ 申請できませんでした。入力内容をご確認ください。', 'error');
-      }
-      btn.disabled = false;
-      return;
-    }
-    // 申請成功。以降はパスコード入力画面（管理者からの連絡待ち）
-    document.getElementById('rec-step-form').style.display = 'none';
-    document.getElementById('rec-step-otp').style.display  = 'block';
-    setRecMsg('rec-msg', '', '');
-  } catch (e) {
-    setRecMsg('rec-msg', '⚠️ 通信エラーが発生しました。', 'error');
-    btn.disabled = false;
-  }
-}
-
-async function submitRecoveryOtp() {
-  const otp = document.getElementById('rec-otp').value.trim();
-  if (!/^\d{6}$/.test(otp)) {
-    setRecMsg('rec-otp-msg', '⚠️ 6桁の数字を入力してください。', 'error');
-    return;
-  }
-  const btn = document.getElementById('btn-rec-otp');
-  btn.disabled = true;
-  setRecMsg('rec-otp-msg', '確認中...', '');
-  try {
-    const res = await apiGet('verifyRecoveryOtp', { otp, deviceToken: getDeviceToken() });
-    if (!res.ok) {
-      const msgs = {
-        not_approved:      'まだ承認されていません。区域係からの連絡をお待ちください。',
-        otp_expired:       'パスコードの有効期限が切れました。もう一度申請してください。',
-        too_many_attempts: '入力を間違えた回数が上限に達しました。もう一度申請してください。',
-        bad_otp:           'パスコードが違います。' +
-                           (typeof res.remaining === 'number' ? '（残り' + res.remaining + '回）' : ''),
-        rate_limited:      '試行回数が多すぎます。しばらく時間をおいてからお試しください。',
-      };
-      setRecMsg('rec-otp-msg', '⚠️ ' + (msgs[res.reason] || 'ログインできませんでした。'), 'error');
-      btn.disabled = false;
-      return;
-    }
-    // 救済セッションを保存してログイン
-    try { localStorage.setItem(REC_SESSION_KEY, res.sessionToken); } catch (_) {}
-    SESSION = {
-      uid: res.uid, name: res.name, email: '', token: '',
-      isAdmin: res.isAdmin, isResponsible: res.isResponsible,
-      isCart: res.isCart, isAccountant: res.isAccountant || false,
-      proxyTargets: res.proxyTargets || [], picture: '', isRecoverySession: true
-    };
-    showLoading('ログイン中...');
-    await initApp();
-    setTimeout(() => alert(
-      'ログインしました。\n\nこのログインは ' + res.days + '日間 有効です。\n' +
-      '期限が切れる前に、区域係に連絡して新しいメールアドレスへの変更を済ませてください。'
-    ), 600);
-  } catch (e) {
-    setRecMsg('rec-otp-msg', '⚠️ 通信エラーが発生しました。', 'error');
-    btn.disabled = false;
-  }
-}
-
-function cancelRecovery() {
-  document.getElementById('rec-step-form').style.display = 'block';
-  document.getElementById('rec-step-otp').style.display  = 'none';
-  ['rec-name','rec-email','rec-key','rec-otp'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  setRecMsg('rec-msg', '', ''); setRecMsg('rec-otp-msg', '', '');
-  document.getElementById('btn-rec-submit').disabled = false;
-  document.getElementById('btn-rec-otp').disabled    = false;
-  showScreen('login');
-}
 
 // 保存済みの救済セッションでログインを試みる。
 // 有効期限はサーバー側で管理しているため、起動のたびに必ず問い合わせる
@@ -1138,13 +932,8 @@ function logout() {
   { const picker = document.getElementById('test-limited-type-picker'); if (picker) { picker.classList.remove('show'); picker.innerHTML = ''; } }
   _mainHistorySetup = false; // 再ログイン時に __bottom__ を再挿入するためリセット
   closeProfilePopup();
-  google.accounts.id.disableAutoSelect();
-  showScreen('login');
-  // ログアウト後はOne Tapを表示（initialize()は初回のみ呼び出し済みなので prompt() だけでよい）
-  shouldShowOneTap = true;
-  setTimeout(() => {
-    try { google.accounts.id.prompt(); } catch(_) {}
-  }, 100);
+  // ログアウト後は共通ログイン画面へ戻す
+  pwgwsGoToLogin();
 }
 
 // ===== アプリ初期化 =====
@@ -3594,9 +3383,7 @@ function esc(s) {
       if (!data.ok) {
         hideLoading();
         clearSession();
-        shouldShowOneTap = true;
-        try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
-        showScreen('login');
+        pwgwsGoToLogin('expired');
         return;
       }
       if (data.needsRegister) {
@@ -3615,27 +3402,14 @@ function esc(s) {
       return;
     } catch(e) {
       hideLoading();
-      // 通信エラー時はログイン画面へ
+      // 通信エラー時は共通ログイン画面へ
       clearSession();
-      shouldShowOneTap = true;
-      try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt(); } catch(_) {}
-      showScreen('login');
+      pwgwsGoToLogin();
       return;
     }
   }
-  // 未ログイン：共通ログイン画面へ送る。
-  // ?direct=1 が付いている場合は従来のログイン画面を出す（共通ログイン画面に
-  // 不具合が出たときにアプリへ入れなくならないための緊急脱出口）
-  if (pwgwsShouldRedirectToLogin()) { pwgwsGoToLogin(); return; }
-
-  shouldShowOneTap = true;
-  // GISがすでに初期化済みなら直接prompt()を呼ぶ
-  try {
-    if (window.google && google.accounts && google.accounts.id) {
-      google.accounts.id.prompt();
-    }
-  } catch(_) {}
-  showScreen('login');
+  // 未ログイン：共通ログイン画面へ送る（このアプリ内に認証画面は持たない）
+  pwgwsGoToLogin();
 })();
 // ===== 写真閲覧モーダル =====
 const ACCOUNTING_URL = 'https://docs.google.com/spreadsheets/d/1_eacoOvEoj2k6SjuoTJnM8_QBRGxzhogWkhjZkP1Vyk/edit';

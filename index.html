@@ -10,8 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/app.css?v=18">
+<link rel="stylesheet" href="css/app.css?v=19">
 </head>
 <body>
 
@@ -46,64 +45,6 @@
       <div id="loading-progress-bar"></div>
     </div>
     <span id="loading-progress-pct">0%</span>
-  </div>
-</div>
-
-<!-- ===== ログイン画面 ===== -->
-<div id="screen-login">
-  <button class="login-help-btn" onclick="openHelp('login')">?</button>
-  <div class="login-card">
-    <div class="login-logo" style="background:transparent;width:80px;height:80px;">
-      <img src="./logo.png" alt="宇多津会衆PWアプリ" style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
-    </div>
-    <div class="login-title">宇多津会衆PWアプリ</div>
-    <div class="login-sub">Googleアカウントでログインしてください</div>
-    <!-- Google公式ボタン（Android Chrome対応） -->
-    <div id="g-btn-container" style="margin:16px auto 0;display:flex;justify-content:center;min-height:44px;"></div>
-    <div class="login-err" id="login-err"></div>
-    <button class="rec-link" onclick="showScreen('recovery')">Googleアカウントでログインできない場合</button>
-  </div>
-</div>
-
-<!-- ===== 救済ログイン画面 ===== -->
-<!-- Googleアカウントに入れなくなった人向け。管理者の承認とワンタイムパスコードで一時的にログインする -->
-<div id="screen-recovery">
-  <div style="padding:16px;">
-    <div class="register-card">
-      <div class="register-title">🔑 ログインできない場合</div>
-
-      <!-- 手順1: 申請フォーム -->
-      <div id="rec-step-form">
-        <div class="register-sub">
-          お名前と、これまで使っていたメールアドレス、合言葉を入力して申請してください。<br>
-          申請後、<b>区域係からご連絡</b>し、パスコードをお伝えします。
-        </div>
-        <label class="rec-label">お名前</label>
-        <input type="text" id="rec-name" class="rec-input" placeholder="例：宇多津 太郎" autocomplete="name">
-        <label class="rec-label">これまで使っていたメールアドレス</label>
-        <input type="email" id="rec-email" class="rec-input" placeholder="例：example@gmail.com" autocomplete="email">
-        <label class="rec-label">合言葉</label>
-        <input type="text" id="rec-key" class="rec-input" placeholder="区域係から案内されている合言葉" autocomplete="off">
-        <button class="btn-primary" id="btn-rec-submit" onclick="submitRecoveryRequest()">申請する</button>
-        <div class="msg" id="rec-msg" style="margin-top:12px;"></div>
-      </div>
-
-      <!-- 手順2: パスコード入力 -->
-      <div id="rec-step-otp" style="display:none;">
-        <div class="register-sub">
-          申請を受け付けました。<br>
-          <b>区域係からご連絡があるまでお待ちください。</b><br>
-          パスコードを受け取ったら、下に入力してください。
-        </div>
-        <label class="rec-label">パスコード（6桁）</label>
-        <input type="text" id="rec-otp" class="rec-input rec-otp" placeholder="000000"
-               inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-        <button class="btn-primary" id="btn-rec-otp" onclick="submitRecoveryOtp()">ログインする</button>
-        <div class="msg" id="rec-otp-msg" style="margin-top:12px;"></div>
-      </div>
-
-      <button class="rec-link" onclick="cancelRecovery()">ログイン画面に戻る</button>
-    </div>
   </div>
 </div>
 
@@ -644,7 +585,7 @@
   </div>
 </div>
 
-<script src="js/session.js?v=1"></script>
-<script src="js/app.js?v=34"></script>
+<script src="js/session.js?v=2"></script>
+<script src="js/app.js?v=35"></script>
 </body>
 </html>

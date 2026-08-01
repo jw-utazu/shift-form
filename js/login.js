@@ -74,6 +74,8 @@ function safeReturnUrl(raw) {
     showErr('このアカウントには管理者権限がありません。別のアカウントでログインしてください。');
   } else if (reason === 'expired') {
     showErr('ログインの有効期限が切れました。もう一度ログインしてください。');
+  } else if (reason === 'unauthorized') {
+    showErr('このアカウントはアクセスが許可されていません。区域係にお問い合わせください。');
   }
 
   // 既にログイン済みならそのまま行き先へ

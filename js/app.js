@@ -232,6 +232,46 @@ async function installPWADirect() {
 }
 
 
+// ===== 起動スプラッシュ（admin/シフト管理アプリと共通の見た目・3ステップ進捗） =====
+// ログイン自体は共通ログイン画面（login.html）で完了済みのため、このアプリでは
+// ステップ2（権限確認）からスタートする。初回起動が終わったら以降は
+// 通常のローディングオーバーレイ（showLoading/hideLoading）を使う
+let _firstBootDone = false;
+function setBootStep(step, msg) {
+  document.getElementById('ld-status').textContent = msg;
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('ldst-' + i);
+    el.classList.remove('active', 'done');
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+    if (i < 3) document.getElementById('ldsl-' + i).classList.toggle('done', i < step);
+  }
+  const pct = [0, 20, 55, 80];
+  document.getElementById('ld-bar').style.width = pct[step] + '%';
+}
+function showBootSplash(step, msg) {
+  const el = document.getElementById('loading');
+  if (el && !el.classList.contains('show')) el.classList.add('show');
+  setBootStep(step, msg);
+}
+// バックグラウンドタブでは requestAnimationFrame が発火しないため、
+// タイマーでも必ず完了させる（admin側と同じ対策）
+function hideBootSplash() {
+  const bar = document.getElementById('ld-bar');
+  if (bar) bar.style.width = '100%';
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    setTimeout(() => {
+      const el = document.getElementById('loading');
+      if (el) el.classList.remove('show');
+    }, 400);
+  };
+  requestAnimationFrame(() => requestAnimationFrame(finish));
+  setTimeout(finish, 1000);
+}
+
 // ===== ローディング =====
 let _progressTimer  = null;
 let _progressCurrent = 0;
@@ -959,7 +999,11 @@ function logout() {
 // ===== アプリ初期化 =====
 async function initApp() {
   initDebugDatePanel();
-  showLoading('データを読み込み中...');
+  // 初回起動時のみ起動スプラッシュ（ステップ3：データ読込）を使う。
+  // 再読み込みやメンバープレビュー切替時は通常のローディングオーバーレイのまま
+  const isBoot = !_firstBootDone;
+  if (isBoot) setBootStep(3, 'データを読み込み中...');
+  else showLoading('データを読み込み中...');
   // 再読み込み時は一旦通常PWとして再構築し、必要なら最後に限定PWビューへ戻す
   const prevPwType = currentPwType;
   currentPwType = 'normal';
@@ -1023,11 +1067,11 @@ async function initApp() {
       buildMainScreen();
     } catch (buildErr) {
       console.error('buildMainScreen error:', buildErr);
-      await hideLoading();
+      if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { await hideLoading(); }
       alert('画面の構築に失敗しました: ' + buildErr.message);
       return;
     }
-    await hideLoading();
+    if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { await hideLoading(); }
     showScreen('main');
     // 再読み込み前に限定PWを見ていた場合はビューを復元（タブと表示内容のズレを防ぐ）
     if (prevPwType !== 'normal' && isLimitedMember) {
@@ -1042,7 +1086,7 @@ async function initApp() {
       await openNotifFromTap(notifParam);
     }
   } catch (e) {
-    hideLoading();
+    if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { hideLoading(); }
     console.error('initApp error:', e);
     alert('データの読み込みに失敗しました: ' + e.message);
   }
@@ -3372,11 +3416,12 @@ function esc(s) {
     localStorage.removeItem('debugFakeNow');
   }
 
+  // 起動スプラッシュを表示（ログインは共通ログイン画面で完了済みなのでステップ2から）
+  showBootSplash(2, '認証情報を確認中...');
+
   // 救済ログインのセッションを先に確認する（Googleアカウントが使えない人のため、
   // 通常のGoogle認証より前に判定する）。有効期限はサーバー側で検証される
-  showLoading('認証中...');
-  if (await tryRecoverySession()) return;
-  hideLoading();
+  if (await tryRecoverySession()) return; // initApp() 内でスプラッシュを閉じる
 
   // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
   // 共通ログイン画面でログイン済みなら、このアプリ固有のセッションが無くても引き継ぐ
@@ -3391,23 +3436,24 @@ function esc(s) {
   if (saved && saved.email) {
     if (saved.needsRegister) {
       // 初回登録途中でリロードされた場合は登録画面へ
+      hideBootSplash();
       buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
       return;
     }
     // email+tokenがあればサーバーに再認証して最新データを取得
-    showLoading('認証中...');
+    setBootStep(2, '認証情報を確認中...');
     try {
       const restoreAuthQuery = { source: 'form', email: saved.email };
       if (_consumeSimulateRegisterFlag()) restoreAuthQuery.simulateRegister = '1';
       const data = await apiGet('auth', null, restoreAuthQuery);
       if (!data.ok) {
-        hideLoading();
+        hideBootSplash();
         clearSession();
         pwgwsGoToLogin('expired');
         return;
       }
       if (data.needsRegister) {
-        hideLoading();
+        hideBootSplash();
         buildRegisterScreen(data.members || [], saved.email, saved.token || '', '', saved.picture || '');
         return;
       }
@@ -3417,11 +3463,11 @@ function esc(s) {
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
         picture: saved.picture || ''
       };
-      // hideLoadingせずそのままinitAppへ（ローディングはinitApp内で引き継ぎ）
+      // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
       await initApp();
       return;
     } catch(e) {
-      hideLoading();
+      hideBootSplash();
       // 通信エラー時は共通ログイン画面へ
       clearSession();
       pwgwsGoToLogin();
@@ -3429,6 +3475,7 @@ function esc(s) {
     }
   }
   // 未ログイン：共通ログイン画面へ送る（このアプリ内に認証画面は持たない）
+  hideBootSplash();
   pwgwsGoToLogin();
 })();
 // ===== 写真閲覧モーダル =====

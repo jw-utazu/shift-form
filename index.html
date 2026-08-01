@@ -10,9 +10,38 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=20">
+<link rel="stylesheet" href="css/app.css?v=21">
 </head>
 <body>
+
+<!-- 起動スプラッシュ（admin/シフト管理アプリと同じ構成：ログイン→権限確認→データ読込）
+     ログイン自体は共通ログイン画面（login.html）で完了済みのため、ここでは
+     ステップ2（権限確認）から表示を開始する -->
+<div id="loading">
+  <div class="ld-topbar"></div>
+  <div class="ld-body">
+    <div class="ld-logo"><img src="./logo.png" alt="PW" onerror="this.style.display='none';this.parentNode.style.background='var(--green)'"></div>
+    <div class="ld-name">宇多津会衆PWアプリ</div>
+    <div class="ld-status" id="ld-status">準備中...</div>
+    <div class="ld-steps">
+      <div class="ld-step" id="ldst-1">
+        <div class="ld-dot">1</div>
+        <div class="ld-label">ログイン</div>
+      </div>
+      <div class="ld-line" id="ldsl-1"></div>
+      <div class="ld-step" id="ldst-2">
+        <div class="ld-dot">2</div>
+        <div class="ld-label">権限確認</div>
+      </div>
+      <div class="ld-line" id="ldsl-2"></div>
+      <div class="ld-step" id="ldst-3">
+        <div class="ld-dot">3</div>
+        <div class="ld-label">データ読込</div>
+      </div>
+    </div>
+    <div class="ld-bar-bg"><div class="ld-bar" id="ld-bar"></div></div>
+  </div>
+</div>
 
 <!-- テストアカウント専用：疑似日付デバッグパネル -->
 <div id="debugDatePanel" class="debug-date-panel" style="display:none;">
@@ -586,6 +615,6 @@
 </div>
 
 <script src="js/session.js?v=2"></script>
-<script src="js/app.js?v=36"></script>
+<script src="js/app.js?v=37"></script>
 </body>
 </html>

@@ -173,8 +173,6 @@ let APP_DATA     = null; // APIから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
 let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
-let NORMAL_SHIFT_DATES = [];     // 通常PW 実施日一覧（統合カレンダー用）
-let NORMAL_SHIFT_DATES_MAP = {}; // 通常PW 実施日→時間帯リスト（統合カレンダー用）
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;   // 申込を受け付けている月（シフト表の月とはずれることがある）
 
@@ -1078,9 +1076,6 @@ async function initApp() {
       if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
       if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
     });
-    // 通常PW の実施日を統合カレンダー用に保存
-    NORMAL_SHIFT_DATES     = SHIFT_DATES.slice();
-    NORMAL_SHIFT_DATES_MAP = Object.assign({}, SHIFT_DATES_MAP);
 
     try {
       buildMainScreen();
@@ -1589,36 +1584,32 @@ function buildCalendar() {
     });
   }
 
-  // 統合カレンダー用：通常PW 実施日（表示月分）
+  // 通常PW 実施日（表示月分）と時間帯マップ。SHIFT_DATES/SHIFT_DATES_MAP は
+  // 「申込を受け付けている月」のスロット（dataMini由来）だが、シフトが動いている月は
+  // それとは別の月のことがある（今月のシフトが動いている最中に来月の申込が始まる）ため、
+  // 表示月の実施日が無いときはシフト表（SHIFT_DATA）からフォールバックする。
+  // 統合カレンダー（isLimitedMember）・単独カレンダーの両方でこのデータを使う
   const normalShiftDaysInMonth = new Set();
-  if (isLimitedMember) {
-    (NORMAL_SHIFT_DATES || []).forEach(dateStr => {
-      const p = dateStr.split('/');
-      if (p.length === 2 && parseInt(p[0]) === dispM) normalShiftDaysInMonth.add(parseInt(p[0]) + '_' + parseInt(p[1]));
-    });
-  }
-
-  // 実施日セット：SHIFT_DATES（カレンダーB10以降）を優先使用
-  // SHIFT_DATESは'm/d'形式、表示月でフィルタして'm_d'キーのSetを作成
-  const shiftDays = new Set();
-  (SHIFT_DATES.length > 0 ? SHIFT_DATES : []).forEach(dateStr => {
+  const normalShiftTimesMap = {}; // 'm_d' -> [time,...]
+  SHIFT_DATES.forEach(dateStr => {
     const p = dateStr.split('/');
-    if (p.length === 2) {
-      const m = parseInt(p[0]), day = parseInt(p[1]);
-      if (m === dispM) shiftDays.add(m + '_' + day);
-    }
+    if (p.length !== 2 || parseInt(p[0]) !== dispM) return;
+    const key = parseInt(p[0]) + '_' + parseInt(p[1]);
+    normalShiftDaysInMonth.add(key);
+    normalShiftTimesMap[key] = (SHIFT_DATES_MAP[key] || []).slice();
   });
-  // SHIFT_DATESが空の場合はSHIFT_DATA.datesからフォールバック
-  if (shiftDays.size === 0) {
+  if (normalShiftDaysInMonth.size === 0) {
     (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
       const p = d.date.split('/');
-      if (p.length === 2) {
-        const m = parseInt(p[0]), day = parseInt(p[1]);
-        if (m === dispM) shiftDays.add(m + '_' + day);
-      }
+      if (p.length !== 2) return;
+      const m = parseInt(p[0]), day = parseInt(p[1]);
+      if (m !== dispM) return;
+      const key = m + '_' + day;
+      normalShiftDaysInMonth.add(key);
+      if (!normalShiftTimesMap[key]) normalShiftTimesMap[key] = [];
+      if (d.time && !normalShiftTimesMap[key].includes(d.time)) normalShiftTimesMap[key].push(d.time);
     });
   }
-  console.log('[Calendar] dispM=' + dispM + ' SHIFT_DATES=', SHIFT_DATES, ' shiftDays=', [...shiftDays]);
 
   // 自分のシフト日セット（SHIFT_DATA.datesから、公開後のみ有効）
   const myShiftDays = new Set();
@@ -1674,7 +1665,7 @@ function buildCalendar() {
         isShiftLtdHere = !!(shiftDaysLtd && shiftDaysLtd.has(keyLtd2));
       } else {
         const key2  = isLimitedPw2 ? keyLtd2 : keyNorm;
-        isShiftNorm    = isLimitedPw2 ? false : shiftDays.has(keyNorm);
+        isShiftNorm    = isLimitedPw2 ? false : normalShiftDaysInMonth.has(keyNorm);
         isShiftLtdHere = isLimitedPw2 ? !!(shiftDaysLtd && shiftDaysLtd.has(key2)) : false;
       }
       const isShift = isShiftNorm || isShiftLtdHere;
@@ -1714,7 +1705,7 @@ function buildCalendar() {
         if (isLimitedMember) {
           // ===== 統合カレンダー表示 =====
           el.classList.add('shift-day-unified');
-          const normTimes = NORMAL_SHIFT_DATES_MAP[keyNorm] || [];
+          const normTimes = normalShiftTimesMap[keyNorm] || [];
           const ltdTimes  = (shiftDaysMapLtd && shiftDaysMapLtd[keyLtd2]) || [];
 
           if (isShiftNorm) {
@@ -1746,13 +1737,13 @@ function buildCalendar() {
           // ===== 既存の単独表示 =====
           el.classList.add('shift-day');
           const key = isLimitedPw2 ? keyLtd2 : keyNorm;
-          const count = isLimitedPw2
-            ? (shiftDaysMapLtd && shiftDaysMapLtd[key] ? shiftDaysMapLtd[key].length : 0)
-            : (SHIFT_DATES_MAP[key] || []).length;
-          if (count > 0) {
+          const times = isLimitedPw2
+            ? (shiftDaysMapLtd && shiftDaysMapLtd[key] || [])
+            : (normalShiftTimesMap[key] || []);
+          if (times.length > 0) {
             const countEl = document.createElement('span');
             countEl.className   = 'cal-count';
-            countEl.textContent = count + '件';
+            countEl.textContent = times.length + '件';
             el.appendChild(countEl);
           }
 
@@ -1762,8 +1753,10 @@ function buildCalendar() {
             el.appendChild(badge);
           }
 
-          const _ltdTimes = isLimitedPw2 ? (shiftDaysMapLtd && shiftDaysMapLtd[key] || []) : null;
-          el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day, _ltdTimes));
+          // 通常PWも限定PWと同じくフォールバック込みの times をそのまま渡す。
+          // toggleShiftTimeBox 内部の SHIFT_DATES_MAP 参照だけに頼ると、シフトが
+          // 動いている月と申込中の月がずれたときに時間帯が「情報がありません」になる
+          el.addEventListener('click', () => toggleShiftTimeBox(key, dispY, dispM, day, times));
         }
       }
     }
@@ -4138,9 +4131,6 @@ async function switchFormPwType(type) {
         if (!SHIFT_DATES_MAP[key]) SHIFT_DATES_MAP[key] = [];
         if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
       });
-      // 通常PWデータを統合カレンダー用に更新
-      NORMAL_SHIFT_DATES     = SHIFT_DATES.slice();
-      NORMAL_SHIFT_DATES_MAP = Object.assign({}, SHIFT_DATES_MAP);
     }
     buildMainScreen();
     await hideLoading();

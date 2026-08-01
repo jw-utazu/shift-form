@@ -1359,6 +1359,38 @@ body::-webkit-scrollbar { display: none; }
 .btn-save-shift:disabled { opacity:.5; cursor:not-allowed; }
 .btn-cancel-shift-edit { background:#f3f4f6; color:var(--sub); border:1px solid #e5e7eb; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
 .btn-edit-staff-mode { background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+/* 責任者・カート担当・場所名の編集（奉仕者編集モード） */
+.resp-edit-row { align-items:center; }
+.role-edit-sel { border:1px solid #d1d5db; border-radius:5px; padding:4px 6px; font-size:13px; font-family:inherit; outline:none; background:#fff; max-width:130px; }
+.role-edit-sel:focus { border-color:var(--green); }
+.cart-edit-block { margin-bottom:10px; }
+.cart-edit-title { font-size:12px; font-weight:700; color:var(--sub); margin:6px 0 4px; }
+.cart-edit-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+.cart-edit-item { display:flex; align-items:center; gap:6px; }
+.cart-edit-lbl { font-size:12px; font-weight:700; color:var(--sub); }
+.cart-num-chip { min-width:34px; padding:4px 8px; border:1.5px solid var(--purple-dark); border-radius:6px; background:#eef2ff; color:var(--purple-dark); font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.cart-num-chip.empty { border-color:#d1d5db; background:#fff; color:#9ca3af; }
+.place-name-edit { width:100%; border:1px solid #d1d5db; border-radius:5px; padding:4px 6px; font-size:13px; font-weight:700; font-family:inherit; outline:none; background:#fff; text-align:center; box-sizing:border-box; }
+.place-name-edit:focus { border-color:var(--green); }
+/* 汎用ポップオーバー・ピッカー（picker.js） */
+.pk { display:none; position:fixed; z-index:9500; min-width:220px; max-width:min(300px, calc(100vw - 20px)); background:#fff; border:1px solid #d1d5db; border-radius:12px; box-shadow:var(--shadow-lg); padding:8px; }
+.pk.on { display:block; }
+.pk-hd { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.pk-title { font-size:12px; font-weight:700; color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pk-x { flex-shrink:0; border:none; background:none; color:#9ca3af; font-size:13px; cursor:pointer; padding:0 2px; font-family:inherit; }
+.pk-search { width:100%; border:1px solid #d1d5db; border-radius:6px; padding:5px 8px; font-size:13px; font-family:inherit; outline:none; margin-bottom:6px; }
+.pk-search:focus { border-color:var(--green); }
+.pk-list { max-height:min(46vh,320px); overflow-y:auto; }
+.pk-grp { position:sticky; top:0; background:#f3f4f6; color:var(--sub); font-size:11px; font-weight:700; padding:3px 6px; border-radius:4px; margin:4px 0 2px; }
+.pk-it { display:flex; align-items:center; gap:6px; width:100%; border:none; background:none; padding:7px 6px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:13px; text-align:left; color:var(--text); }
+.pk-it:hover:not(.dis), .pk-it.cur { background:#f3f4f6; }
+.pk-it.on { background:var(--green-light); font-weight:700; }
+.pk-it.dis { opacity:.4; cursor:not-allowed; text-decoration:line-through; }
+.pk-body { flex:1; display:flex; align-items:center; gap:4px; flex-wrap:wrap; min-width:0; }
+.pk-cb { flex-shrink:0; font-size:14px; }
+.pk-sub { flex-shrink:0; font-size:11px; color:#9ca3af; }
+.pk-empty { padding:14px; text-align:center; font-size:12px; color:#9ca3af; }
+.pk-note { font-size:11px; color:#9ca3af; padding:5px 6px 1px; border-top:1px solid #e5e7eb; margin-top:4px; }
 /* PW モード切り替えタブ（奉仕者アプリ） */
 .pw-type-bar-form{display:none;gap:0;padding:6px 12px;background:#f8f8f8;border-bottom:1px solid #e5e7eb;}
 .pw-type-tab-form{flex:1;padding:7px 0;border:1.5px solid #d1d5db;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#6b7280;text-align:center;transition:all .15s;}

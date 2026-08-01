@@ -185,6 +185,8 @@ const formState = { checkedMap: {}, cartNgMap: {}, noteMap: {} };
 let deferredPrompt = null;
 let shiftViewingDate = null; // 現在表示中のシフト日付
 let staffEditMode = false;   // 奉仕者編集モード
+let _memberFlags = null;     // 奉仕者編集モード用：uid -> {respFlag, cartFlag}（1度取得したらキャッシュ）
+let _cartNumbers = null;     // 奉仕者編集モード用：登録済みカート番号一覧
 let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
@@ -2717,7 +2719,9 @@ function buildShiftDetail(d) {
     html += '<div class="memo-box"><label>📝 責任者メモ</label>' + esc(d.memo) + '</div>';
   }
 
-  if (d.responsible && d.responsible.length > 0) {
+  if (staffEditMode) {
+    html += buildRespEditHtml(d);
+  } else if (d.responsible && d.responsible.length > 0) {
     html += '<div class="resp-row"><span class="resp-label">責任者：</span>';
     d.responsible.forEach(name => {
       html += '<span style="font-weight:700;">' + esc(name) + '</span>&nbsp;';
@@ -2725,7 +2729,9 @@ function buildShiftDetail(d) {
     html += '</div>';
   }
 
-  if (d.cart) {
+  if (staffEditMode) {
+    html += buildCartEditHtml(d);
+  } else if (d.cart) {
     const allCart = [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name);
     if (allCart.length > 0) {
       html += '<div class="cart-info-row"><span class="cart-label-s">カート：</span>';
@@ -2737,6 +2743,8 @@ function buildShiftDetail(d) {
       });
       html += '</div>';
     }
+  }
+  if (d.cart) {
     html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
   }
 
@@ -2757,19 +2765,29 @@ function buildShiftDetail(d) {
       html += '<div class="area-section" style="overflow-x:auto;">';
       html += '<table class="shift-tbl-v2"><thead>';
 
-      // 場所名ヘッダー行（場所ごとに色分け）
+      // 場所名ヘッダー行（場所ごとに色分け）。編集モードは自由入力で場所名を変更できる
       html += '<tr><th class="stv2-hdr-time">時間</th>';
       placeNames.forEach((loc, i) => {
-        html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">' + esc(loc) + '</th>';
+        if (staffEditMode) {
+          const realName = (Array.isArray(d.placeNames) && d.placeNames[i]) || '';
+          html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">'
+               + '<input type="text" class="place-name-edit" id="place-name-' + i + '" value="' + esc(realName) + '" placeholder="場所' + (i + 1) + '"></th>';
+        } else {
+          html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">' + esc(loc) + '</th>';
+        }
       });
       html += '</tr>';
 
-      // カート番号行
+      // カート番号行（場所ごとに何号車を置くか）。編集モードは常に表示してチップで選択
       const hasPlaceCart = placeNames.some(loc => placeCart[loc]);
-      if (hasPlaceCart) {
+      if (hasPlaceCart || staffEditMode) {
         html += '<tr class="stv2-cart-row"><td>カート番号</td>';
-        placeNames.forEach(loc => {
-          html += '<td>' + (placeCart[loc] ? esc(placeCart[loc]) : '—') + '</td>';
+        placeNames.forEach((loc, i) => {
+          if (staffEditMode) {
+            html += '<td>' + cartNumButtonHtml('place-cart-' + i, placeCart[loc] || '') + '</td>';
+          } else {
+            html += '<td>' + (placeCart[loc] ? esc(placeCart[loc]) : '—') + '</td>';
+          }
         });
         html += '</tr>';
       }
@@ -2930,16 +2948,110 @@ function openMemoEdit() {
 }
 
 // ===== 奉仕者編集モード =====
+
+// 責任者／カート担当のセレクト候補。資格情報（_memberFlags）が取れているときは
+// その役の資格を持つ人だけに絞る。現在値の人が資格なし・無効化済みでも
+// 選択肢から消えて黙って外れることがないよう、現在値だけは必ず残す
+function buildRoleOptions(flagKey, curUid) {
+  const staff = (APP_DATA && APP_DATA.staffJSON) || [];
+  const flags = _memberFlags || {};
+  const hasFlags = Object.keys(flags).length > 0;
+  let list = hasFlags ? staff.filter(m => (flags[m.uid] || {})[flagKey]) : staff;
+  if (curUid && !list.some(m => m.uid === curUid)) {
+    const cur = staff.find(m => m.uid === curUid);
+    if (cur) list = [cur, ...list];
+  }
+  let html = '<option value="">—</option>';
+  list.forEach(m => {
+    html += '<option value="' + esc(m.uid) + '"' + (m.uid === curUid ? ' selected' : '') + '>' + esc(m.name) + '</option>';
+  });
+  return html;
+}
+
+function buildRespEditHtml(d) {
+  const r1 = (d.responsibleUids && d.responsibleUids[0]) || '';
+  const r2 = (d.responsibleUids && d.responsibleUids[1]) || '';
+  return '<div class="resp-row resp-edit-row"><span class="resp-label">責任者：</span>'
+       + '<select class="role-edit-sel" id="resp-edit-1">' + buildRoleOptions('respFlag', r1) + '</select>'
+       + '<select class="role-edit-sel" id="resp-edit-2">' + buildRoleOptions('respFlag', r2) + '</select>'
+       + '</div>';
+}
+
+function buildCartEditHtml(d) {
+  const cart = d.cart || {};
+  const bring = cart.bring || [];
+  const take  = cart.take  || [];
+  const item = (label, idPrefix, person) => {
+    const uid    = person ? person.uid    : '';
+    const cartNo = person ? person.cartNo : '';
+    return '<div class="cart-edit-item"><span class="cart-edit-lbl">' + label + '</span>'
+         + '<select class="role-edit-sel" id="' + idPrefix + '-uid">' + buildRoleOptions('cartFlag', uid) + '</select>'
+         + cartNumButtonHtml(idPrefix + '-no', cartNo)
+         + '</div>';
+  };
+  return '<div class="cart-edit-block">'
+       + '<div class="cart-edit-title">カート担当（持ち込み）</div>'
+       + '<div class="cart-edit-row">' + item('①', 'cart-bring1', bring[0]) + item('②', 'cart-bring2', bring[1]) + '</div>'
+       + '<div class="cart-edit-title">カート担当（持ち帰り）</div>'
+       + '<div class="cart-edit-row">' + item('①', 'cart-take1', take[0]) + item('②', 'cart-take2', take[1]) + '</div>'
+       + '</div>';
+}
+
+// カート番号（丸数字表示・複数選択可）。シフト作成アプリと同じチェックボックス式
+// ポップオーバー（js/picker.js）を使う
+function cartCircled(n) {
+  const M = { '1':'①','2':'②','3':'③','4':'④','5':'⑤','6':'⑥','7':'⑦','8':'⑧','9':'⑨' };
+  return M[String(n).trim()] || String(n);
+}
+function cartNumLabel(v) {
+  const arr = String(v || '').split(',').map(x => x.trim()).filter(Boolean);
+  return arr.length ? arr.map(cartCircled).join('') : '—';
+}
+function cartNumButtonHtml(id, value) {
+  return '<button type="button" class="cart-num-chip' + (value ? '' : ' empty') + '" id="' + id
+       + '" data-value="' + esc(value || '') + '" onclick="openCartNumPicker(this)">' + cartNumLabel(value) + '</button>';
+}
+function openCartNumPicker(el) {
+  const cur  = String(el.dataset.value || '').split(',').map(x => x.trim()).filter(Boolean);
+  const list = (_cartNumbers && _cartNumbers.length) ? _cartNumbers : ['1','2','3','4'];
+  const items = list.map(n => ({
+    value: String(n), label: cartCircled(n),
+    html: '<span style="font-size:15px;">' + cartCircled(n) + '</span>',
+  }));
+  openPicker(el, {
+    title: 'カート番号を選択（複数可）', multi: true, value: cur, items,
+    onToggle: vals => {
+      const next = list.filter(n => vals.includes(String(n))).join(',');
+      el.dataset.value = next;
+      el.textContent = cartNumLabel(next);
+      el.classList.toggle('empty', !next);
+    },
+  });
+}
+
 function nameToUid(name) {
   if (!name || !APP_DATA || !APP_DATA.staffJSON) return '';
   const m = APP_DATA.staffJSON.find(s => s.name === name);
   return m ? (m.uid || '') : '';
 }
 
-function enterStaffEditMode() {
+async function enterStaffEditMode() {
   staffEditMode = true;
   history.pushState({ screen: 'shift', modal: 'staffEdit' }, '');
   _modalInHistory = 'staffEdit';
+  // 責任者・カート担当の候補絞り込みとカート番号選択肢は初回だけ取得してキャッシュする
+  if (!_memberFlags || !_cartNumbers) {
+    showLoading('編集データを読み込み中...');
+    try {
+      const [flagsRes, cartRes] = await Promise.all([apiGet('getMemberFlags'), apiGet('getCartNumbers')]);
+      _memberFlags = (flagsRes && flagsRes.flags) || {};
+      _cartNumbers = (cartRes && cartRes.cartNumbers && cartRes.cartNumbers.length) ? cartRes.cartNumbers : ['1','2','3','4'];
+    } catch (e) {
+      _memberFlags = _memberFlags || {};
+      _cartNumbers = _cartNumbers || ['1','2','3','4'];
+    }
+    await hideLoading();
+  }
   buildShiftDetail(shiftViewingDate);
 }
 
@@ -2965,15 +3077,13 @@ async function saveStaffEdits() {
   const btn = document.getElementById('btn-save-staff');
   if (btn) btn.disabled = true;
 
-  // 画面の列は「表示ラベル」（名前が空の列は「場所N」）で引いているが、
-  // 保存するのは実際の場所名。ラベルをそのまま送ると空欄の列に「場所2」という
-  // 名前が付いてしまう。列の対応は名前ではなく並び順（列番号）で決まる
+  // 表内のセルは「表示ラベル」（名前が空の列は「場所N」）で引いているが、
+  // 保存するのは場所名編集欄に入っている実際の場所名。列の対応は名前ではなく
+  // 並び順（列番号）で決まるため、ラベルと同じ並びで場所名欄を読む
   const labels     = Object.keys((d.slots[0] && d.slots[0].places) || {});
-  const placeNames = Array.isArray(d.placeNames) && d.placeNames.length === labels.length
-    ? d.placeNames : labels;
-  // カート番号もラベルキーの連想配列ではなく列番号順の配列で送る
-  // （実際の場所名が空の列はラベルで引き当てられないため）
-  const placeCartArr = labels.map(loc => (d.placeCart || {})[loc] || '');
+  const placeNames = labels.map((_, i) => (document.getElementById('place-name-' + i)?.value || '').trim());
+  // カート番号（場所別）もラベルキーではなく列番号順の配列で送る
+  const placeCartArr = labels.map((_, i) => document.getElementById('place-cart-' + i)?.dataset.value || '');
 
   // 各スロット×場所のドロップダウン値を収集
   // 列番号順の配列で送る（管理アプリと同じ新形式）。
@@ -2999,27 +3109,22 @@ async function saveStaffEdits() {
     return { time: slot.time, places, watch };
   });
 
-  // 責任者・カート担当は API が返す uid をそのまま使う。
-  // 名前から引き直すと、同姓同名で取り違えたり、staffJSON に載らない人
-  // （無効化されたメンバー・限定PW対象外の人）が引けずに黙って消えてしまう。
-  // uid を返さない古いAPIレスポンス向けに名前引きのフォールバックだけ残す
-  const respUids = Array.isArray(d.responsibleUids) ? d.responsibleUids : [];
-  const respNames = d.responsible || [];
+  // 責任者・カート担当は編集欄の select（uid値）から読む
   const responsible = {
-    r1: respUids[0] || nameToUid(respNames[0] || ''),
-    r2: respUids[1] || nameToUid(respNames[1] || '')
+    r1: document.getElementById('resp-edit-1')?.value || '',
+    r2: document.getElementById('resp-edit-2')?.value || ''
   };
 
-  const cart = { ki1:'', kc1:'', ki2:'', kc2:'', ko1:'', oc1:'', ko2:'', oc2:'' };
-  if (d.cart) {
-    const cartUid = c => c.uid || nameToUid(c.name) || '';
-    const bring = (d.cart.bring || []).filter(c => c.name);
-    const take  = (d.cart.take  || []).filter(c => c.name);
-    if (bring[0]) { cart.ki1 = cartUid(bring[0]); cart.kc1 = bring[0].cartNo || ''; }
-    if (bring[1]) { cart.ki2 = cartUid(bring[1]); cart.kc2 = bring[1].cartNo || ''; }
-    if (take[0])  { cart.ko1 = cartUid(take[0]);  cart.oc1 = take[0].cartNo  || ''; }
-    if (take[1])  { cart.ko2 = cartUid(take[1]);  cart.oc2 = take[1].cartNo  || ''; }
-  }
+  const cart = {
+    ki1: document.getElementById('cart-bring1-uid')?.value || '',
+    kc1: document.getElementById('cart-bring1-no')?.dataset.value || '',
+    ki2: document.getElementById('cart-bring2-uid')?.value || '',
+    kc2: document.getElementById('cart-bring2-no')?.dataset.value || '',
+    ko1: document.getElementById('cart-take1-uid')?.value || '',
+    oc1: document.getElementById('cart-take1-no')?.dataset.value || '',
+    ko2: document.getElementById('cart-take2-uid')?.value || '',
+    oc2: document.getElementById('cart-take2-no')?.dataset.value || ''
+  };
 
   showLoading('シフトを保存中...');
   try {

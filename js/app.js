@@ -271,11 +271,29 @@ function hideLoading() {
 }
 
 // 現在値→100%までアニメーション（800msかけて滑らかに）
+//
+// requestAnimationFrame はタブが非表示のあいだ発火しない。この関数のコールバックで
+// hideLoading() の Promise を解決しているため、対策しないとバックグラウンドで開いた
+// タブが「読み込み中」のまま先へ進まなくなる（タブを表示するまで待たされる）。
+// 非表示なら即座に完了させ、さらに保険のタイマーでも必ず完了させる
 function _animateTo100(callback) {
+  let called = false;
+  const done = () => {
+    if (called) return;
+    called = true;
+    _setProgress(100);
+    _progressCurrent = 100;
+    if (callback) callback();
+  };
+
+  // 非表示タブではアニメーションしても見えないので省略する
+  if (document.hidden) { done(); return; }
+
   const startPct  = _progressCurrent;
   const startTime = performance.now();
   const duration  = 800;
   function step(now) {
+    if (called) return;
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
     // easeOutCubic
@@ -286,10 +304,12 @@ function _animateTo100(callback) {
     if (t < 1) {
       requestAnimationFrame(step);
     } else {
-      if (callback) callback();
+      done();
     }
   }
   requestAnimationFrame(step);
+  // アニメーションの途中でタブが非表示になった場合の保険
+  setTimeout(done, duration + 600);
 }
 
 function _setProgress(pct) {

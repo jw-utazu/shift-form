@@ -52,6 +52,16 @@ function api(action, params) {
     });
 }
 
+// Googleが返す ID トークン（JWT）のペイロードを取り出す。
+// atob() はバイト列を1文字1バイトの文字列として返すため、そのまま JSON.parse すると
+// 日本語（UTF-8で複数バイト）の氏名が文字化けする。TextDecoder で正しく復号する
+function decodeJwtPayload(credential) {
+  const b64   = credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const bin   = atob(b64);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+}
+
 // 戻り先URLは同一オリジンのものだけ許可する（外部サイトへ飛ばされるのを防ぐ）
 function safeReturnUrl(raw) {
   if (!raw) return '';
@@ -99,7 +109,9 @@ async function resumeExisting(s, recToken) {
     }
     if (s) {
       const res = await authByEmail(s.email);
-      if (res && res.ok && !res.needsRegister) { routeByPermission(res, s.name || res.name); return; }
+      // 表示名はサーバー（会衆の登録名）を優先する。保存済みのGoogle表示名は
+      // 以前のバージョンで文字化けしたまま保存されている可能性があるため
+      if (res && res.ok && !res.needsRegister) { routeByPermission(res, res.name || s.name); return; }
     }
   } catch (_) { /* 検証に失敗したらログイン画面を出す */ }
   setBusy(false);
@@ -145,7 +157,7 @@ async function onGoogleCredential(response) {
   setBusy(true, 'アカウントを確認中...');
   showErr('');
   try {
-    const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const payload = decodeJwtPayload(response.credential);
     const email   = payload.email   || '';
     const name    = payload.name    || '';
     const picture = payload.picture || '';
@@ -166,7 +178,7 @@ async function onGoogleCredential(response) {
     // 初回登録が必要な人はフォームアプリ側の登録画面へ送る
     if (res.needsRegister) { location.replace(APP_FORM); return; }
 
-    routeByPermission(res, name || res.name);
+    routeByPermission(res, res.name || name);
   } catch (e) {
     setBusy(false);
     showErr('ログインに失敗しました: ' + e.message);

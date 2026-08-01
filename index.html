@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=22">
+<link rel="stylesheet" href="css/app.css?v=23">
 </head>
 <body>
 
@@ -185,6 +185,16 @@
 
     <!-- ナビゲーション -->
     <div class="nav-buttons">
+      <!-- 展示内容写真（シフト公開後・写真が登録されている月のみ表示） -->
+      <div class="exhibit-card" id="exhibit-photo-card" style="display:none;" onclick="openExhibitPhotoCard(0)">
+        <div class="exhibit-card-head">
+          <span class="exhibit-card-title" id="exhibit-photo-title">🖼 展示内容</span>
+          <span class="exhibit-card-count" id="exhibit-photo-count"></span>
+          <span class="exhibit-card-arr">›</span>
+        </div>
+        <div class="exhibit-thumbs" id="exhibit-photo-thumbs"></div>
+      </div>
+
       <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
         <span class="nav-icon">🗺</span>
         <span class="nav-txt">道路使用許可書を閲覧する</span>
@@ -205,31 +215,42 @@
         <span class="nav-txt">配布報告を送る</span>
         <span class="nav-arr">›</span>
       </button>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="font-size:15px;padding:14px 10px;">
-          <span class="nav-icon">💬</span>
-          <span class="nav-txt" style="font-size:14px;">要望を送る</span>
-        </button>
-        <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="font-size:15px;padding:14px 10px;border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
-          <span class="nav-icon">🐛</span>
-          <span class="nav-txt" style="font-size:14px;">バグを報告する</span>
-        </button>
-      </div>
-      <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
-        <span class="nav-icon">📲</span>
-        <span class="nav-txt">アプリとしてインストール</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" onclick="openManualModal()">
-        <span class="nav-icon">📖</span>
-        <span class="nav-txt">操作マニュアルを見る</span>
-        <span class="nav-arr">›</span>
-      </button>
       <button class="btn-nav secondary" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;border-color:#a78bfa;color:#5b21b6;background:#f5f3ff;">
         <span class="nav-icon">👁</span>
         <span class="nav-txt">メンバーとして閲覧</span>
         <span class="nav-arr">›</span>
       </button>
+
+      <!-- その他のメニュー（普段使わないものを折りたたむ） -->
+      <button class="btn-nav secondary nav-more-toggle" id="nav-more-toggle" onclick="toggleNavMore()" aria-expanded="false" aria-controls="nav-more-body">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-txt">その他のメニュー</span>
+        <span class="nav-arr nav-more-chev">▾</span>
+      </button>
+      <div class="nav-more-body" id="nav-more-body">
+        <div class="nav-more-inner">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="font-size:15px;padding:14px 10px;">
+              <span class="nav-icon">💬</span>
+              <span class="nav-txt" style="font-size:14px;">要望を送る</span>
+            </button>
+            <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="font-size:15px;padding:14px 10px;border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
+              <span class="nav-icon">🐛</span>
+              <span class="nav-txt" style="font-size:14px;">バグを報告する</span>
+            </button>
+          </div>
+          <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
+            <span class="nav-icon">📲</span>
+            <span class="nav-txt">アプリとしてインストール</span>
+            <span class="nav-arr">›</span>
+          </button>
+          <button class="btn-nav secondary" onclick="openManualModal()">
+            <span class="nav-icon">📖</span>
+            <span class="nav-txt">操作マニュアルを見る</span>
+            <span class="nav-arr">›</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -616,6 +637,6 @@
 
 <script src="js/session.js?v=2"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=38"></script>
+<script src="js/app.js?v=39"></script>
 </body>
 </html>

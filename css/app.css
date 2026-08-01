@@ -648,6 +648,50 @@ body::-webkit-scrollbar { display: none; }
 .btn-nav.secondary { background: #f0fdf4; color: var(--green); border: 2px solid var(--green-mid); }
 .btn-nav.secondary:active { background: var(--green-light); }
 
+/* 展示内容写真カード（ホーム） */
+.exhibit-card {
+  background: var(--card);
+  border: 2px solid var(--purple);
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, transform .1s;
+}
+.exhibit-card:active { background: #eef2ff; transform: scale(.98); }
+.exhibit-card-head  { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.exhibit-card-title { flex: 1; font-size: 15px; font-weight: 700; color: var(--purple-dark); }
+.exhibit-card-count { font-size: 12px; font-weight: 700; color: #fff; background: var(--purple-dark); border-radius: 999px; padding: 2px 9px; }
+.exhibit-card-arr   { font-size: 20px; color: var(--purple-dark); opacity: .6; }
+.exhibit-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.exhibit-thumbs::-webkit-scrollbar { display: none; }
+.exhibit-thumb {
+  flex: 0 0 auto;
+  width: 86px; height: 86px;
+  border: 1.5px solid var(--purple);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eef2ff;
+}
+.exhibit-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.exhibit-thumb-more { display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: var(--purple-dark); }
+.exhibit-skel { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; color: var(--sub); }
+.exhibit-skel-spin {
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  border: 3px solid var(--green-light);
+  border-top-color: var(--purple-dark);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+/* その他のメニュー（折りたたみ） */
+.nav-more-body  { max-height: 0; overflow: hidden; transition: max-height .28s ease; }
+.nav-more-body.open { max-height: 500px; }
+.nav-more-inner { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+.nav-more-chev  { display: inline-block; transition: transform .25s; opacity: .8; }
+.nav-more-toggle.open .nav-more-chev { transform: rotate(180deg); }
+
 /* PWAインストール */
 #btn-install { display: none; }
 #pwa-install-overlay {

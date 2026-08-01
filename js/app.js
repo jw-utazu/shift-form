@@ -1255,6 +1255,9 @@ function buildMainScreen() {
   // ── 次のシフト ──
   buildNextShift(isOpenPassed);
 
+  // ── 展示内容写真カード（起動をブロックしないよう非同期で読み込む） ──
+  loadExhibitPhotoCard(isOpenPassed);
+
   // ── お知らせ（ヘッダーのベルアイコン＋バッジに集約） ──
   _currentNotices = APP_DATA.notices || [];
   updateNoticeBadge();
@@ -3292,6 +3295,8 @@ const HELP_CONTENTS = {
         items: [
           { icon: '📝', text: '「シフト希望を送る」：受付中のみ利用可。参加できる時間帯を選んで送信します。' },
           { icon: '📋', text: '「シフト表を見る」：シフト公開後に全員のシフト表を確認できます。' },
+          { icon: '🖼', text: '「〇月の展示内容」：公開されたシフトの月の展示写真です。サムネイルをタップすると拡大して見られます。シフト公開前や、写真が登録されていない月は表示されません。' },
+          { icon: '⚙️', text: '「その他のメニュー」：要望・バグ報告・インストール・操作マニュアルがまとまっています。タップで開きます。' },
           { icon: '💬', text: '「要望を送る」：区域係へのご意見・要望を送ることができます。' },
         ]
       }
@@ -3654,6 +3659,89 @@ function openAccountingSheet() {
 // ===== シフト表詳細：カート展示写真ボタン =====
 function openExhibitPhotoFromShift() {
   openPhotoModal('exhibit');
+}
+
+// ===== ホーム：展示内容写真カード =====
+let _exhibitPhotos  = [];
+let _exhibitLoadSeq = 0;
+const EXHIBIT_THUMB_MAX = 4;
+
+// 一覧のサムネイルは軽量サイズで取得する（拡大モーダル側は w1920 のまま）
+function _exhibitThumbUrl(url) {
+  return String(url || '').replace(/([?&]sz=)w\d+/, '$1w400');
+}
+
+// buildMainScreen から呼ぶ。表示するのは公開済みシフトの年月の写真のみで、
+// シフト公開前・写真が1枚も無い月はカードごと非表示にして要素を増やさない
+async function loadExhibitPhotoCard(isOpenPassed) {
+  const card    = document.getElementById('exhibit-photo-card');
+  const thumbs  = document.getElementById('exhibit-photo-thumbs');
+  const countEl = document.getElementById('exhibit-photo-count');
+  const titleEl = document.getElementById('exhibit-photo-title');
+  if (!card || !thumbs || !countEl || !titleEl) return;
+  // 年月・PWタイプの切替が連続したとき、古い応答が後着して上書きするのを防ぐ
+  const seq = ++_exhibitLoadSeq;
+  _exhibitPhotos = [];
+  // シフト公開前は通信もせずに非表示のままにする
+  if (!isOpenPassed) {
+    card.style.display = 'none';
+    thumbs.innerHTML   = '';
+    return;
+  }
+  titleEl.textContent = '🖼 ' + (MONTH ? MONTH + '月の展示内容' : '展示内容');
+  countEl.textContent = '';
+  thumbs.innerHTML = '<div class="exhibit-skel"><span class="exhibit-skel-spin"></span>展示内容の写真を読み込み中...</div>';
+  card.style.display = '';
+  try {
+    const res = await apiGet('getPhotos', {
+      category: 'exhibit',
+      year:  YEAR  || new Date().getFullYear(),
+      month: MONTH || (new Date().getMonth() + 1)
+    });
+    if (seq !== _exhibitLoadSeq) return;
+    _exhibitPhotos = (res && res.photos) || [];
+  } catch (e) {
+    if (seq !== _exhibitLoadSeq) return;
+    _exhibitPhotos = [];
+  }
+  if (_exhibitPhotos.length === 0) {
+    card.style.display = 'none';
+    thumbs.innerHTML   = '';
+    return;
+  }
+  countEl.textContent = _exhibitPhotos.length + '枚';
+  let html = '';
+  _exhibitPhotos.slice(0, EXHIBIT_THUMB_MAX).forEach((p, i) => {
+    html += '<div class="exhibit-thumb" onclick="event.stopPropagation();openExhibitPhotoCard(' + i + ')">'
+          +   '<img src="' + esc(_exhibitThumbUrl(p.url)) + '" alt="展示内容写真' + (i + 1) + '" loading="lazy">'
+          + '</div>';
+  });
+  if (_exhibitPhotos.length > EXHIBIT_THUMB_MAX) {
+    html += '<div class="exhibit-thumb exhibit-thumb-more" onclick="event.stopPropagation();openExhibitPhotoCard(' + EXHIBIT_THUMB_MAX + ')">'
+          +   '+' + (_exhibitPhotos.length - EXHIBIT_THUMB_MAX)
+          + '</div>';
+  }
+  thumbs.innerHTML = html;
+}
+
+// カードから開く：取得済みリストを使い回すので再取得せず即座に表示できる
+function openExhibitPhotoCard(idx) {
+  if (!_exhibitPhotos.length) { openPhotoModal('exhibit'); return; }
+  document.getElementById('photo-modal-title').textContent   = '🖼 カート展示内容';
+  document.getElementById('photo-modal-overlay').style.display = 'flex';
+  _photoList = _exhibitPhotos.slice();
+  showPhoto(idx || 0);
+}
+
+// ===== その他のメニュー（折りたたみ） =====
+function toggleNavMore() {
+  const body = document.getElementById('nav-more-body');
+  const btn  = document.getElementById('nav-more-toggle');
+  if (!body || !btn) return;
+  const open = !body.classList.contains('open');
+  body.classList.toggle('open', open);
+  btn.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 // ===== 道路使用許可書PDF閲覧モーダル（全ユーザー向け） =====

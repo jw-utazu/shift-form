@@ -648,12 +648,14 @@ body::-webkit-scrollbar { display: none; }
 .btn-nav.secondary { background: #f0fdf4; color: var(--green); border: 2px solid var(--green-mid); }
 .btn-nav.secondary:active { background: var(--green-light); }
 
-/* 展示内容写真カード（ホーム） */
+/* 展示内容写真カード（ホーム：次のシフトとカレンダーの間） */
 .exhibit-card {
   background: var(--card);
   border: 2px solid var(--purple);
-  border-radius: 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 12px;
+  margin-bottom: 10px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s, transform .1s;

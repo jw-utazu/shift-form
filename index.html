@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=23">
+<link rel="stylesheet" href="css/app.css?v=24">
 </head>
 <body>
 
@@ -127,6 +127,16 @@
       <span class="next-shift-arrow">›</span>
     </div>
 
+    <!-- 展示内容写真（シフト公開後・写真が登録されている月のみ表示） -->
+    <div class="exhibit-card" id="exhibit-photo-card" style="display:none;" onclick="openExhibitPhotoCard(0)">
+      <div class="exhibit-card-head">
+        <span class="exhibit-card-title" id="exhibit-photo-title">🖼 展示内容</span>
+        <span class="exhibit-card-count" id="exhibit-photo-count"></span>
+        <span class="exhibit-card-arr">›</span>
+      </div>
+      <div class="exhibit-thumbs" id="exhibit-photo-thumbs"></div>
+    </div>
+
     <!-- 受付状況 -->
     <div class="card status-card" id="reception-status-card">
       <div class="card-title">📬 シフト希望受付</div>
@@ -185,16 +195,6 @@
 
     <!-- ナビゲーション -->
     <div class="nav-buttons">
-      <!-- 展示内容写真（シフト公開後・写真が登録されている月のみ表示） -->
-      <div class="exhibit-card" id="exhibit-photo-card" style="display:none;" onclick="openExhibitPhotoCard(0)">
-        <div class="exhibit-card-head">
-          <span class="exhibit-card-title" id="exhibit-photo-title">🖼 展示内容</span>
-          <span class="exhibit-card-count" id="exhibit-photo-count"></span>
-          <span class="exhibit-card-arr">›</span>
-        </div>
-        <div class="exhibit-thumbs" id="exhibit-photo-thumbs"></div>
-      </div>
-
       <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
         <span class="nav-icon">🗺</span>
         <span class="nav-txt">道路使用許可書を閲覧する</span>
@@ -637,6 +637,6 @@
 
 <script src="js/session.js?v=2"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=39"></script>
+<script src="js/app.js?v=40"></script>
 </body>
 </html>

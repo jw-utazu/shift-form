@@ -196,7 +196,13 @@ let _currentNotices = [];          // 現在表示可能なお知らせ一覧（
 const _isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+// ホーム画面から起動している＝インストール済みなので、追加ボタンは出さない
+// （iOS では beforeinstallprompt が来ないため、この判定だけが唯一の手掛かり）
+const _isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
 function _updateInstallBtn() {
+  if (_isStandalone) return;
   const b = document.getElementById('btn-install');
   if (b && (_isIOS || deferredPrompt)) b.style.display = 'flex';
 }

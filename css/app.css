@@ -907,9 +907,9 @@ body::-webkit-scrollbar { display: none; }
 .sdb-main { flex: 1; min-width: 0; }
 .sdb-head  { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .sdb-date  { font-size: 18px; font-weight: 700; color: var(--green-dark); }
-.sdb-time  { font-size: 14px; font-weight: 700; color: var(--sub); }
+.sdb-time  { font-size: 18px; font-weight: 700; color: var(--sub); }
 .sdb-sub       { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
-.sdb-sub-row   { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; background: #f8fafc; border-radius: 8px; padding: 5px 9px; }
+.sdb-sub-row   { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; padding: 5px 0; }
 .sdb-sub-label { color: var(--sub); font-weight: 700; }
 .sdb-sub-val   { color: var(--text); font-weight: 700; }
 .sdb-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }

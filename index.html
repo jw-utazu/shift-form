@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=24">
+<link rel="stylesheet" href="css/app.css?v=25">
 </head>
 <body>
 
@@ -351,6 +351,8 @@
 
     <!-- 日付一覧 -->
     <div id="shift-date-list">
+      <!-- 申込を受け付けている月とシフト表の月がずれることがあるため、どの月の表かを明示する -->
+      <div id="shift-month-label" class="shift-month-label" style="display:none;"></div>
       <div id="shift-dates-container" class="shift-dates"></div>
     </div>
 
@@ -637,6 +639,6 @@
 
 <script src="js/session.js?v=2"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=40"></script>
+<script src="js/app.js?v=41"></script>
 </body>
 </html>

@@ -176,7 +176,18 @@ let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜1
 let NORMAL_SHIFT_DATES = [];     // 通常PW 実施日一覧（統合カレンダー用）
 let NORMAL_SHIFT_DATES_MAP = {}; // 通常PW 実施日→時間帯リスト（統合カレンダー用）
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
-let YEAR = 0, MONTH = 0;
+let YEAR = 0, MONTH = 0;   // 申込を受け付けている月（シフト表の月とはずれることがある）
+
+// SHIFT_DATA は「シフトが公開されている月」のもので、申込中の月（YEAR/MONTH）とは
+// 別の月のことがある（今月のシフトが動いている最中に来月の申込が始まる）。
+// カレンダー・確定シフト一覧は申込中の月を描いているため、
+// 「この月のシフトは公開済み」と読んでよいのは両者が同じ月のときだけ
+function isShiftPublishedForShownMonth() {
+  if (!SHIFT_DATA || !SHIFT_DATA.published) return false;
+  // 年月が返らない場合（旧API）は従来どおり公開済みとして扱う
+  if (!SHIFT_DATA.year || !SHIFT_DATA.month || !YEAR || !MONTH) return true;
+  return SHIFT_DATA.year === YEAR && SHIFT_DATA.month === MONTH;
+}
 let currentFormName = '';
 let currentFormUid  = '';
 let isCartUser = false;
@@ -1146,7 +1157,7 @@ function buildMainScreen() {
   const openD          = parseEventDate(ed['シフト公開']);
   const isOpenDateSet  = !!openD;
   // 公開予定日の推測に加え、サーバー側が実際に公開済み（早期の手動公開含む）ならそれを優先する
-  const isOpenPassed   = (openD && openD.getTime() <= today.getTime()) || !!(SHIFT_DATA && SHIFT_DATA.published);
+  const isOpenPassed   = (openD && openD.getTime() <= today.getTime()) || isShiftPublishedForShownMonth();
 
   // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
   const btnForm    = document.getElementById('btn-shift-form');
@@ -1561,7 +1572,7 @@ function buildCalendar() {
   // isOpenPassedForCalは公開予定日から推測した日付ベースの判定でしかないため、
   // 管理者が予定日より前に手動で公開した場合はSHIFT_DATA.published（サーバー側の
   // 実際の公開フラグ）があればそちらを優先する
-  isOpenPassedForCal = isOpenPassedForCal || !!(SHIFT_DATA && SHIFT_DATA.published);
+  isOpenPassedForCal = isOpenPassedForCal || isShiftPublishedForShownMonth();
 
   // 限定PW：年考慮スロットセット
   let shiftDaysLtd, shiftDaysMapLtd;
@@ -1764,7 +1775,11 @@ function buildCalendar() {
   if (legendMyShift) legendMyShift.style.display = isOpenPassedForCal ? '' : 'none';
   const calShiftBtnArea = document.getElementById('cal-shift-btn-area');
   if (calShiftBtnArea) {
-    calShiftBtnArea.style.display = (isOpenPassedForCal || _isPreviewMode) ? '' : 'none';
+    // シフト表への入口は「どの月であれシフトが公開されているか」で出す。
+    // 来月の申込が始まった直後は申込中の月（isOpenPassedForCal）はまだ公開前だが、
+    // 今月のシフト表は引き続き見られる必要がある
+    const shiftViewable = isOpenPassedForCal || !!(SHIFT_DATA && SHIFT_DATA.published);
+    calShiftBtnArea.style.display = (shiftViewable || _isPreviewMode) ? '' : 'none';
     const calShiftBtnTxt = document.getElementById('cal-shift-btn-txt');
     if (calShiftBtnTxt) {
       calShiftBtnTxt.textContent = currentPwType === 'normal' ? '通常PWのシフト表を見る' : '限定PWのシフト表を見る';
@@ -1903,7 +1918,7 @@ function buildWishListBox(status, isOpenPassed) {
   if (status === '準備中') { card.style.display = 'none'; return; }
 
   // 確定シフト一覧はドロップダウン不要（自分のみ）
-  const isConfirmedView = isOpenPassed && SHIFT_DATA && SHIFT_DATA.published;
+  const isConfirmedView = isOpenPassed && isShiftPublishedForShownMonth();
   let viewUid, viewName;
   if (isConfirmedView) {
     proxyArea.style.display = 'none';
@@ -2083,7 +2098,7 @@ function _renderWishListBody() {
     }
   }
   // 早期の手動公開にも対応するため、サーバー側の実際の公開フラグも見る
-  isOpenPassed = isOpenPassed || !!(SHIFT_DATA && SHIFT_DATA.published);
+  isOpenPassed = isOpenPassed || isShiftPublishedForShownMonth();
   // buildWishListBoxを再呼び出し（ドロップダウンは再構築せずbodyのみ更新される）
   buildWishListBox(status, isOpenPassed);
 }
@@ -2134,15 +2149,18 @@ function goToShiftDetail(dateObj) {
 
 function buildNextShift(isOpenPassed) {
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
-  if (!isOpenPassed) return; // 公開予定日前は表示しない
-  const status = APP_DATA ? (APP_DATA.status || '準備中') : '準備中';
-  if (status === '受付中' || status === '準備中') return; // 受付中・準備中は表示しない
+  // SHIFT_DATA には「作成完了・確認完了・公開予定日到達・まだ当月内」を満たした月のシフトしか
+  // 入ってこない。それは申込中の月とは別の月でありうる（今月のシフトが動いている最中に
+  // 来月の申込が始まる）ため、申込側の状態（受付中・準備中・公開予定日）では判断しない
+  if (!SHIFT_DATA.published) return;
   const today = getSimulatedToday(); today.setHours(0,0,0,0);
   const name  = SESSION.name;
+  // 日付は「M/D」で年を持たないため、申込中の年ではなくシフト表の年で組み立てる
+  const shiftYear = SHIFT_DATA.year || YEAR;
   const next  = SHIFT_DATA.dates.find(d => {
     const p = d.date.split('/');
     if (p.length !== 2) return false;
-    const dt = new Date(YEAR, parseInt(p[0]) - 1, parseInt(p[1]));
+    const dt = new Date(shiftYear, parseInt(p[0]) - 1, parseInt(p[1]));
     if (dt < today) return false;
     return isMyCellInDate(d);
   });
@@ -2576,6 +2594,14 @@ function initShiftScreen() {
 function buildShiftDateList() {
   const container = document.getElementById('shift-dates-container');
   container.innerHTML = '';
+  // シフト表の月は申込を受け付けている月とずれることがある（今月のシフトが動いている
+  // 最中に来月の申込が始まる）ので、どの月の表を見ているのかを必ず示す
+  const label = document.getElementById('shift-month-label');
+  if (label) {
+    const show = !!(SHIFT_DATA && SHIFT_DATA.published && SHIFT_DATA.year && SHIFT_DATA.month);
+    label.textContent = show ? SHIFT_DATA.year + '年' + SHIFT_DATA.month + '月のシフト表' : '';
+    label.style.display = show ? '' : 'none';
+  }
   if (!SHIFT_DATA || !SHIFT_DATA.published) {
     container.innerHTML = '<div class="card" style="text-align:center;color:var(--sub);padding:30px;">シフト表はまだ公開されていません</div>';
     return;
@@ -2905,7 +2931,7 @@ async function _refreshShiftAndRedraw() {
         _isOpenPassed = _openD.getTime() <= _today.getTime();
       }
     }
-    _isOpenPassed = _isOpenPassed || !!(SHIFT_DATA && SHIFT_DATA.published);
+    _isOpenPassed = _isOpenPassed || isShiftPublishedForShownMonth();
     buildNextShift(_isOpenPassed);
     await hideLoading();
   } catch (e) {
@@ -3600,7 +3626,9 @@ const ACCOUNTING_URL = 'https://docs.google.com/spreadsheets/d/1_eacoOvEoj2k6Sju
 let _photoList    = [];
 let _photoCurrent = 0;
 
-async function openPhotoModal(category) {
+// ym を渡すとその年月の写真を表示する（省略時は申込中の月）。
+// シフト表から開く場合は、申込中の月と別の月のシフトを見ていることがあるため必ず渡す
+async function openPhotoModal(category, ym) {
   const overlay = document.getElementById('photo-modal-overlay');
   const titleEl = document.getElementById('photo-modal-title');
   const imgEl   = document.getElementById('photo-modal-img');
@@ -3616,7 +3644,11 @@ async function openPhotoModal(category) {
   _photoCurrent = 0;
 
   try {
-    const res = await apiGet('getPhotos', { category, year: YEAR || new Date().getFullYear(), month: MONTH || (new Date().getMonth() + 1) });
+    const res = await apiGet('getPhotos', {
+      category,
+      year:  (ym && ym.year)  || YEAR  || new Date().getFullYear(),
+      month: (ym && ym.month) || MONTH || (new Date().getMonth() + 1),
+    });
     _photoList = (res && res.photos) || [];
     if (_photoList.length === 0) {
       loadEl.textContent = '写真が登録されていません';
@@ -3664,7 +3696,8 @@ function openAccountingSheet() {
 
 // ===== シフト表詳細：カート展示写真ボタン =====
 function openExhibitPhotoFromShift() {
-  openPhotoModal('exhibit');
+  // 見ているシフト表の月の展示内容を出す（申込中の月とは別の月のことがある）
+  openPhotoModal('exhibit', SHIFT_DATA ? { year: SHIFT_DATA.year, month: SHIFT_DATA.month } : null);
 }
 
 // ===== ホーム：展示内容写真カード =====
@@ -3688,22 +3721,22 @@ async function loadExhibitPhotoCard(isOpenPassed) {
   // 年月・PWタイプの切替が連続したとき、古い応答が後着して上書きするのを防ぐ
   const seq = ++_exhibitLoadSeq;
   _exhibitPhotos = [];
+  // 公開中のシフトがあればその月を、無ければ申込中の月を対象にする。
+  // 来月の申込が始まっても今月のシフトはまだ動いているため、公開中のシフトを優先する
+  const exYear  = (SHIFT_DATA && SHIFT_DATA.published && SHIFT_DATA.year)  || YEAR  || new Date().getFullYear();
+  const exMonth = (SHIFT_DATA && SHIFT_DATA.published && SHIFT_DATA.month) || MONTH || (new Date().getMonth() + 1);
   // シフト公開前は通信もせずに非表示のままにする
-  if (!isOpenPassed) {
+  if (!isOpenPassed && !(SHIFT_DATA && SHIFT_DATA.published)) {
     card.style.display = 'none';
     thumbs.innerHTML   = '';
     return;
   }
-  titleEl.textContent = '🖼 ' + (MONTH ? MONTH + '月の展示内容' : '展示内容');
+  titleEl.textContent = '🖼 ' + exMonth + '月の展示内容';
   countEl.textContent = '';
   thumbs.innerHTML = '<div class="exhibit-skel"><span class="exhibit-skel-spin"></span>展示内容の写真を読み込み中...</div>';
   card.style.display = '';
   try {
-    const res = await apiGet('getPhotos', {
-      category: 'exhibit',
-      year:  YEAR  || new Date().getFullYear(),
-      month: MONTH || (new Date().getMonth() + 1)
-    });
+    const res = await apiGet('getPhotos', { category: 'exhibit', year: exYear, month: exMonth });
     if (seq !== _exhibitLoadSeq) return;
     _exhibitPhotos = (res && res.photos) || [];
   } catch (e) {

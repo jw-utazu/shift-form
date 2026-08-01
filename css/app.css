@@ -957,6 +957,13 @@ body::-webkit-scrollbar { display: none; }
 
 /* ===================== シフト表画面 ===================== */
 #screen-shift { display: none; }
+/* 申込中の月とシフト表の月がずれることがあるので、対象月を一覧の上に出す */
+.shift-month-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sub);
+  padding: 0 2px 10px;
+}
 .shift-dates { display: flex; flex-direction: column; gap: 10px; }
 .shift-date-btn {
   background: var(--card);

@@ -800,14 +800,20 @@ async function doRegister() {
   try {
     const data = await apiGet('register', { email, name });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
+    const picture = sel.dataset.picture || '';
     SESSION = {
       uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
       proxyTargets: data.proxyTargets || [],
-      picture: sel.dataset.picture || ''
+      picture: picture, avatar: ''
     };
-    saveSession({ email, token: sel.dataset.token, picture: sel.dataset.picture || '' });
+    saveSession({ email, token: sel.dataset.token, picture: picture });
+    // ここで初めて uid が確定するため、ログイン時に保存できなかった
+    // Googleのアイコンをこのタイミングでサーバーに保存する
+    if (picture) {
+      try { await apiGet('saveGoogleAvatar', { email, pictureUrl: picture }); } catch (_) {}
+    }
     await initApp();
   } catch (e) {
     await hideLoading();
@@ -821,7 +827,9 @@ async function doRegister() {
 // ===== プロフィールポップアップ =====
 function updateAvatarUI() {
   if (!SESSION) return;
-  const pic = SESSION.picture || '';
+  // サーバーに保存済みのアイコンを優先する。Googleの picture URL は
+  // 本人がGoogle側でアイコンを変えると切れるため、あくまで保存前の代替として使う
+  const pic = SESSION.avatar || SESSION.picture || '';
   // すべての画面のヘッダーアバターを更新（ページ遷移後も維持）
   if (pic && !_isPreviewMode) {
     document.querySelectorAll('.hdr-avatar').forEach(el => {
@@ -3694,6 +3702,14 @@ function esc(s) {
 
 // ===== 起動処理 =====
 (async function init() {
+  // 基準時刻より前の古いセッションは破棄して、共通ログイン画面からやり直してもらう
+  // （Googleのアイコンなどログイン時にしか取れない情報を集めるため。1度きり）
+  if (pwgwsEnforceRelogin()) {
+    clearSession();
+    pwgwsGoToLogin();
+    return;
+  }
+
   // 疑似日付は「日付ピッカーで変更した直後のreload」以外では毎回リセットする
   // （閉じ忘れて実日付だと勘違いする事故を防ぐため）
   if (sessionStorage.getItem('debugFakeNowKeepOnce')) {
@@ -3747,7 +3763,7 @@ function esc(s) {
         uid: data.uid, name: data.name, email: saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
-        picture: saved.picture || ''
+        picture: saved.picture || '', avatar: data.avatar || ''
       };
       // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
       await initApp();

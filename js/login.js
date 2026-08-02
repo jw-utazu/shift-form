@@ -176,7 +176,16 @@ async function onGoogleCredential(response) {
     pwgwsSaveSession(email, name, picture);
 
     // 初回登録が必要な人はフォームアプリ側の登録画面へ送る
+    // （uid が未確定でアイコンを保存できないため、保存は登録完了後に行う）
     if (res.needsRegister) { location.replace(APP_FORM); return; }
+
+    // Googleのアイコンをサーバーに保存する。この URL は Google ログインを通った
+    // 瞬間にしか取得できないため、ここで渡しておく必要がある。
+    // アイコンは無くても使えるので、失敗してもログインは続行する
+    if (picture) {
+      setBusy(true, 'プロフィールを準備中...');
+      try { await api('saveGoogleAvatar', { email, pictureUrl: picture }); } catch (_) {}
+    }
 
     routeByPermission(res, res.name || name);
   } catch (e) {

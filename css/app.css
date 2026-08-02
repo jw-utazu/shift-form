@@ -735,12 +735,62 @@ body::-webkit-scrollbar { display: none; }
   background: var(--green); border-radius: 12px;
   padding: 14px 14px; margin-bottom: 16px; color: #fff;
 }
+/* アイコンは押せるので、ボタンで包んでカメラのしるしを右下に重ねる */
+.setprof-avbtn {
+  position: relative; flex-shrink: 0; padding: 0; border: none;
+  background: none; cursor: pointer; font-family: inherit; line-height: 0;
+}
+.setprof-avbtn:active { transform: scale(0.96); }
 .setprof-av {
   width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
   background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.7);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
 .setprof-av img { width: 100%; height: 100%; object-fit: cover; }
+/* アイコンの切り抜き画面 */
+#avatar-crop-overlay {
+  display: none; position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 16px;
+}
+#avatar-crop-overlay.show { display: flex; }
+#avatar-crop-modal {
+  background: #fff; border-radius: 16px; padding: 18px 16px 16px;
+  width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.avc-hdr { font-size: 16px; font-weight: 700; color: var(--text); text-align: center; }
+.avc-sub { font-size: 11.5px; color: var(--sub); text-align: center; margin: 5px 0 13px; line-height: 1.6; }
+/* 枠は常に正方形。ここに写っている範囲がそのままアイコンになる */
+.avc-stage {
+  position: relative; width: 100%; aspect-ratio: 1 / 1;
+  border-radius: 12px; overflow: hidden; background: #0f172a;
+  touch-action: none; cursor: grab; user-select: none;
+}
+.avc-stage:active { cursor: grabbing; }
+.avc-stage canvas { width: 100%; height: 100%; display: block; }
+/* 丸く表示されたときの見え方が分かるよう、円の外側を暗くする */
+.avc-ring {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(15,23,42,0.5);
+  border: 2px solid rgba(255,255,255,0.9);
+}
+.avc-zoom { display: flex; align-items: center; gap: 10px; margin: 14px 2px 4px; }
+.avc-zoom-ic { flex-shrink: 0; line-height: 1; }
+.avc-zoom input { flex: 1; accent-color: var(--green); }
+.avc-btns { display: flex; gap: 10px; margin-top: 12px; }
+.avc-btn {
+  flex: 1; padding: 13px; border: none; border-radius: 10px;
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  background: #f3f4f6; color: var(--sub);
+}
+.avc-btn-p { background: var(--green); color: #fff; }
+
+.setprof-avcam {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 1.5px solid var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; line-height: 1;
+}
 .setprof-tx { min-width: 0; flex: 1; }
 .setprof-n  { font-size: 16px; font-weight: 700; }
 .setprof-e  { font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 1px; word-break: break-all; }

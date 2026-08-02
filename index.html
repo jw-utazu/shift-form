@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=28">
+<link rel="stylesheet" href="css/app.css?v=29">
 </head>
 <body>
 
@@ -366,11 +366,28 @@
     <!-- プロフィール。ヘッダーのアバターを押さなくても、
          今どのアカウントで使っているかがこの画面で分かるようにする -->
     <div class="setprof">
-      <div class="setprof-av" id="set-avatar"><span style="font-size:24px;">👤</span></div>
+      <!-- アイコンをタップすると端末の写真から選べる。
+           カメラのしるしを重ねて「押せる」ことが分かるようにしている -->
+      <button type="button" class="setprof-avbtn" id="set-avatar-btn" onclick="pickAvatarFile()" title="アイコンを変更">
+        <span class="setprof-av" id="set-avatar"><span style="font-size:24px;">👤</span></span>
+        <span class="setprof-avcam">📷</span>
+      </button>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="onAvatarFileSelected(event)">
       <div class="setprof-tx">
         <div class="setprof-n" id="set-name">-</div>
         <div class="setprof-e" id="set-email">-</div>
         <div class="setprof-r" id="set-roles"></div>
+      </div>
+    </div>
+    <!-- 自分で設定したアイコンがあるときだけ出す。Googleのアイコンに戻す導線 -->
+    <div class="setgrp" id="avatar-reset-grp" style="display:none;">
+      <div class="setlist">
+        <button class="setrow" onclick="resetAvatar()">
+          <span class="setrow-ic" style="background:#f1f5f9;">↩️</span>
+          <span class="setrow-tx"><span class="setrow-n">アイコンを既定に戻す</span>
+            <span class="setrow-d">次回ログイン時にGoogleのアイコンに戻ります</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
       </div>
     </div>
 
@@ -641,6 +658,32 @@
   </div>
 </div>
 
+<!-- ===== アイコンの切り抜き ===== -->
+<div id="avatar-crop-overlay">
+  <div id="avatar-crop-modal">
+    <div class="avc-hdr">アイコンにする範囲を選ぶ</div>
+    <div class="avc-sub">ドラッグで位置を、下のつまみ（2本指でも可）で大きさを調整できます</div>
+    <div class="avc-stage"
+         onpointerdown="onAvatarPointerDown(event)"
+         onpointermove="onAvatarPointerMove(event)"
+         onpointerup="onAvatarPointerUp(event)"
+         onpointercancel="onAvatarPointerUp(event)">
+      <canvas id="avatar-crop-canvas"></canvas>
+      <div class="avc-ring"></div>
+    </div>
+    <div class="avc-zoom">
+      <span class="avc-zoom-ic" style="font-size:12px;">🔍</span>
+      <input type="range" id="avatar-crop-zoom" min="1" max="4" step="0.01" value="1"
+             oninput="onAvatarZoomInput(this.value)">
+      <span class="avc-zoom-ic" style="font-size:17px;">🔍</span>
+    </div>
+    <div class="avc-btns">
+      <button type="button" class="avc-btn" onclick="closeAvatarCrop()">キャンセル</button>
+      <button type="button" class="avc-btn avc-btn-p" onclick="confirmAvatarCrop()">この範囲にする</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== ヘルプモーダル ===== -->
 <div id="help-overlay" onclick="closeHelpOutside(event)">
   <div id="help-modal">
@@ -726,6 +769,6 @@
 
 <script src="js/session.js?v=3"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=47"></script>
+<script src="js/app.js?v=48"></script>
 </body>
 </html>

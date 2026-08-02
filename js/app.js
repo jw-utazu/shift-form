@@ -806,7 +806,7 @@ async function doRegister() {
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
       proxyTargets: data.proxyTargets || [],
-      picture: picture, avatar: ''
+      picture: picture, avatar: '', avatarIsCustom: false
     };
     saveSession({ email, token: sel.dataset.token, picture: picture });
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
@@ -824,14 +824,242 @@ async function doRegister() {
   }
 }
 
+// ===== アイコンの設定 =====
+//
+// 端末の写真はそのままだと数MBあるので、送る前にブラウザ側で切り抜いて縮める。
+// どこを切り抜くかは本人に決めてもらう（顔の位置は写真によってばらばらで、
+// 中央固定だと意図した部分が入らないことが多いため）。
+//
+// 表示・切り抜きとも canvas に同じ元画像を描く。<img> と canvas で
+// 写真の向き（EXIF）の扱いが食い違うことがあり、画面で見た通りに
+// 切り抜けなくなるのを避けるため
+const AVATAR_UPLOAD_PX = 256;
+const AVATAR_MAX_ZOOM  = 4;
+
+// 切り抜き中の状態。{ src, w, h, zoom, tx, ty, frame, canvas, ctx }
+let _avCrop = null;
+
+function pickAvatarFile() {
+  if (_isPreviewMode) { alert('閲覧中はアイコンを変更できません。'); return; }
+  document.getElementById('avatar-file-input').click();
+}
+
+// 写真の向きを反映した描画元を作る。createImageBitmap が使えない端末では
+// <img> にそのまま落とす（その場合も表示と切り抜きで同じものを使う）
+async function _loadImageSource(file) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      return { src: bmp, w: bmp.width, h: bmp.height };
+    } catch (_) { /* 未対応のときは下の方法にする */ }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload  = () => resolve(el);
+      el.onerror = () => reject(new Error('画像として開けませんでした'));
+      el.src = url;
+    });
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight };
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+}
+
+async function onAvatarFileSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // 同じ写真をもう一度選んでも反応するように毎回リセットする
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('画像ファイルを選んでください。'); return; }
+
+  showLoading('画像を読み込み中...');
+  try {
+    const loaded = await _loadImageSource(file);
+    if (!loaded.w || !loaded.h) throw new Error('画像の大きさを取得できませんでした');
+    await hideLoading();
+    _openAvatarCrop(loaded);
+  } catch (err) {
+    await hideLoading();
+    alert('画像を読み込めませんでした: ' + err.message);
+  }
+}
+
+function _openAvatarCrop(loaded) {
+  const overlay = document.getElementById('avatar-crop-overlay');
+  const canvas  = document.getElementById('avatar-crop-canvas');
+  overlay.classList.add('show');
+
+  // 枠の大きさは画面幅で変わるので、表示してから実寸を測る
+  const frame = Math.round(canvas.parentNode.getBoundingClientRect().width);
+  const dpr   = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width  = Math.round(frame * dpr);
+  canvas.height = Math.round(frame * dpr);
+
+  _avCrop = {
+    src: loaded.src, w: loaded.w, h: loaded.h,
+    zoom: 1, tx: 0, ty: 0, frame, dpr, canvas,
+    ctx: canvas.getContext('2d'),
+  };
+  document.getElementById('avatar-crop-zoom').value = 1;
+  _avCropRedraw();
+}
+
+function closeAvatarCrop() {
+  document.getElementById('avatar-crop-overlay').classList.remove('show');
+  // ImageBitmap は明示的に閉じないとメモリを持ち続ける
+  if (_avCrop && _avCrop.src && typeof _avCrop.src.close === 'function') {
+    try { _avCrop.src.close(); } catch (_) {}
+  }
+  _avCrop = null;
+}
+
+// 枠を完全に覆う最小倍率。これを 1 として、そこから拡大していく
+function _avCropBaseScale() {
+  return Math.max(_avCrop.frame / _avCrop.w, _avCrop.frame / _avCrop.h);
+}
+
+// 枠の外に隙間ができないよう、動かせる範囲に収める
+function _avCropClamp() {
+  const s = _avCropBaseScale() * _avCrop.zoom;
+  const maxX = Math.max(0, (_avCrop.w * s - _avCrop.frame) / 2);
+  const maxY = Math.max(0, (_avCrop.h * s - _avCrop.frame) / 2);
+  _avCrop.tx = Math.min(maxX, Math.max(-maxX, _avCrop.tx));
+  _avCrop.ty = Math.min(maxY, Math.max(-maxY, _avCrop.ty));
+}
+
+// 枠に写っている部分が、元画像のどこにあたるかを返す。
+// 計算誤差で1px でも画像の外に出ると drawImage が何も描かなくなるので、
+// 必ず画像の内側に収まるように丸める
+function _avCropSourceRect() {
+  const s = _avCropBaseScale() * _avCrop.zoom;
+  const side = Math.min(_avCrop.frame / s, _avCrop.w, _avCrop.h);
+  const sx = _avCrop.w / 2 - (_avCrop.frame / 2 + _avCrop.tx) / s;
+  const sy = _avCrop.h / 2 - (_avCrop.frame / 2 + _avCrop.ty) / s;
+  return {
+    sx: Math.min(Math.max(0, sx), _avCrop.w - side),
+    sy: Math.min(Math.max(0, sy), _avCrop.h - side),
+    sw: side, sh: side,
+  };
+}
+
+function _avCropRedraw() {
+  if (!_avCrop) return;
+  _avCropClamp();
+  const { ctx, canvas } = _avCrop;
+  const r = _avCropSourceRect();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(_avCrop.src, r.sx, r.sy, r.sw, r.sh, 0, 0, canvas.width, canvas.height);
+}
+
+function onAvatarZoomInput(v) {
+  if (!_avCrop) return;
+  _avCrop.zoom = Math.min(AVATAR_MAX_ZOOM, Math.max(1, parseFloat(v) || 1));
+  _avCropRedraw();
+}
+
+// ドラッグで移動、2本指で拡大縮小
+const _avPointers = new Map();
+let _avPinchStart = null;
+
+function onAvatarPointerDown(e) {
+  if (!_avCrop) return;
+  e.currentTarget.setPointerCapture(e.pointerId);
+  _avPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (_avPointers.size === 2) {
+    const [a, b] = [..._avPointers.values()];
+    _avPinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: _avCrop.zoom };
+  }
+}
+
+function onAvatarPointerMove(e) {
+  if (!_avCrop || !_avPointers.has(e.pointerId)) return;
+  const prev = _avPointers.get(e.pointerId);
+  _avPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (_avPointers.size >= 2 && _avPinchStart) {
+    const [a, b] = [..._avPointers.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if (_avPinchStart.dist > 0) {
+      _avCrop.zoom = Math.min(AVATAR_MAX_ZOOM,
+        Math.max(1, _avPinchStart.zoom * (dist / _avPinchStart.dist)));
+      document.getElementById('avatar-crop-zoom').value = _avCrop.zoom;
+    }
+  } else {
+    _avCrop.tx += e.clientX - prev.x;
+    _avCrop.ty += e.clientY - prev.y;
+  }
+  _avCropRedraw();
+}
+
+function onAvatarPointerUp(e) {
+  _avPointers.delete(e.pointerId);
+  if (_avPointers.size < 2) _avPinchStart = null;
+}
+
+async function confirmAvatarCrop() {
+  if (!_avCrop) return;
+  const r = _avCropSourceRect();
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = AVATAR_UPLOAD_PX;
+  cv.getContext('2d').drawImage(_avCrop.src, r.sx, r.sy, r.sw, r.sh,
+                                0, 0, AVATAR_UPLOAD_PX, AVATAR_UPLOAD_PX);
+  const imageData = cv.toDataURL('image/jpeg', 0.85);
+  closeAvatarCrop();
+
+  showLoading('アイコンを設定中...');
+  try {
+    const res = await apiPost('saveCustomAvatar', {
+      uid: SESSION.uid, email: SESSION.email, imageData,
+    });
+    if (!res.ok) throw new Error(res.error || '保存に失敗しました');
+    SESSION.avatar = imageData;
+    SESSION.avatarIsCustom = true;
+    updateAvatarUI();
+    await hideLoading();
+  } catch (err) {
+    await hideLoading();
+    alert('アイコンの設定に失敗しました: ' + err.message);
+  }
+}
+
+async function resetAvatar() {
+  if (!confirm('アイコンを既定に戻しますか？\n次回ログイン時にGoogleのアイコンが設定されます。')) return;
+  showLoading('アイコンを戻しています...');
+  try {
+    const res = await apiPost('deleteAvatar', { uid: SESSION.uid, email: SESSION.email });
+    if (!res.ok) throw new Error(res.error || '削除に失敗しました');
+    SESSION.avatar = '';
+    SESSION.avatarIsCustom = false;
+    updateAvatarUI();
+    await hideLoading();
+  } catch (err) {
+    await hideLoading();
+    alert('アイコンを戻せませんでした: ' + err.message);
+  }
+}
+
 // ===== プロフィールポップアップ =====
 function updateAvatarUI() {
   if (!SESSION) return;
   // サーバーに保存済みのアイコンを優先する。Googleの picture URL は
   // 本人がGoogle側でアイコンを変えると切れるため、あくまで保存前の代替として使う
   const pic = SESSION.avatar || SESSION.picture || '';
+  // アイコンを消した直後など、写真が無い状態にも必ず戻せるようにする
+  const showFallback = () => {
+    document.querySelectorAll('.hdr-avatar').forEach(el => {
+      el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>';
+    });
+    [['pp-avatar', 22], ['set-avatar', 24]].forEach(([id, size]) => {
+      const av = document.getElementById(id);
+      if (av) av.innerHTML = '<span style="font-size:' + size + 'px;">👤</span>';
+    });
+  };
+
   // すべての画面のヘッダーアバターを更新（ページ遷移後も維持）
-  if (pic && !_isPreviewMode) {
+  if (_isPreviewMode || !pic) {
+    showFallback();
+  } else {
     document.querySelectorAll('.hdr-avatar').forEach(el => {
       const img = document.createElement('img');
       img.src = pic;
@@ -851,15 +1079,13 @@ function updateAvatarUI() {
       av.innerHTML = '';
       av.appendChild(img);
     });
-  } else if (_isPreviewMode) {
-    document.querySelectorAll('.hdr-avatar').forEach(el => {
-      el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>';
-    });
-    const ppAvatar = document.getElementById('pp-avatar');
-    if (ppAvatar) ppAvatar.innerHTML = '<span style="font-size:22px;">👤</span>';
-    const setAvatar = document.getElementById('set-avatar');
-    if (setAvatar) setAvatar.innerHTML = '<span style="font-size:24px;">👤</span>';
   }
+
+  // 変更ボタンと「既定に戻す」は、閲覧中（他人の画面）には出さない
+  const avBtn = document.getElementById('set-avatar-btn');
+  if (avBtn) avBtn.style.display = _isPreviewMode ? 'none' : '';
+  const resetGrp = document.getElementById('avatar-reset-grp');
+  if (resetGrp) resetGrp.style.display = (SESSION.avatarIsCustom && !_isPreviewMode) ? '' : 'none';
   // 役割バッジのHTML（ポップアップと設定タブで共用）
   let rolesHtml;
   if (SESSION.isAdmin && !SESSION.uid) {
@@ -3763,7 +3989,8 @@ function esc(s) {
         uid: data.uid, name: data.name, email: saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
-        picture: saved.picture || '', avatar: data.avatar || ''
+        picture: saved.picture || '', avatar: data.avatar || '',
+        avatarIsCustom: !!data.avatarIsCustom
       };
       // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
       await initApp();

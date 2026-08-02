@@ -806,7 +806,7 @@ async function doRegister() {
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
       proxyTargets: data.proxyTargets || [],
-      picture: picture, avatar: '', avatarIsCustom: false
+      picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false
     };
     saveSession({ email, token: sel.dataset.token, picture: picture });
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
@@ -1023,6 +1023,27 @@ async function confirmAvatarCrop() {
   }
 }
 
+// 他の人に見せるかどうかの切り替え。画像は消さないので、
+// OFF に戻せばまた見えるようになる
+async function onAvatarPrivacyToggle() {
+  const el = document.getElementById('avatar-private-toggle');
+  if (!el || !SESSION || !SESSION.uid) return;
+  const next = el.checked;
+  el.disabled = true;
+  try {
+    const res = await apiPost('setAvatarPrivacy', {
+      uid: SESSION.uid, email: SESSION.email, isPrivate: next,
+    });
+    if (!res.ok) throw new Error(res.error || '保存に失敗しました');
+    SESSION.avatarIsPrivate = next;
+  } catch (err) {
+    el.checked = !next; // 保存できていないのに切り替わったまま見えるのを防ぐ
+    alert('設定の保存に失敗しました: ' + err.message);
+  } finally {
+    el.disabled = false;
+  }
+}
+
 async function resetAvatar() {
   if (!confirm('アイコンを既定に戻しますか？\n次回ログイン時にGoogleのアイコンが設定されます。')) return;
   showLoading('アイコンを戻しています...');
@@ -1031,6 +1052,7 @@ async function resetAvatar() {
     if (!res.ok) throw new Error(res.error || '削除に失敗しました');
     SESSION.avatar = '';
     SESSION.avatarIsCustom = false;
+    SESSION.avatarIsPrivate = false;
     updateAvatarUI();
     await hideLoading();
   } catch (err) {
@@ -1081,11 +1103,18 @@ function updateAvatarUI() {
     });
   }
 
-  // 変更ボタンと「既定に戻す」は、閲覧中（他人の画面）には出さない
+  // 変更ボタンとアイコンの設定欄は、閲覧中（他人の画面）には出さない
   const avBtn = document.getElementById('set-avatar-btn');
   if (avBtn) avBtn.style.display = _isPreviewMode ? 'none' : '';
-  const resetGrp = document.getElementById('avatar-reset-grp');
-  if (resetGrp) resetGrp.style.display = (SESSION.avatarIsCustom && !_isPreviewMode) ? '' : 'none';
+
+  // 設定欄はアイコンが登録されているときだけ意味がある
+  const hasAvatar = !!SESSION.avatar;
+  const grp = document.getElementById('avatar-grp');
+  if (grp) grp.style.display = (hasAvatar && !_isPreviewMode) ? '' : 'none';
+  const privToggle = document.getElementById('avatar-private-toggle');
+  if (privToggle) privToggle.checked = !!SESSION.avatarIsPrivate;
+  const resetRow = document.getElementById('avatar-reset-row');
+  if (resetRow) resetRow.style.display = SESSION.avatarIsCustom ? '' : 'none';
   // 役割バッジのHTML（ポップアップと設定タブで共用）
   let rolesHtml;
   if (SESSION.isAdmin && !SESSION.uid) {
@@ -3990,7 +4019,7 @@ function esc(s) {
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
         picture: saved.picture || '', avatar: data.avatar || '',
-        avatarIsCustom: !!data.avatarIsCustom
+        avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate
       };
       // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
       await initApp();

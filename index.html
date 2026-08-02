@@ -379,10 +379,17 @@
         <div class="setprof-r" id="set-roles"></div>
       </div>
     </div>
-    <!-- 自分で設定したアイコンがあるときだけ出す。Googleのアイコンに戻す導線 -->
-    <div class="setgrp" id="avatar-reset-grp" style="display:none;">
+    <!-- アイコンが登録されているときだけ出す -->
+    <div class="setgrp" id="avatar-grp" style="display:none;">
+      <div class="setgrp-t">アイコン</div>
       <div class="setlist">
-        <button class="setrow" onclick="resetAvatar()">
+        <label class="setrow as-toggle">
+          <span class="setrow-ic" style="background:#eef2ff;">🙈</span>
+          <span class="setrow-tx"><span class="setrow-n">他の人には見せない</span>
+            <span class="setrow-d">自分の画面にだけ表示し、管理画面や他の人からは頭文字になります</span></span>
+          <span class="toggle-switch"><input type="checkbox" id="avatar-private-toggle" onchange="onAvatarPrivacyToggle()"><span class="toggle-slider"></span></span>
+        </label>
+        <button class="setrow" id="avatar-reset-row" onclick="resetAvatar()" style="display:none;">
           <span class="setrow-ic" style="background:#f1f5f9;">↩️</span>
           <span class="setrow-tx"><span class="setrow-n">アイコンを既定に戻す</span>
             <span class="setrow-d">次回ログイン時にGoogleのアイコンに戻ります</span></span>
@@ -769,6 +776,6 @@
 
 <script src="js/session.js?v=3"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=48"></script>
+<script src="js/app.js?v=49"></script>
 </body>
 </html>

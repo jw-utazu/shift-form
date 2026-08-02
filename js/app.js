@@ -806,7 +806,7 @@ async function doRegister() {
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
       proxyTargets: data.proxyTargets || [],
-      picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false
+      picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false, avatarHasGoogle: false
     };
     saveSession({ email, token: sel.dataset.token, picture: picture });
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
@@ -1045,29 +1045,18 @@ async function onAvatarPrivacyToggle() {
 }
 
 async function resetAvatar() {
-  const hasGoogle = !!SESSION.picture;
+  const hasGoogle = !!SESSION.avatarHasGoogle;
   if (!confirm(hasGoogle
       ? 'アイコンをGoogleアカウントのものに戻しますか？'
       : 'アイコンを削除しますか？\nGoogleのアイコンは次回ログイン時に設定されます。')) return;
   showLoading('アイコンを戻しています...');
   try {
+    // 保存済みのGoogleのアイコンがあれば、サーバー側でそれに入れ替えて返してくれる
     const res = await apiPost('deleteAvatar', { uid: SESSION.uid, email: SESSION.email });
     if (!res.ok) throw new Error(res.error || '削除に失敗しました');
-    SESSION.avatar = '';
+    SESSION.avatar = res.image || '';
     SESSION.avatarIsCustom = false;
     SESSION.avatarIsPrivate = false;
-
-    // 消しただけだと、次にGoogleログイン画面を通るまでアイコンが無い状態が続く。
-    // その「次回」がいつ来るかは分からない（セッションは長く保たれる）ので、
-    // Googleのアイコンが分かるならここで入れ直してしまう
-    if (hasGoogle) {
-      try {
-        const r2 = await apiGet('saveGoogleAvatar', {
-          email: SESSION.email, pictureUrl: SESSION.picture,
-        });
-        if (r2 && r2.ok && r2.image) SESSION.avatar = r2.image;
-      } catch (_) { /* 入れ直せなくても次回ログインで入るので致命的ではない */ }
-    }
     updateAvatarUI();
     await hideLoading();
   } catch (err) {
@@ -1128,6 +1117,13 @@ function updateAvatarUI() {
   if (grp) grp.style.display = (hasAvatar && !_isPreviewMode) ? '' : 'none';
   const privToggle = document.getElementById('avatar-private-toggle');
   if (privToggle) privToggle.checked = !!SESSION.avatarIsPrivate;
+  // 「見せない」にしたとき他の人に何が見えるのかは、ここでしか伝えられない
+  const privDesc = document.getElementById('avatar-private-desc');
+  if (privDesc) {
+    privDesc.textContent = SESSION.avatarHasGoogle
+      ? '自分の画面にだけ表示し、管理画面や他の人にはGoogleアカウントのアイコンが出ます'
+      : '自分の画面にだけ表示し、管理画面や他の人からは頭文字になります';
+  }
   const resetRow = document.getElementById('avatar-reset-row');
   if (resetRow) resetRow.style.display = SESSION.avatarIsCustom ? '' : 'none';
   // 役割バッジのHTML（ポップアップと設定タブで共用）
@@ -4034,7 +4030,8 @@ function esc(s) {
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
         picture: saved.picture || '', avatar: data.avatar || '',
-        avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate
+        avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate,
+        avatarHasGoogle: !!data.avatarHasGoogle
       };
       // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
       await initApp();

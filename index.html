@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=26">
+<link rel="stylesheet" href="css/app.css?v=27">
 </head>
 <body>
 
@@ -177,80 +177,6 @@
         <span id="legend-my-shift" style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>自分のシフト</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;border-radius:2px;background:#f97316;display:inline-block;"></span>申込期間</span>
       </div>
-      <div id="cal-shift-btn-area" style="display:none;margin-top:12px;">
-        <button class="btn-nav" onclick="showScreen('shift')" style="margin:0;">
-          <span class="nav-icon">📋</span>
-          <span class="nav-txt" id="cal-shift-btn-txt">シフト表を見る</span>
-          <span class="nav-arr">›</span>
-        </button>
-      </div>
-      <div style="margin-top:12px;">
-        <button class="btn-nav" id="btn-shift-form" onclick="showScreen('form')" style="margin:0;">
-          <span class="nav-icon" id="btn-shift-form-icon">📝</span>
-          <span class="nav-txt" id="btn-shift-form-txt">シフト希望を送る</span>
-          <span class="nav-arr">›</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ナビゲーション -->
-    <div class="nav-buttons">
-      <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
-        <span class="nav-icon">🗺</span>
-        <span class="nav-txt">道路使用許可書を閲覧する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-accounting" onclick="openAccountingSheet()">
-        <span class="nav-icon">💰</span>
-        <span class="nav-txt">会計情報を閲覧する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-road-permit-update" onclick="showScreen('road-permit')" style="display:none;border-color:#fde68a;color:#92400e;background:#fffbeb;">
-        <span class="nav-icon">📄</span>
-        <span class="nav-txt">道路使用許可書を更新する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-distrib-report" onclick="showScreen('distrib-report')">
-        <span class="nav-icon">📦</span>
-        <span class="nav-txt">配布報告を送る</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;border-color:#a78bfa;color:#5b21b6;background:#f5f3ff;">
-        <span class="nav-icon">👁</span>
-        <span class="nav-txt">メンバーとして閲覧</span>
-        <span class="nav-arr">›</span>
-      </button>
-
-      <!-- その他のメニュー（普段使わないものを折りたたむ） -->
-      <button class="btn-nav secondary nav-more-toggle" id="nav-more-toggle" onclick="toggleNavMore()" aria-expanded="false" aria-controls="nav-more-body">
-        <span class="nav-icon">⚙️</span>
-        <span class="nav-txt">その他のメニュー</span>
-        <span class="nav-arr nav-more-chev">▾</span>
-      </button>
-      <div class="nav-more-body" id="nav-more-body">
-        <div class="nav-more-inner">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="font-size:15px;padding:14px 10px;">
-              <span class="nav-icon">💬</span>
-              <span class="nav-txt" style="font-size:14px;">要望を送る</span>
-            </button>
-            <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="font-size:15px;padding:14px 10px;border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
-              <span class="nav-icon">🐛</span>
-              <span class="nav-txt" style="font-size:14px;">バグを報告する</span>
-            </button>
-          </div>
-          <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
-            <span class="nav-icon">📲</span>
-            <span class="nav-txt">アプリとしてインストール</span>
-            <span class="nav-arr">›</span>
-          </button>
-          <button class="btn-nav secondary" onclick="openManualModal()">
-            <span class="nav-icon">📖</span>
-            <span class="nav-txt">操作マニュアルを見る</span>
-            <span class="nav-arr">›</span>
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -359,6 +285,81 @@
     <!-- 個別シフト表 -->
     <div id="shift-detail-view" class="shift-detail">
       <div id="shift-detail-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 報告タブ（ハブ画面） ===== -->
+<div id="screen-report">
+  <div class="hdr">
+    <div class="hdr-left"></div>
+    <h1>報告・資料</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="nav-buttons">
+      <button class="btn-nav" id="btn-distrib-report" onclick="showScreen('distrib-report')" style="margin:0;">
+        <span class="nav-icon">📦</span>
+        <span class="nav-txt">配布報告を送る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
+        <span class="nav-icon">🗺</span>
+        <span class="nav-txt">道路使用許可書を閲覧する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-accounting" onclick="openAccountingSheet()">
+        <span class="nav-icon">💰</span>
+        <span class="nav-txt">会計情報を閲覧する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-road-permit-update" onclick="showScreen('road-permit')" style="display:none;border-color:#fde68a;color:#92400e;background:#fffbeb;">
+        <span class="nav-icon">📄</span>
+        <span class="nav-txt">道路使用許可書を更新する</span>
+        <span class="nav-arr">›</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== その他タブ（ハブ画面） ===== -->
+<div id="screen-more">
+  <div class="hdr">
+    <div class="hdr-left"></div>
+    <h1>その他</h1>
+    <div class="hdr-right">
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="nav-buttons">
+      <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="margin:0;">
+        <span class="nav-icon">💬</span>
+        <span class="nav-txt">要望を送る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
+        <span class="nav-icon">🐛</span>
+        <span class="nav-txt">バグを報告する</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" onclick="openManualModal()">
+        <span class="nav-icon">📖</span>
+        <span class="nav-txt">操作マニュアルを見る</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
+        <span class="nav-icon">📲</span>
+        <span class="nav-txt">アプリとしてインストール</span>
+        <span class="nav-arr">›</span>
+      </button>
+      <button class="btn-nav secondary" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;border-color:#a78bfa;color:#5b21b6;background:#f5f3ff;">
+        <span class="nav-icon">👁</span>
+        <span class="nav-txt">メンバーとして閲覧</span>
+        <span class="nav-arr">›</span>
+      </button>
     </div>
   </div>
 </div>
@@ -637,8 +638,29 @@
   </div>
 </div>
 
+<!-- ===== 下部タブバー =====
+     ホームを先頭に、一番使用頻度の高いシフト表を中央（親指が届きやすい位置）に置く。
+     タブ切り替えは履歴を積まず、タブ内のドリルダウンだけが履歴を積む -->
+<nav class="tabbar" id="tabbar" style="display:none;">
+  <button class="tabbtn active" id="tab-home"   onclick="switchTab('home')">
+    <span class="tab-ic">🏠</span><span class="tab-n">ホーム</span>
+  </button>
+  <button class="tabbtn" id="tab-form"   onclick="switchTab('form')">
+    <span class="tab-ic">📝</span><span class="tab-n">希望</span>
+  </button>
+  <button class="tabbtn" id="tab-shift"  onclick="switchTab('shift')">
+    <span class="tab-ic">📋</span><span class="tab-n">シフト表</span>
+  </button>
+  <button class="tabbtn" id="tab-report" onclick="switchTab('report')">
+    <span class="tab-ic">📦</span><span class="tab-n">報告</span>
+  </button>
+  <button class="tabbtn" id="tab-more"   onclick="switchTab('more')">
+    <span class="tab-ic">⚙️</span><span class="tab-n">その他</span>
+  </button>
+</nav>
+
 <script src="js/session.js?v=2"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=43"></script>
+<script src="js/app.js?v=44"></script>
 </body>
 </html>

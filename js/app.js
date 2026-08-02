@@ -400,13 +400,15 @@ function _startProgress() {
 // ===== 画面切替 =====
 // 認証はこのアプリ内では行わず、共通ログイン画面（login.html）に一本化したため
 // login / recovery 画面は持たない
-const SCREENS = ['register','main','form','shift','request','bug','road-permit','distrib-report'];
+const SCREENS = ['register','main','form','shift','report','more','request','bug','road-permit','distrib-report'];
 // 画面ごとの display 値
 const SCREEN_DISPLAY = {
   register: 'flex',
   main:     'block',
   form:           'block',
   shift:          'block',
+  report:         'block',
+  more:           'block',
   request:        'block',
   bug:            'block',
   'road-permit':  'block',
@@ -416,17 +418,44 @@ const SCREEN_DISPLAY = {
 // 戻るボタンで履歴を積まない画面（初回登録画面を底とする）
 const HISTORY_NO_PUSH = new Set(['register']);
 
-// 画面の「深さ」（進む/戻るの方向判定用）
-const SCREEN_DEPTH = { register: 1, main: 2, form: 3, shift: 3, request: 3, bug: 3, 'road-permit': 3, 'distrib-report': 3 };
-let _currentScreenName = 'register';
+// ===== タブ構成 =====
+// 各画面がどのタブに属するか。タブ内で詳細画面に入っても、
+// タブバーはその親タブを選択状態のまま保つ
+const SCREEN_TAB = {
+  main: 'home',
+  form: 'form',
+  shift: 'shift',
+  report: 'report', 'distrib-report': 'report', 'road-permit': 'report',
+  more: 'more', request: 'more', bug: 'more',
+};
+// 各タブの入口となる画面
+const TAB_ROOT_SCREEN = { home: 'main', form: 'form', shift: 'shift', report: 'report', more: 'more' };
+// タブ内での深さ。ホーム=0／各タブの入口=1／タブ内の詳細=2。
+// 戻るボタンでこの深さの分だけ履歴を戻ればホームに着く、という関係を保つ
+const SCREEN_TAB_DEPTH = {
+  main: 0,
+  form: 1, shift: 1, report: 1, more: 1,
+  'distrib-report': 2, 'road-permit': 2, request: 2, bug: 2,
+};
+// タブ入口に「‹ 戻る」は出さない（戻り先はホームで、それはタブバーの役目）。
+// タブ内の詳細画面だけが戻るバーを持つ
+const TAB_ROOT_SCREENS = new Set(['main','form','shift','report','more']);
 
-function showScreen(name, fromPopstate) {
+// 画面の「深さ」（進む/戻るの方向判定用）
+const SCREEN_DEPTH = { register: 1, main: 2, form: 3, shift: 3, report: 3, more: 3, request: 4, bug: 4, 'road-permit': 4, 'distrib-report': 4 };
+let _currentScreenName = 'register';
+let _currentTab = 'home';
+let _tabDepth   = 0;
+let _tabSwitching = false;
+
+function showScreen(name, fromPopstate, stateDepth) {
   window.scrollTo(0, 0);
   const isBack = fromPopstate || SCREEN_DEPTH[name] < SCREEN_DEPTH[_currentScreenName];
   const animClass = isBack ? 'screen-enter-back' : 'screen-enter-forward';
 
   SCREENS.forEach(s => {
     const el = document.getElementById('screen-' + s);
+    if (!el) return;
     if (s === name) {
       el.style.display = SCREEN_DISPLAY[s] || 'block';
       // アニメーションクラスをリセットしてから再付与
@@ -454,16 +483,95 @@ function showScreen(name, fromPopstate) {
 
   // popstateからの呼び出しでなければ履歴に積む
   if (!fromPopstate && !HISTORY_NO_PUSH.has(name)) {
+    const st = { screen: name, tab: SCREEN_TAB[name] || 'home', depth: SCREEN_TAB_DEPTH[name] || 0 };
     if (name === 'main') {
       if (!_mainHistorySetup) {
         _mainHistorySetup = true;
         // main の直下に番兵エントリを1度だけ挿入し、ここまで戻ると確認ダイアログを表示
         history.pushState({ screen: '__bottom__' }, '');
       }
-      history.pushState({ screen: 'main' }, '');
+      history.pushState(st, '');
     } else {
-      history.pushState({ screen: name }, '');
+      history.pushState(st, '');
     }
+  }
+
+  syncTabUi(name, stateDepth);
+}
+
+// 画面表示に合わせてタブバーの選択状態・表示可否・戻るバーの有無を揃える。
+// depth は履歴 state に入っていればそれを優先する（シフト詳細のように
+// 同じ screen 名で深さが変わるものがあるため、画面名だけでは決まらない）
+function syncTabUi(name, stateDepth) {
+  _currentTab = SCREEN_TAB[name] || 'home';
+  _tabDepth   = (stateDepth != null) ? stateDepth
+              : (SCREEN_TAB_DEPTH[name] != null ? SCREEN_TAB_DEPTH[name] : 0);
+
+  // 初回登録画面ではタブバーを出さない（まだアプリを使える状態ではない）
+  const bar = document.getElementById('tabbar');
+  const show = name !== 'register';
+  if (bar) bar.style.display = show ? '' : 'none';
+  document.body.classList.toggle('has-tabbar', show);
+
+  Object.keys(TAB_ROOT_SCREEN).forEach(t => {
+    const btn = document.getElementById('tab-' + t);
+    if (btn) btn.classList.toggle('active', t === _currentTab);
+  });
+
+  // タブ入口の画面には戻り先が無いので「‹ 戻る」バーを隠す
+  const scr = document.getElementById('screen-' + name);
+  if (scr) {
+    const bb = scr.querySelector('.back-bar');
+    if (bb) bb.style.display = TAB_ROOT_SCREENS.has(name) ? 'none' : '';
+  }
+}
+
+// 希望タブの有効・無効とラベル。受付期間外はタブ自体を押せなくする
+let _formTabEnabled = true;
+function setFormTabState(enabled, label, icon) {
+  _formTabEnabled = enabled;
+  const btn = document.getElementById('tab-form');
+  if (!btn) return;
+  btn.disabled = !enabled;
+  const ic = btn.querySelector('.tab-ic');
+  const nm = btn.querySelector('.tab-n');
+  if (ic) ic.textContent = icon;
+  if (nm) nm.textContent = label;
+  btn.title = enabled ? '' : 'いまは受付期間外です';
+}
+
+// history.go() は非同期（popstate が後から飛ぶ）ため、完了を待てるようにする
+function _historyGo(n) {
+  return new Promise(resolve => {
+    if (!n) return resolve();
+    const done = () => { window.removeEventListener('popstate', done); resolve(); };
+    window.addEventListener('popstate', done);
+    history.go(n);
+    // 念のためのフォールバック（popstate が来ない環境で固まらないように）
+    setTimeout(done, 400);
+  });
+}
+
+// タブ切り替え。タブ間の移動では履歴を積まず、常に
+// 「ホーム → 今のタブ」という1段だけの履歴に正規化する。
+// こうすることで、どのタブにいても戻るボタン1回でホームに着く
+async function switchTab(tab) {
+  if (_tabSwitching) return;
+  if (tab === _currentTab && _tabDepth <= 1) { window.scrollTo(0, 0); return; }
+  _tabSwitching = true;
+  try {
+    // いまの位置からホーム（深さ0）まで履歴を巻き戻す
+    if (_tabDepth > 0) {
+      _suppressNextPopstate = true;
+      await _historyGo(-_tabDepth);
+    }
+    if (tab === 'home') {
+      showScreen('main', true);          // 履歴上すでに main なので積み直さない
+    } else {
+      showScreen(TAB_ROOT_SCREEN[tab]);  // ホームの上に1段だけ積む
+    }
+  } finally {
+    _tabSwitching = false;
   }
 }
 
@@ -529,7 +637,7 @@ window.addEventListener('popstate', function(e) {
     return;
   }
 
-  showScreen(screen, true);
+  showScreen(screen, true, state.depth);
 });
 
 // フォーム画面：SLOTSが未取得なら getFormDetail を取得してから表示
@@ -1154,62 +1262,25 @@ function buildMainScreen() {
   // 公開予定日の推測に加え、サーバー側が実際に公開済み（早期の手動公開含む）ならそれを優先する
   const isOpenPassed   = (openD && openD.getTime() <= today.getTime()) || isShiftPublishedForShownMonth();
 
-  // ── シフト希望ボタン：受付中のみ有効、それ以外はグレーアウト、管理者は非表示 ──
-  const btnForm    = document.getElementById('btn-shift-form');
-  const btnFormTxt = document.getElementById('btn-shift-form-txt');
-  const btnFormIco = document.getElementById('btn-shift-form-icon');
+  // ── 希望タブ：受付中のみ有効。締切後・公開後・準備中は押せなくする ──
+  // タブは常に5つ並べたままにして（数が変わるとバーの並びがずれて押し間違えるため）、
+  // 使えないときは無効化し、ラベルで今どの状態かを示す
   // 自分（またはオーナー以外）の今月送信済みデータ確認
   const myUid = SESSION ? SESSION.uid : '';
   const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
     Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
-  if (btnForm) {
-    if (isOwner || _isPreviewMode) {
-      // オーナー・プレビュー中：日程条件を無視して常に表示（フォームは読み取り専用）
-      btnForm.disabled = false;
-      btnForm.style.opacity = '';
-      btnForm.style.cursor  = '';
-      btnForm.onclick = () => showScreen('form');
-      btnForm.style.display = '';
-      if (isOwner && !_isPreviewMode) {
-        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を見る';
-        if (btnFormIco) btnFormIco.textContent = '👁';
-      } else if (hasSentThisMonth) {
-        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を編集する';
-        if (btnFormIco) btnFormIco.textContent = '✏️';
-        btnForm.style.background = '';
-      } else {
-        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
-        if (btnFormIco) btnFormIco.textContent = '📝';
-      }
-    } else if (isOpenPassed) {
-      btnForm.style.display = 'none';
-    } else if (status === '受付中') {
-      btnForm.disabled = false;
-      btnForm.style.opacity = '';
-      btnForm.style.cursor  = '';
-      btnForm.onclick = () => showScreen('form');
-      btnForm.style.display = '';
-      if (hasSentThisMonth) {
-        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を編集する';
-        if (btnFormIco) btnFormIco.textContent = '✏️';
-        btnForm.style.background = '';
-      } else {
-        if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
-        if (btnFormIco) btnFormIco.textContent = '📝';
-      }
-    } else if (status === '受付終了') {
-      // 締切後は非表示
-      btnForm.style.display = 'none';
-    } else {
-      // 準備中はグレーアウト
-      btnForm.disabled = true;
-      btnForm.style.opacity = '0.5';
-      btnForm.style.cursor  = 'default';
-      btnForm.onclick = null;
-      btnForm.style.display = '';
-      if (btnFormTxt) btnFormTxt.textContent = 'シフト希望を送る';
-      if (btnFormIco) btnFormIco.textContent = '📝';
-    }
+  if (isOwner || _isPreviewMode) {
+    // オーナー・プレビュー中：日程条件を無視して常に開ける（フォームは読み取り専用）
+    if (isOwner && !_isPreviewMode)   setFormTabState(true,  '希望',   '👁');
+    else if (hasSentThisMonth)        setFormTabState(true,  '希望',   '✏️');
+    else                              setFormTabState(true,  '希望',   '📝');
+  } else if (isOpenPassed || status === '受付終了') {
+    setFormTabState(false, '希望', '📝');
+  } else if (status === '受付中') {
+    setFormTabState(true, '希望', hasSentThisMonth ? '✏️' : '📝');
+  } else {
+    // 準備中
+    setFormTabState(false, '希望', '📝');
   }
 
   // ── 希望一覧ボックスを構築 ──
@@ -1766,17 +1837,15 @@ function buildCalendar() {
   // 凡例「自分のシフト」とカレンダー内「シフト表を見る」ボタンの表示制御
   const legendMyShift = document.getElementById('legend-my-shift');
   if (legendMyShift) legendMyShift.style.display = isOpenPassedForCal ? '' : 'none';
-  const calShiftBtnArea = document.getElementById('cal-shift-btn-area');
-  if (calShiftBtnArea) {
-    // シフト表への入口は「どの月であれシフトが公開されているか」で出す。
-    // 来月の申込が始まった直後は申込中の月（isOpenPassedForCal）はまだ公開前だが、
-    // 今月のシフト表は引き続き見られる必要がある
-    const shiftViewable = isOpenPassedForCal || !!(SHIFT_DATA && SHIFT_DATA.published);
-    calShiftBtnArea.style.display = (shiftViewable || _isPreviewMode) ? '' : 'none';
-    const calShiftBtnTxt = document.getElementById('cal-shift-btn-txt');
-    if (calShiftBtnTxt) {
-      calShiftBtnTxt.textContent = currentPwType === 'normal' ? '通常PWのシフト表を見る' : '限定PWのシフト表を見る';
-    }
+  // シフト表タブの有効・無効。入口を出す条件は「どの月であれシフトが公開されているか」。
+  // 来月の申込が始まった直後は申込中の月（isOpenPassedForCal）はまだ公開前だが、
+  // 今月のシフト表は引き続き見られる必要がある
+  const shiftViewable = isOpenPassedForCal || !!(SHIFT_DATA && SHIFT_DATA.published);
+  const tabShift = document.getElementById('tab-shift');
+  if (tabShift) {
+    const on = shiftViewable || _isPreviewMode;
+    tabShift.disabled = !on;
+    tabShift.title = on ? '' : 'シフト表はまだ公開されていません';
   }
 }
 
@@ -2674,16 +2743,33 @@ function showShiftDetail(dateObj, quickJump) {
   detailEl.classList.remove('screen-enter-forward', 'screen-enter-back');
   void detailEl.offsetWidth;
   detailEl.classList.add('screen-enter-forward');
+  // 詳細は「タブ内の1段深いところ」なので戻るバーを出す
+  // （タブ入口では syncTabUi が隠している）
+  _setShiftBackBar(true);
   if (quickJump) {
-    // メイン画面から直接開いた場合：戻るとメイン画面へ（一覧を経由しない）
+    // メイン画面から直接開いた場合：戻るとメイン画面へ（一覧を経由しない）。
+    // ホームの真上に1段だけ積まれるので深さは 1
     document.getElementById('shift-back-btn').onclick = () => history.back();
-    history.pushState({ screen: 'shift', subScreen: 'detail', quickJump: true }, '');
+    history.pushState({ screen: 'shift', subScreen: 'detail', quickJump: true, tab: 'shift', depth: 1 }, '');
+    _tabDepth = 1;
   } else {
     document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
-    // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）
-    history.pushState({ screen: 'shift', subScreen: 'detail' }, '');
+    // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）。
+    // シフト表タブ（深さ1）の上に積むので深さは 2
+    history.pushState({ screen: 'shift', subScreen: 'detail', tab: 'shift', depth: 2 }, '');
+    _tabDepth = 2;
   }
+  _currentTab = 'shift';
   buildShiftDetail(dateObj);
+}
+
+// シフト表画面の「‹ 戻る」バーの表示切り替え。
+// 一覧＝タブ入口なので隠し、詳細に入ったときだけ出す
+function _setShiftBackBar(visible) {
+  const scr = document.getElementById('screen-shift');
+  if (!scr) return;
+  const bb = scr.querySelector('.back-bar');
+  if (bb) bb.style.display = visible ? '' : 'none';
 }
 
 // fromPopstate: true の場合は popstate 経由（履歴は既に移動済み）。
@@ -2701,6 +2787,10 @@ function _shiftDetailBack(fromPopstate) {
   void listEl.offsetWidth;
   listEl.classList.add('screen-enter-back');
   document.getElementById('shift-back-btn').onclick = () => history.back();
+  // 一覧＝シフト表タブの入口に戻ったので、戻るバーを隠して深さも1に戻す
+  _setShiftBackBar(false);
+  _currentTab = 'shift';
+  _tabDepth   = 1;
   if (!fromPopstate) {
     _suppressNextPopstate = true;
     history.go(-1);
@@ -3772,17 +3862,6 @@ function openExhibitPhotoCard(idx) {
   document.getElementById('photo-modal-overlay').style.display = 'flex';
   _photoList = _exhibitPhotos.slice();
   showPhoto(idx || 0);
-}
-
-// ===== その他のメニュー（折りたたみ） =====
-function toggleNavMore() {
-  const body = document.getElementById('nav-more-body');
-  const btn  = document.getElementById('nav-more-toggle');
-  if (!body || !btn) return;
-  const open = !body.classList.contains('open');
-  body.classList.toggle('open', open);
-  btn.classList.toggle('open', open);
-  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 // ===== 道路使用許可書PDF閲覧モーダル（全ユーザー向け） =====

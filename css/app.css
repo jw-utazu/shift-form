@@ -687,13 +687,6 @@ body::-webkit-scrollbar { display: none; }
   animation: spin .8s linear infinite;
 }
 
-/* その他のメニュー（折りたたみ） */
-.nav-more-body  { max-height: 0; overflow: hidden; transition: max-height .28s ease; }
-.nav-more-body.open { max-height: 500px; }
-.nav-more-inner { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
-.nav-more-chev  { display: inline-block; transition: transform .25s; opacity: .8; }
-.nav-more-toggle.open .nav-more-chev { transform: rotate(180deg); }
-
 /* PWAインストール */
 #btn-install { display: none; }
 #pwa-install-overlay {
@@ -728,6 +721,44 @@ body::-webkit-scrollbar { display: none; }
   from { opacity: 0; transform: translateX(-32px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+/* ===== 下部タブバー =====
+   position:fixed で画面下端に固定する。iOS のホームインジケータに隠れないよう
+   safe-area-inset-bottom 分を padding で確保し、body 側でも同じ分だけ余白を取る
+   （余白が足りないと最後のカードがタブバーの下に潜って読めなくなる） */
+.tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+}
+.tabbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 2px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: #9ca3af;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .12s;
+}
+.tab-ic { font-size: 20px; line-height: 1; filter: grayscale(1) opacity(.55); transition: filter .12s; }
+.tab-n  { font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; }
+.tabbtn.active { color: var(--green); }
+.tabbtn.active .tab-ic { filter: none; }
+.tabbtn:disabled { opacity: .38; cursor: default; }
+/* タブバーの高さ分だけ本文の下に余白を作る（body の padding-bottom を上書き） */
+body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
 
 .back-bar {
   display: flex;

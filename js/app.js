@@ -756,6 +756,7 @@ async function tryRecoverySession() {
       uid: res.uid, name: res.name, email: '', token: '',
       isAdmin: res.isAdmin, isResponsible: res.isResponsible,
       isCart: res.isCart, isAccountant: res.isAccountant || false,
+      positionName: res.positionName || '', extraCaps: res.extraCaps || [],
       proxyTargets: res.proxyTargets || [], picture: '', isRecoverySession: true
     };
     await initApp();
@@ -805,6 +806,7 @@ async function doRegister() {
       uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
+      positionName: data.positionName || '', extraCaps: data.extraCaps || [],
       proxyTargets: data.proxyTargets || [],
       picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false, avatarHasGoogle: false
     };
@@ -1127,17 +1129,26 @@ function updateAvatarUI() {
   const resetRow = document.getElementById('avatar-reset-row');
   if (resetRow) resetRow.style.display = SESSION.avatarIsCustom ? '' : 'none';
   // 役割バッジのHTML（ポップアップと設定タブで共用）
+  //
+  // 立ち位置に集約する。権限（管理者・会計者）は立ち位置から自動的に決まるので、
+  // 立ち位置バッジと並べると同じことを二度言うことになる。
+  // ここに出すのは
+  //   ・立ち位置（無ければ「奉仕者」）
+  //   ・立ち位置では表せない役割（責任者・カート担当）
+  //   ・立ち位置からは説明できない権限（extraCaps＝この人だけ個別に付与された分）
   let rolesHtml;
   if (SESSION.isAdmin && !SESSION.uid) {
     // 管理アカウント（uidなし）：オーナーのみ
-    rolesHtml = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
+    rolesHtml = '<span class="badge badge-owner">オーナー</span>';
   } else {
-    // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
-    rolesHtml = '<span class="badge badge-staff">奉仕者</span>';
-    if (SESSION.isAdmin)       rolesHtml += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
-    if (SESSION.isAccountant)  rolesHtml += '<span class="badge" style="background:#dbeafe;color:#1e40af;">会計者</span>';
+    rolesHtml = SESSION.positionName
+      ? '<span class="badge badge-pos">' + esc(SESSION.positionName) + '</span>'
+      : '<span class="badge badge-staff">奉仕者</span>';
     if (SESSION.isResponsible) rolesHtml += '<span class="badge badge-resp">責任者</span>';
     if (SESSION.isCart)        rolesHtml += '<span class="badge badge-cart">カート担当</span>';
+    (SESSION.extraCaps || []).forEach(cap => {
+      rolesHtml += '<span class="badge ' + (cap === '会計者' ? 'badge-acct' : 'badge-admin') + '">' + esc(cap) + '</span>';
+    });
   }
   // ポップアップ内情報と設定タブのプロフィールを同じ内容で埋める
   [['pp-name','pp-email','pp-roles'], ['set-name','set-email','set-roles']].forEach(([n, e, r]) => {
@@ -1353,6 +1364,7 @@ async function startPreview(uid, name, email) {
       isResponsible:data.isResponsible,
       isCart:       data.isCart,
       isAccountant: data.isAccountant,
+      positionName: data.positionName || '', extraCaps: data.extraCaps || [],
       proxyTargets: data.proxyTargets || []
     };
     // バナー表示
@@ -3926,9 +3938,9 @@ function openManualModal() {
     },
     SESSION && SESSION.isResponsible ? {
       url: 'https://jw-utazu.github.io/manual/manual-responsible.html',
-      icon: '🏅', bg: '#fca5a5', color: '#7f1d1d',
+      icon: '🏅', bg: '#fef9c3', color: '#713f12',
       title: '責任者マニュアル', sub: 'シフト確認・管理者との連携',
-      badge: { text: '責任者', bg: '#fca5a5', color: '#7f1d1d' }
+      badge: { text: '責任者', bg: '#fef9c3', color: '#713f12' }
     } : null,
     SESSION && SESSION.isAccountant ? {
       url: 'https://jw-utazu.github.io/manual/manual-admin.html',
@@ -4029,6 +4041,7 @@ function esc(s) {
         uid: data.uid, name: data.name, email: saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
+        positionName: data.positionName || '', extraCaps: data.extraCaps || [],
         picture: saved.picture || '', avatar: data.avatar || '',
         avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate,
         avatarHasGoogle: !!data.avatarHasGoogle

@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=27">
+<link rel="stylesheet" href="css/app.css?v=28">
 </head>
 <body>
 
@@ -299,68 +299,139 @@
     </div>
   </div>
   <div class="container">
-    <div class="nav-buttons">
-      <button class="btn-nav" id="btn-distrib-report" onclick="showScreen('distrib-report')" style="margin:0;">
-        <span class="nav-icon">📦</span>
-        <span class="nav-txt">配布報告を送る</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-road-permit" onclick="openRoadPdfModal()">
-        <span class="nav-icon">🗺</span>
-        <span class="nav-txt">道路使用許可書を閲覧する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-accounting" onclick="openAccountingSheet()">
-        <span class="nav-icon">💰</span>
-        <span class="nav-txt">会計情報を閲覧する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-road-permit-update" onclick="showScreen('road-permit')" style="display:none;border-color:#fde68a;color:#92400e;background:#fffbeb;">
-        <span class="nav-icon">📄</span>
-        <span class="nav-txt">道路使用許可書を更新する</span>
-        <span class="nav-arr">›</span>
-      </button>
+    <div class="setgrp">
+      <div class="setgrp-t">報告</div>
+      <div class="setlist">
+        <button class="setrow" id="btn-distrib-report" onclick="showScreen('distrib-report')">
+          <span class="setrow-ic" style="background:#eef2ff;">📦</span>
+          <span class="setrow-tx"><span class="setrow-n">配布報告を送る</span>
+            <span class="setrow-d">配布した出版物と様子を記録します</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+      </div>
+    </div>
+    <div class="setgrp">
+      <div class="setgrp-t">資料</div>
+      <div class="setlist">
+        <button class="setrow" id="btn-road-permit" onclick="openRoadPdfModal()">
+          <span class="setrow-ic" style="background:#ecfeff;">🗺</span>
+          <span class="setrow-tx"><span class="setrow-n">道路使用許可書</span>
+            <span class="setrow-d">現在有効な許可書を表示します</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+        <button class="setrow" id="btn-accounting" onclick="openAccountingSheet()">
+          <span class="setrow-ic" style="background:#fefce8;">💰</span>
+          <span class="setrow-tx"><span class="setrow-n">会計情報</span>
+            <span class="setrow-d">外部のスプレッドシートを開きます</span></span>
+          <span class="setrow-arr">↗</span>
+        </button>
+        <button class="setrow" id="btn-road-permit-update" onclick="showScreen('road-permit')" style="display:none;">
+          <span class="setrow-ic" style="background:#fffbeb;">📄</span>
+          <span class="setrow-tx"><span class="setrow-n">道路使用許可書を更新</span>
+            <span class="setrow-d">会計者のみ・PDFを差し替えます</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ===== その他タブ（ハブ画面） ===== -->
+<!-- ===== 設定タブ ===== -->
 <div id="screen-more">
   <div class="hdr">
     <div class="hdr-left"></div>
-    <h1>その他</h1>
+    <h1>設定</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
     </div>
   </div>
   <div class="container">
-    <div class="nav-buttons">
-      <button class="btn-nav secondary" id="btn-request" onclick="showScreen('request')" style="margin:0;">
-        <span class="nav-icon">💬</span>
-        <span class="nav-txt">要望を送る</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-bug" onclick="showScreen('bug')" style="border-color:#fca5a5;color:#b91c1c;background:#fff1f2;">
-        <span class="nav-icon">🐛</span>
-        <span class="nav-txt">バグを報告する</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" onclick="openManualModal()">
-        <span class="nav-icon">📖</span>
-        <span class="nav-txt">操作マニュアルを見る</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-install" onclick="installPWA()">
-        <span class="nav-icon">📲</span>
-        <span class="nav-txt">アプリとしてインストール</span>
-        <span class="nav-arr">›</span>
-      </button>
-      <button class="btn-nav secondary" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;border-color:#a78bfa;color:#5b21b6;background:#f5f3ff;">
-        <span class="nav-icon">👁</span>
-        <span class="nav-txt">メンバーとして閲覧</span>
-        <span class="nav-arr">›</span>
-      </button>
+    <!-- プロフィール。ヘッダーのアバターを押さなくても、
+         今どのアカウントで使っているかがこの画面で分かるようにする -->
+    <div class="setprof">
+      <div class="setprof-av" id="set-avatar"><span style="font-size:24px;">👤</span></div>
+      <div class="setprof-tx">
+        <div class="setprof-n" id="set-name">-</div>
+        <div class="setprof-e" id="set-email">-</div>
+        <div class="setprof-r" id="set-roles"></div>
+      </div>
     </div>
+
+    <!-- 通知設定（旧：お知らせモーダルの⚙設定タブから移設） -->
+    <div class="setgrp">
+      <div class="setgrp-t">通知</div>
+      <div class="setlist">
+        <label class="setrow as-toggle">
+          <span class="setrow-ic" style="background:#f0fdf4;">🔔</span>
+          <span class="setrow-tx"><span class="setrow-n">通知を有効にする</span>
+            <span class="setrow-d">この端末でプッシュ通知を受け取ります</span></span>
+          <span class="toggle-switch"><input type="checkbox" id="push-enable-toggle" onchange="onPushEnableToggle()"><span class="toggle-slider"></span></span>
+        </label>
+      </div>
+      <div id="push-pref-section">
+        <div class="setgrp-t" style="margin-top:14px;">通知の種類</div>
+        <div class="setlist">
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">シフト公開時</span></span>
+            <span class="toggle-switch"><input type="checkbox" id="pref-published" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">担当変更・中止時</span></span>
+            <span class="toggle-switch"><input type="checkbox" id="pref-changed" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">締切リマインド</span></span>
+            <span class="toggle-switch"><input type="checkbox" id="pref-deadline" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">お知らせ配信時</span></span>
+            <span class="toggle-switch"><input type="checkbox" id="pref-notice" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">本日のシフトリマインド</span></span>
+            <span class="toggle-switch"><input type="checkbox" id="pref-today" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="setgrp">
+      <div class="setgrp-t">サポート</div>
+      <div class="setlist">
+        <button class="setrow" onclick="openManualModal()">
+          <span class="setrow-ic" style="background:#f0f9ff;">📖</span>
+          <span class="setrow-tx"><span class="setrow-n">操作マニュアル</span>
+            <span class="setrow-d">使い方をブラウザで開きます</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+        <button class="setrow" id="btn-request" onclick="showScreen('request')">
+          <span class="setrow-ic" style="background:#f5f3ff;">💬</span>
+          <span class="setrow-tx"><span class="setrow-n">要望を送る</span>
+            <span class="setrow-d">改善のご意見をお寄せください</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+        <button class="setrow" id="btn-bug" onclick="showScreen('bug')">
+          <span class="setrow-ic" style="background:#fff1f2;">🐛</span>
+          <span class="setrow-tx"><span class="setrow-n">バグを報告する</span>
+            <span class="setrow-d">不具合・エラーをお知らせください</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="setgrp">
+      <div class="setgrp-t">アプリ</div>
+      <div class="setlist">
+        <button class="setrow" id="btn-install" onclick="installPWA()">
+          <span class="setrow-ic" style="background:#ecfdf5;">📲</span>
+          <span class="setrow-tx"><span class="setrow-n">ホーム画面に追加</span>
+            <span class="setrow-d">アプリとして起動できるようになります</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+        <button class="setrow" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;">
+          <span class="setrow-ic" style="background:#f5f3ff;">👁</span>
+          <span class="setrow-tx"><span class="setrow-n">メンバーとして閲覧</span>
+            <span class="setrow-d">オーナーのみ・他の人の画面を確認します</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+        <button class="setrow danger" onclick="logout()">
+          <span class="setrow-ic" style="background:#fef2f2;">🚪</span>
+          <span class="setrow-tx"><span class="setrow-n">ログアウト</span></span>
+          <span class="setrow-arr">›</span>
+        </button>
+      </div>
+    </div>
+    <div class="set-ver" id="set-version"></div>
   </div>
 </div>
 
@@ -524,23 +595,12 @@
     <div class="notif-tabs">
       <button class="notif-tab on" id="notif-tab-notices" onclick="switchNotifTab('notices')">お知らせ</button>
       <button class="notif-tab" id="notif-tab-history" onclick="switchNotifTab('history')">通知履歴</button>
-      <button class="notif-tab" id="notif-tab-settings" onclick="switchNotifTab('settings')">⚙ 設定</button>
     </div>
     <div id="notices-modal-body" style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
     <div id="notif-history-body" style="display:none;flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
-    <div id="notif-settings-body" style="display:none;flex:1;min-height:0;overflow-y:auto;">
-      <div class="pp-pref-section" style="border-bottom:1px solid var(--green-light);">
-        <label class="pp-pref-row"><span>🔔 通知を有効にする</span><span class="toggle-switch"><input type="checkbox" id="push-enable-toggle" onchange="onPushEnableToggle()"><span class="toggle-slider"></span></span></label>
-      </div>
-      <div class="pp-pref-section" id="push-pref-section">
-        <div class="pp-pref-title">通知の種類</div>
-        <label class="pp-pref-row"><span>シフト公開時</span><span class="toggle-switch"><input type="checkbox" id="pref-published" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>担当変更・中止時</span><span class="toggle-switch"><input type="checkbox" id="pref-changed" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>締切リマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-deadline" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>お知らせ配信時</span><span class="toggle-switch"><input type="checkbox" id="pref-notice" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-        <label class="pp-pref-row"><span>本日のシフトリマインド</span><span class="toggle-switch"><input type="checkbox" id="pref-today" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-      </div>
-    </div>
+    <!-- 通知設定は「設定」タブに移設した（同じ設定が2箇所にあると
+         どちらが効いているのか分からなくなるため一本化している） -->
+    <button class="notif-to-settings" onclick="closeNoticesModal();switchTab('more');">⚙ 通知設定を開く</button>
   </div>
 </div>
 
@@ -655,12 +715,12 @@
     <span class="tab-ic">📦</span><span class="tab-n">報告</span>
   </button>
   <button class="tabbtn" id="tab-more"   onclick="switchTab('more')">
-    <span class="tab-ic">⚙️</span><span class="tab-n">その他</span>
+    <span class="tab-ic">⚙️</span><span class="tab-n">設定</span>
   </button>
 </nav>
 
 <script src="js/session.js?v=2"></script>
 <script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=44"></script>
+<script src="js/app.js?v=45"></script>
 </body>
 </html>

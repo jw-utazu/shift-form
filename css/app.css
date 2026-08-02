@@ -107,10 +107,6 @@ body::-webkit-scrollbar { display: none; }
   text-align: center; font-family: inherit;
 }
 .pp-logout:active { background: #fee2e2; }
-.pp-pref-section { padding: 8px 14px 10px; border-bottom: 1px solid var(--green-light); text-align: left; }
-.pp-pref-title { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.pp-pref-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; color: var(--text); }
-.pp-pref-row:last-child { margin-bottom: 0; }
 
 .toggle-switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -622,32 +618,6 @@ body::-webkit-scrollbar { display: none; }
 .badge-cart  { background: #a5b4fc; color: #312e81; }
 .badge-staff { background: var(--green-light); color: var(--green-dark); }
 
-/* ナビボタン */
-.nav-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-.btn-nav {
-  width: 100%;
-  padding: 18px 16px;
-  font-size: 17px;
-  font-weight: 700;
-  background: var(--green);
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: background .15s, transform .1s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-nav:active   { background: #15803d; transform: scale(.98); }
-.btn-nav .nav-icon { font-size: 22px; }
-.btn-nav .nav-txt  { flex: 1; }
-.btn-nav .nav-arr  { opacity: .6; }
-.btn-nav.secondary { background: #f0fdf4; color: var(--green); border: 2px solid var(--green-mid); }
-.btn-nav.secondary:active { background: var(--green-light); }
-
 /* 展示内容写真カード（ホーム：次のシフトとカレンダーの間） */
 .exhibit-card {
   background: var(--card);
@@ -721,6 +691,70 @@ body::-webkit-scrollbar { display: none; }
   from { opacity: 0; transform: translateX(-32px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+/* ===== 設定・報告タブのグループ化リスト =====
+   タブの着地点に大きなボタンを数個だけ並べると余白が目立つので、
+   iOS の設定アプリのように「見出し＋コンパクトな行のまとまり」で構成する */
+.setgrp { margin-bottom: 16px; }
+.setgrp-t {
+  font-size: 11.5px; font-weight: 700; color: var(--sub);
+  letter-spacing: .04em; padding: 0 4px 6px;
+}
+.setlist {
+  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+.setrow {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 11px 12px; background: none; border: none;
+  border-bottom: 1px solid #f1f5f9;
+  font-family: inherit; font-size: 15px; color: var(--text);
+  text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.setrow:last-child { border-bottom: none; }
+.setrow:active { background: #f8fafc; }
+.setrow-ic {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.setrow-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.setrow-n  { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.setrow-d  { font-size: 11.5px; color: var(--sub); line-height: 1.4; }
+.setrow-arr { color: #cbd5e1; font-size: 18px; flex-shrink: 0; }
+.setrow.danger .setrow-n { color: var(--danger); }
+/* トグルを持つ行はラベル要素なので、押しても画面遷移しない */
+.setrow.as-toggle { cursor: default; }
+.setrow.as-toggle:active { background: none; }
+.setrow.compact { padding: 9px 12px; }
+.setrow.compact .setrow-n { font-weight: 600; font-size: 14px; }
+
+/* 設定タブ先頭のプロフィール */
+.setprof {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--green); border-radius: 12px;
+  padding: 14px 14px; margin-bottom: 16px; color: #fff;
+}
+.setprof-av {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.setprof-av img { width: 100%; height: 100%; object-fit: cover; }
+.setprof-tx { min-width: 0; flex: 1; }
+.setprof-n  { font-size: 16px; font-weight: 700; }
+.setprof-e  { font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 1px; word-break: break-all; }
+.setprof-r  { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.set-ver { text-align: center; font-size: 11px; color: var(--sub); padding: 2px 0 6px; }
+
+/* お知らせモーダル下部の「通知設定を開く」導線 */
+.notif-to-settings {
+  flex-shrink: 0; width: 100%; padding: 11px;
+  background: #f8fafc; border: none; border-top: 1px solid var(--border);
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+  color: var(--green); cursor: pointer;
+}
+.notif-to-settings:active { background: #f1f5f9; }
 
 /* ===== 下部タブバー =====
    position:fixed で画面下端に固定する。iOS のホームインジケータに隠れないよう

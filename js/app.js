@@ -474,6 +474,7 @@ function showScreen(name, fromPopstate, stateDepth) {
   if (name === 'shift')         _showShiftScreen();
   if (name === 'road-permit')   _initRoadPermitScreen();
   if (name === 'distrib-report') _showDistribReportScreen();
+  if (name === 'more')          _showSettingsScreen();
 
   // form-back-btnのonclickを設定（動的IDのため）
   const formBackBtn = document.getElementById('form-back-btn');
@@ -524,6 +525,14 @@ function syncTabUi(name, stateDepth) {
     const bb = scr.querySelector('.back-bar');
     if (bb) bb.style.display = TAB_ROOT_SCREENS.has(name) ? 'none' : '';
   }
+}
+
+// 設定タブを開いたとき：プロフィールと通知設定の現在値を反映する。
+// 通知の購読状況は端末側（Service Worker）にしか無いので、
+// 開くたびに取り直さないと他端末で切り替えた状態とズレる
+function _showSettingsScreen() {
+  updateAvatarUI();
+  refreshPushPrefSection();
 }
 
 // 希望タブの有効・無効とラベル。受付期間外はタブ自体を押せなくする
@@ -798,42 +807,48 @@ function updateAvatarUI() {
       el.innerHTML = '';
       el.appendChild(img);
     });
-    const ppAvatar = document.getElementById('pp-avatar');
-    if (ppAvatar) {
+    // ポップアップと設定タブ、同じ写真を出す2箇所をまとめて更新する
+    [['pp-avatar', 22], ['set-avatar', 24]].forEach(([id, size]) => {
+      const av = document.getElementById(id);
+      if (!av) return;
       const img = document.createElement('img');
       img.src = pic;
       img.alt = SESSION.name || '';
-      img.onerror = () => { ppAvatar.innerHTML = '<span style="font-size:22px;">👤</span>'; };
-      ppAvatar.innerHTML = '';
-      ppAvatar.appendChild(img);
-    }
+      img.onerror = () => { av.innerHTML = '<span style="font-size:' + size + 'px;">👤</span>'; };
+      av.innerHTML = '';
+      av.appendChild(img);
+    });
   } else if (_isPreviewMode) {
     document.querySelectorAll('.hdr-avatar').forEach(el => {
       el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>';
     });
     const ppAvatar = document.getElementById('pp-avatar');
     if (ppAvatar) ppAvatar.innerHTML = '<span style="font-size:22px;">👤</span>';
+    const setAvatar = document.getElementById('set-avatar');
+    if (setAvatar) setAvatar.innerHTML = '<span style="font-size:24px;">👤</span>';
   }
-  // ポップアップ内情報
-  const ppName  = document.getElementById('pp-name');
-  const ppEmail = document.getElementById('pp-email');
-  const ppRoles = document.getElementById('pp-roles');
-  if (ppName)  ppName.textContent  = SESSION.name;
-  if (ppEmail) ppEmail.textContent = SESSION.email;
-  if (ppRoles) {
-    ppRoles.innerHTML = '';
-    if (SESSION.isAdmin && !SESSION.uid) {
-      // 管理アカウント（uidなし）：オーナーのみ
-      ppRoles.innerHTML = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
-    } else {
-      // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
-      ppRoles.innerHTML += '<span class="badge badge-staff">奉仕者</span>';
-      if (SESSION.isAdmin)       ppRoles.innerHTML += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
-      if (SESSION.isAccountant)  ppRoles.innerHTML += '<span class="badge" style="background:#dbeafe;color:#1e40af;">会計者</span>';
-      if (SESSION.isResponsible) ppRoles.innerHTML += '<span class="badge badge-resp">責任者</span>';
-      if (SESSION.isCart)        ppRoles.innerHTML += '<span class="badge badge-cart">カート担当</span>';
-    }
+  // 役割バッジのHTML（ポップアップと設定タブで共用）
+  let rolesHtml;
+  if (SESSION.isAdmin && !SESSION.uid) {
+    // 管理アカウント（uidなし）：オーナーのみ
+    rolesHtml = '<span class="badge" style="background:#fef9c3;color:#713f12;">オーナー</span>';
+  } else {
+    // メンバー全員：奉仕者を必ず最初に表示、その後役割バッジを追加
+    rolesHtml = '<span class="badge badge-staff">奉仕者</span>';
+    if (SESSION.isAdmin)       rolesHtml += '<span class="badge" style="background:#fef9c3;color:#713f12;">管理者</span>';
+    if (SESSION.isAccountant)  rolesHtml += '<span class="badge" style="background:#dbeafe;color:#1e40af;">会計者</span>';
+    if (SESSION.isResponsible) rolesHtml += '<span class="badge badge-resp">責任者</span>';
+    if (SESSION.isCart)        rolesHtml += '<span class="badge badge-cart">カート担当</span>';
   }
+  // ポップアップ内情報と設定タブのプロフィールを同じ内容で埋める
+  [['pp-name','pp-email','pp-roles'], ['set-name','set-email','set-roles']].forEach(([n, e, r]) => {
+    const elN = document.getElementById(n);
+    const elE = document.getElementById(e);
+    const elR = document.getElementById(r);
+    if (elN) elN.textContent = SESSION.name;
+    if (elE) elE.textContent = SESSION.email;
+    if (elR) elR.innerHTML   = rolesHtml;
+  });
 }
 function toggleProfilePopup() {
   const popup   = document.getElementById('profile-popup');
@@ -1406,12 +1421,15 @@ async function openNotifFromTap(notifId) {
 }
 
 async function switchNotifTab(tab) {
-  ['notices','history','settings'].forEach(t => {
-    document.getElementById('notif-tab-' + t).classList.toggle('on', t === tab);
+  // 通知設定は「設定」タブへ移設したため、このモーダルは
+  // お知らせ／通知履歴 の2つだけを持つ
+  if (tab === 'settings') tab = 'notices';
+  ['notices','history'].forEach(t => {
+    const el = document.getElementById('notif-tab-' + t);
+    if (el) el.classList.toggle('on', t === tab);
   });
   document.getElementById('notices-modal-body').style.display   = tab === 'notices'  ? '' : 'none';
   document.getElementById('notif-history-body').style.display   = tab === 'history'  ? '' : 'none';
-  document.getElementById('notif-settings-body').style.display  = tab === 'settings' ? '' : 'none';
 
   if (tab === 'history') {
     renderNotifHistory();
@@ -1440,8 +1458,6 @@ function openNoticesModal(tab) {
   history.pushState({ screen: _currentScreenName, modal: 'notices' }, '');
   _modalInHistory = 'notices';
   switchNotifTab(tab || 'notices');
-  // 設定タブに切り替えるまで待たず、開いた時点で購読状況・個人設定をまとめて取得しておく
-  refreshPushPrefSection();
 }
 
 function closeNoticesModal() {

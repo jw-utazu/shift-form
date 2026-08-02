@@ -2854,6 +2854,7 @@ function buildShiftDetail(d) {
       if (staffEditMode) {
         html += '<div class="edit-mode-actions">';
         html += '<button class="btn-cancel-shift-edit" onclick="exitStaffEditMode()">キャンセル</button>';
+        html += '<button class="btn-reset-shift-edit" onclick="resetStaffEdits()">編集前に戻す</button>';
         html += '<button class="btn-save-shift" id="btn-save-staff" onclick="saveStaffEdits()">保存する</button>';
         html += '</div>';
       }
@@ -3080,6 +3081,14 @@ async function enterStaffEditMode() {
     }
     await hideLoading();
   }
+  buildShiftDetail(shiftViewingDate);
+}
+
+// 編集中の未保存の変更（名前欄・プルダウン・カート番号など）を編集開始時点の
+// 状態に戻す。shiftViewingDate は編集モード中も一切書き換えていないため、
+// 編集モードのまま buildShiftDetail を再実行するだけでフォームが元の値に戻る
+function resetStaffEdits() {
+  if (!confirm('編集内容を破棄して編集前の状態に戻しますか？')) return;
   buildShiftDetail(shiftViewingDate);
 }
 

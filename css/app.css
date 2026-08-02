@@ -1411,6 +1411,7 @@ body::-webkit-scrollbar { display: none; }
 .btn-save-shift { background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
 .btn-save-shift:disabled { opacity:.5; cursor:not-allowed; }
 .btn-cancel-shift-edit { background:#f3f4f6; color:var(--sub); border:1px solid #e5e7eb; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.btn-reset-shift-edit { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
 .btn-edit-staff-mode { background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
 /* 責任者・カート担当・場所名の編集（奉仕者編集モード） */
 .resp-edit-row { align-items:center; }

@@ -446,7 +446,12 @@ const SCREEN_DEPTH = { register: 1, main: 2, form: 3, shift: 3, report: 3, more:
 let _currentScreenName = 'register';
 let _currentTab = 'home';
 let _tabDepth   = 0;
-let _tabSwitching = false;
+// 履歴を戻している最中の「戻り終わったら開くタブ」。popstate で着地を
+// 確認してから続きを行うための引き継ぎ用（switchTab のコメント参照）
+let _pendingTab = null;
+// 同じく、履歴を1段戻した後に実行したい処理（モーダルを閉じてから
+// タブへ移る場合など）。go(-1) の完了前に次の履歴操作をしないため
+let _afterPopstate = null;
 
 function showScreen(name, fromPopstate, stateDepth) {
   window.scrollTo(0, 0);
@@ -549,38 +554,42 @@ function setFormTabState(enabled, label, icon) {
   btn.title = enabled ? '' : 'いまは受付期間外です';
 }
 
-// history.go() は非同期（popstate が後から飛ぶ）ため、完了を待てるようにする
-function _historyGo(n) {
-  return new Promise(resolve => {
-    if (!n) return resolve();
-    const done = () => { window.removeEventListener('popstate', done); resolve(); };
-    window.addEventListener('popstate', done);
-    history.go(n);
-    // 念のためのフォールバック（popstate が来ない環境で固まらないように）
-    setTimeout(done, 400);
-  });
-}
-
 // タブ切り替え。タブ間の移動では履歴を積まず、常に
 // 「ホーム → 今のタブ」という1段だけの履歴に正規化する。
-// こうすることで、どのタブにいても戻るボタン1回でホームに着く
-async function switchTab(tab) {
-  if (_tabSwitching) return;
+// こうすることで、どのタブにいても戻るボタン1回でホームに着く。
+//
+// history.go() は非同期で、popstate が飛ぶまで移動は完了しない。
+// 「go したつもりの位置」を前提に続けて pushState すると、実際にはまだ
+// 移動が終わっておらず履歴が壊れる（戻るとホームを通り越して
+// アプリ終了確認まで飛ぶ）。そのため戻りが必要な場合は
+// _pendingTab に積んで、popstate で着地を確認してから続きを行う
+function switchTab(tab) {
   if (tab === _currentTab && _tabDepth <= 1) { window.scrollTo(0, 0); return; }
-  _tabSwitching = true;
-  try {
-    // いまの位置からホーム（深さ0）まで履歴を巻き戻す
-    if (_tabDepth > 0) {
-      _suppressNextPopstate = true;
-      await _historyGo(-_tabDepth);
-    }
-    if (tab === 'home') {
-      showScreen('main', true);          // 履歴上すでに main なので積み直さない
-    } else {
-      showScreen(TAB_ROOT_SCREEN[tab]);  // ホームの上に1段だけ積む
-    }
-  } finally {
-    _tabSwitching = false;
+  if (_pendingTab) return;               // 移動中の二重タップは無視
+  if (_tabDepth >= 2) {
+    // タブ内の詳細にいる：まずタブ入口（深さ1）まで戻り、着地後に続ける
+    _pendingTab = tab;
+    history.go(-(_tabDepth - 1));
+    return;
+  }
+  _applyTab(tab);
+}
+
+// 深さ0（ホーム）または深さ1（タブ入口）から目的のタブへ移る
+function _applyTab(tab) {
+  if (tab === 'home') {
+    // 深さ1なら1段戻ればホーム。popstate 側が画面を戻す
+    if (_tabDepth === 1) history.back();
+    return;
+  }
+  const scr = TAB_ROOT_SCREEN[tab];
+  if (_tabDepth === 0) {
+    showScreen(scr);                       // ホームの上に1段だけ積む
+  } else {
+    // すでに別のタブ入口にいる：履歴を増やさず今の1段を置き換える。
+    // これで「戻る＝ホーム」の関係が常に保たれる
+    showScreen(scr, true, 1);
+    history.replaceState({ screen: scr, tab, depth: 1 }, '');
   }
 }
 
@@ -589,6 +598,11 @@ window.addEventListener('popstate', function(e) {
   // モーダルを直接閉じた際のpopstateを抑制（履歴エントリ除去のhistry.go(-1)由来）
   if (_suppressNextPopstate) {
     _suppressNextPopstate = false;
+    // 「閉じ終わったらタブへ移る」など、戻りの完了を待っていた処理をここで行う。
+    // go(-1) の完了前に実行すると履歴が壊れるため、必ずこの時点まで待つ
+    const after = _afterPopstate;
+    _afterPopstate = null;
+    if (after) after();
     return;
   }
 
@@ -643,11 +657,22 @@ window.addEventListener('popstate', function(e) {
   // ※ quickJump（メイン画面から直接開いた詳細）はこの内部遷移の対象外
   if (screen === 'shift' && state.subScreen === 'detail' && !state.quickJump) {
     _shiftDetailBack(true);
+    _resumePendingTab();
     return;
   }
 
   showScreen(screen, true, state.depth);
+  _resumePendingTab();
 });
+
+// タブ切り替えのために履歴を戻していた場合、着地を確認できたこの時点で
+// 残りの切り替えを行う（switchTab のコメント参照）
+function _resumePendingTab() {
+  if (!_pendingTab) return;
+  const tab = _pendingTab;
+  _pendingTab = null;
+  _applyTab(tab);
+}
 
 // フォーム画面：SLOTSが未取得なら getFormDetail を取得してから表示
 async function _showFormScreen() {
@@ -1466,7 +1491,18 @@ function closeNoticesModal() {
     _modalInHistory = null;
     _suppressNextPopstate = true;
     history.go(-1);
+    return true;   // 履歴を1段戻した（完了は popstate 後）
   }
+  return false;
+}
+
+// お知らせモーダルから通知設定（設定タブ）へ移る。
+// closeNoticesModal() の history.go(-1) は非同期なので、続けて
+// switchTab を呼ぶと戻りの完了前に履歴を積んで壊れる。
+// 戻り終わってから切り替えるよう _afterPopstate に預ける
+function openNotifSettings() {
+  if (closeNoticesModal()) _afterPopstate = () => switchTab('more');
+  else switchTab('more');
 }
 
 // カレンダー表示中の年月（実際の今月 or 先月）

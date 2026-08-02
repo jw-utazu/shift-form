@@ -1045,7 +1045,10 @@ async function onAvatarPrivacyToggle() {
 }
 
 async function resetAvatar() {
-  if (!confirm('アイコンを既定に戻しますか？\n次回ログイン時にGoogleのアイコンが設定されます。')) return;
+  const hasGoogle = !!SESSION.picture;
+  if (!confirm(hasGoogle
+      ? 'アイコンをGoogleアカウントのものに戻しますか？'
+      : 'アイコンを削除しますか？\nGoogleのアイコンは次回ログイン時に設定されます。')) return;
   showLoading('アイコンを戻しています...');
   try {
     const res = await apiPost('deleteAvatar', { uid: SESSION.uid, email: SESSION.email });
@@ -1053,6 +1056,18 @@ async function resetAvatar() {
     SESSION.avatar = '';
     SESSION.avatarIsCustom = false;
     SESSION.avatarIsPrivate = false;
+
+    // 消しただけだと、次にGoogleログイン画面を通るまでアイコンが無い状態が続く。
+    // その「次回」がいつ来るかは分からない（セッションは長く保たれる）ので、
+    // Googleのアイコンが分かるならここで入れ直してしまう
+    if (hasGoogle) {
+      try {
+        const r2 = await apiGet('saveGoogleAvatar', {
+          email: SESSION.email, pictureUrl: SESSION.picture,
+        });
+        if (r2 && r2.ok && r2.image) SESSION.avatar = r2.image;
+      } catch (_) { /* 入れ直せなくても次回ログインで入るので致命的ではない */ }
+    }
     updateAvatarUI();
     await hideLoading();
   } catch (err) {

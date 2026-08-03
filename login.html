@@ -22,7 +22,11 @@
     <!-- ログイン -->
     <div id="sec-signin">
       <div class="sub">Googleアカウントでログインしてください</div>
+      <div class="sub" id="add-mode-note" style="display:none;">
+        追加したいアカウントを選んでください。<br>今ログイン中のアカウントはそのまま残ります。
+      </div>
       <div class="g-wrap" id="g-btn"></div>
+      <button class="link" id="btn-add-cancel" style="display:none;" onclick="cancelAddAccount()">追加をやめて戻る</button>
       <button class="link" onclick="openRecovery()">Googleアカウントでログインできない場合</button>
     </div>
 
@@ -87,7 +91,7 @@
   <div id="busy-text">確認中...</div>
 </div>
 
-<script src="js/session.js?v=3"></script>
-<script src="js/login.js?v=4"></script>
+<script src="js/session.js?v=4"></script>
+<script src="js/login.js?v=5"></script>
 </body>
 </html>

@@ -20,6 +20,15 @@ if (typeof pwgwsGetSession !== 'function') {
       (reason ? '&reason=' + encodeURIComponent(reason) : ''));
   };
   window.pwgwsShouldRedirectToLogin = function () { return true; };
+  // 複数アカウント：切り替えはできないが、押しても何も起きないだけで済むようにする
+  window.PWGWS_FORM_URL             = 'https://jw-utazu.github.io/shift-form/';
+  window.pwgwsGetAccounts           = function () { return []; };
+  window.pwgwsSwitchAccount         = function () { return false; };
+  window.pwgwsRemoveAccount         = function () { return false; };
+  window.pwgwsGoToAddAccount        = function () { window.pwgwsGoToLogin(); };
+  window.pwgwsOpenAccountMenu       = function () {
+    alert('アカウント機能を読み込めませんでした。ページを再読み込みしてください。');
+  };
 }
 
 // ============================================================
@@ -1426,6 +1435,14 @@ function startUpdateChecker() {
     });
   }
   checkShiftUpdate();
+}
+
+// ===== アカウント切り替え =====
+// メニューの実体は共有の session.js（3アプリで同じ見た目・同じ挙動にするため）。
+// プロフィールポップアップは閉じずに重ねて出す。先に閉じると、位置決めの基準に
+// している要素が消えてメニューが画面の左上に寄ってしまう
+function openAccountMenu(el) {
+  pwgwsOpenAccountMenu(el, { onSignOut: logout });
 }
 
 // ===== ログアウト =====

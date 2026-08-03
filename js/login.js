@@ -15,6 +15,9 @@ const APP_ADMIN  = 'https://jw-utazu.github.io/admin/';
 const APP_CREATE = 'https://jw-utazu.github.io/admin/shift-create.html';
 
 let _returnUrl = '';
+// 「別のアカウントを追加」から来たとき（?add=1）。
+// 既にログイン済みでも素通りさせず、必ず Google の選択画面を出す
+let _addMode = false;
 
 // ============================================================
 // 共通ユーティリティ
@@ -78,6 +81,7 @@ function safeReturnUrl(raw) {
 (function init() {
   const sp = new URLSearchParams(location.search);
   _returnUrl = safeReturnUrl(sp.get('return'));
+  _addMode   = sp.get('add') === '1';
 
   const reason = sp.get('reason');
   if (reason === 'noadmin') {
@@ -86,6 +90,15 @@ function safeReturnUrl(raw) {
     showErr('ログインの有効期限が切れました。もう一度ログインしてください。');
   } else if (reason === 'unauthorized') {
     showErr('このアカウントはアクセスが許可されていません。区域係にお問い合わせください。');
+  }
+
+  // アカウント追加モード：今のログインで素通りさせず、選択画面を出す。
+  // 追加をやめたときに戻れるよう「キャンセル」を出す（戻り先が分かる場合のみ）
+  if (_addMode) {
+    q('add-mode-note').style.display = 'block';
+    if (_returnUrl) q('btn-add-cancel').style.display = 'inline-block';
+    show('signin');
+    return;
   }
 
   // 既にログイン済みならそのまま行き先へ
@@ -98,6 +111,11 @@ function safeReturnUrl(raw) {
   }
   show('signin');
 })();
+
+// アカウント追加をやめて元の画面へ戻る（今のログインはそのまま）
+function cancelAddAccount() {
+  if (_returnUrl) location.replace(_returnUrl);
+}
 
 // 保存済みのログインを検証して、有効なら行き先へ進む
 async function resumeExisting(s, recToken) {
@@ -144,6 +162,9 @@ function initGoogleLogin() {
       cancel_on_tap_outside: false,
       ux_mode: 'popup',
     });
+    // 追加モードでは前回のアカウントが自動で選ばれないようにする。
+    // これをしないと「別のアカウントを追加」で同じアカウントに戻ってしまう
+    if (_addMode) { try { google.accounts.id.disableAutoSelect(); } catch (_) {} }
     google.accounts.id.renderButton(q('g-btn'), {
       type: 'standard', theme: 'filled_blue', size: 'large',
       width: 280, text: 'signin_with', locale: 'ja',
@@ -224,10 +245,11 @@ function goApp(which) {
   location.replace(which === 'admin' ? APP_ADMIN : which === 'create' ? APP_CREATE : APP_FORM);
 }
 
+// 「別のアカウントでログイン」。今のアカウントは一覧に残したまま追加モードで開き直す
+// （消してしまうと、行き来したいという複数アカウント運用が成り立たない）
 function switchAccount() {
-  pwgwsClearSession();
   try { google.accounts.id.disableAutoSelect(); } catch (_) {}
-  location.replace('login.html');
+  location.replace('login.html?add=1' + (_returnUrl ? '&return=' + encodeURIComponent(_returnUrl) : ''));
 }
 
 // ============================================================

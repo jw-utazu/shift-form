@@ -1055,11 +1055,16 @@ async function onAvatarPrivacyToggle() {
   }
 }
 
+// 「既定に戻す」は表示の切り替えではなく、設定したアイコンをサーバーから削除する
+// （handlers_avatar.ts の hDeleteAvatar が image_data を Google のもので上書きする。
+//   カスタム画像の退避先が無いため、押したら二度と戻せない）。
+// 同じ設定画面の「他の人に見せない」トグルは画像を消さない作りで元に戻せるため、
+// ユーザーはこの画面の操作を可逆だと思い込みやすい。文面で必ず破棄だと伝える
 async function resetAvatar() {
   const hasGoogle = !!SESSION.avatarHasGoogle;
   if (!confirm(hasGoogle
-      ? 'アイコンをGoogleアカウントのものに戻しますか？'
-      : 'アイコンを削除しますか？\nGoogleのアイコンは次回ログイン時に設定されます。')) return;
+      ? '設定したアイコンを削除して、Googleアカウントのアイコンに戻しますか？\n削除したアイコンは元に戻せません（戻すには設定し直してください）。'
+      : '設定したアイコンを削除しますか？\n削除したアイコンは元に戻せません（戻すには設定し直してください）。\nGoogleのアイコンは次回ログイン時に設定されます。')) return;
   showLoading('アイコンを戻しています...');
   try {
     // 保存済みのGoogleのアイコンがあれば、サーバー側でそれに入れ替えて返してくれる

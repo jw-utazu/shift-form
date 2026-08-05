@@ -1536,6 +1536,9 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 .staff-edit-sel:last-child { margin-bottom:0; }
 .staff-edit-sel:focus { border-color:var(--green); }
 .edit-mode-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb; }
+.edit-warn-box { margin-top:10px; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; }
+.edit-warn-item { font-size:12px; color:#b91c1c; line-height:1.5; }
+.edit-warn-item + .edit-warn-item { margin-top:4px; }
 .btn-save-shift { background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
 .btn-save-shift:disabled { opacity:.5; cursor:not-allowed; }
 .btn-cancel-shift-edit { background:#f3f4f6; color:var(--sub); border:1px solid #e5e7eb; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }

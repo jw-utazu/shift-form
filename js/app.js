@@ -3244,7 +3244,7 @@ function buildShiftDetail(d) {
         if (staffEditMode) {
           const realName = (Array.isArray(d.placeNames) && d.placeNames[i]) || '';
           html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">'
-               + '<input type="text" class="place-name-edit" id="place-name-' + i + '" value="' + esc(realName) + '" placeholder="場所' + (i + 1) + '"></th>';
+               + '<input type="text" class="place-name-edit" id="place-name-' + i + '" value="' + esc(realName) + '" placeholder="場所' + (i + 1) + '" oninput="onStaffEditChanged()"></th>';
         } else {
           html += '<th class="stv2-hdr-place" style="background:' + PC[i % PC.length] + ';">' + esc(loc) + '</th>';
         }
@@ -3279,7 +3279,7 @@ function buildShiftDetail(d) {
               const curUid = person ? (person.uid || nameToUid(person.name)) : '';
               const curWatch = !!(person && person.watch);
               html += '<select class="staff-edit-sel" id="staff-sel-' + ri + '-' + li + '-' + pi
-                   + '" data-watch="' + (curWatch ? '1' : '0') + '">';
+                   + '" data-watch="' + (curWatch ? '1' : '0') + '" onchange="onStaffEditChanged()">';
               html += '<option value="">—</option>';
               (APP_DATA && APP_DATA.staffJSON || []).forEach(m => {
                 const sel = (m.uid && m.uid === curUid) ? ' selected' : '';
@@ -3297,6 +3297,7 @@ function buildShiftDetail(d) {
       html += '</tbody></table></div>';
 
       if (staffEditMode) {
+        html += '<div id="staff-edit-warnings"></div>';
         html += '<div class="edit-mode-actions">';
         html += '<button class="btn-cancel-shift-edit" onclick="exitStaffEditMode()">キャンセル</button>';
         html += '<button class="btn-reset-shift-edit" onclick="resetStaffEdits()">編集前に戻す</button>';
@@ -3446,8 +3447,8 @@ function buildRespEditHtml(d) {
   const r1 = (d.responsibleUids && d.responsibleUids[0]) || '';
   const r2 = (d.responsibleUids && d.responsibleUids[1]) || '';
   return '<div class="resp-row resp-edit-row"><span class="resp-label">責任者：</span>'
-       + '<select class="role-edit-sel" id="resp-edit-1">' + buildRoleOptions('respFlag', r1) + '</select>'
-       + '<select class="role-edit-sel" id="resp-edit-2">' + buildRoleOptions('respFlag', r2) + '</select>'
+       + '<select class="role-edit-sel" id="resp-edit-1" onchange="onStaffEditChanged()">' + buildRoleOptions('respFlag', r1) + '</select>'
+       + '<select class="role-edit-sel" id="resp-edit-2" onchange="onStaffEditChanged()">' + buildRoleOptions('respFlag', r2) + '</select>'
        + '</div>';
 }
 
@@ -3459,7 +3460,7 @@ function buildCartEditHtml(d) {
     const uid    = person ? person.uid    : '';
     const cartNo = person ? person.cartNo : '';
     return '<div class="cart-edit-item"><span class="cart-edit-lbl">' + label + '</span>'
-         + '<select class="role-edit-sel" id="' + idPrefix + '-uid">' + buildRoleOptions('cartFlag', uid) + '</select>'
+         + '<select class="role-edit-sel" id="' + idPrefix + '-uid" onchange="onStaffEditChanged()">' + buildRoleOptions('cartFlag', uid) + '</select>'
          + cartNumButtonHtml(idPrefix + '-no', cartNo)
          + '</div>';
   };
@@ -3499,6 +3500,7 @@ function openCartNumPicker(el) {
       el.dataset.value = next;
       el.textContent = cartNumLabel(next);
       el.classList.toggle('empty', !next);
+      onStaffEditChanged();
     },
   });
 }
@@ -3549,15 +3551,10 @@ function exitStaffEditMode() {
   buildShiftDetail(shiftViewingDate);
 }
 
-async function saveStaffEdits() {
-  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
-  if (!shiftViewingDate) return;
-  const d   = shiftViewingDate;
-  // 場所列が取れない（スロットが無い）状態で保存すると usedPlaces が空で送られ、
-  // 保存済みの場所設定ごと消える。何も編集できていないので保存しない
-  if (!d.slots || d.slots.length === 0) { alert('この時間帯には編集できる枠がありません。'); return; }
-  const btn = document.getElementById('btn-save-staff');
-  if (btn) btn.disabled = true;
+// 編集中のDOMから保存用データを組み立てる。saveStaffEdits() と
+// ライブ検証（onStaffEditChanged）の両方から呼ぶための共通処理
+function collectStaffEditPayload(d) {
+  if (!d.slots || d.slots.length === 0) return null;
 
   // 表内のセルは「表示ラベル」（名前が空の列は「場所N」）で引いているが、
   // 保存するのは場所名編集欄に入っている実際の場所名。列の対応は名前ではなく
@@ -3608,17 +3605,120 @@ async function saveStaffEdits() {
     oc2: document.getElementById('cart-take2-no')?.dataset.value || ''
   };
 
+  return { placeNames, placeCartArr, slotsPayload, responsible, cart };
+}
+
+function uidToNameLocal(uid) {
+  if (!uid || !APP_DATA || !APP_DATA.staffJSON) return uid;
+  const m = APP_DATA.staffJSON.find(s => s.uid === uid);
+  return m ? (m.name || uid) : uid;
+}
+
+// ===== 保存前ライブ検証（ブロック内で完結する重要な配置エラーのみ） =====
+// シフト作成アプリの validation.js と違い、他奉仕者の申込状況や他PWでの
+// 配置状況（conflictMap）はここでは取得していないため対象外。
+// 物理的に不可能・データが壊れる類のエラーだけを見る
+function checkDupSlot(slotsPayload, placeNames) {
+  const issues = [];
+  slotsPayload.forEach(slot => {
+    const seen = {};
+    (slot.places || []).forEach((uids, li) => {
+      (uids || []).forEach(uid => { if (uid) (seen[uid] = seen[uid] || []).push(li); });
+    });
+    Object.entries(seen).forEach(([uid, lis]) => {
+      if (lis.length < 2) return;
+      const where = lis.map(li => placeNames[li] || '（場所未設定）').join('・');
+      issues.push('⛔ ' + uidToNameLocal(uid) + ' が ' + slot.time + ' に重複して配置されています（' + where + '）');
+    });
+  });
+  return issues;
+}
+function checkNoPlace(slotsPayload, placeNames) {
+  const issues = [];
+  placeNames.forEach((loc, li) => {
+    if (loc) return;
+    const has = slotsPayload.some(s => ((s.places || [])[li] || []).some(Boolean));
+    if (has) issues.push('⛔ ' + (li + 1) + '列目の場所が未設定のまま奉仕者が配置されています');
+  });
+  return issues;
+}
+function checkCartNumDup(cart, placeCartArr, placeNames) {
+  const issues = [];
+  [['持ち込み', [cart.kc1, cart.kc2]], ['持ち帰り', [cart.oc1, cart.oc2]]].forEach(([lbl, vals]) => {
+    const seen = {};
+    (vals || []).filter(Boolean).forEach(v => {
+      String(v).split(',').map(x => x.trim()).filter(Boolean).forEach(n => { seen[n] = (seen[n] || 0) + 1; });
+    });
+    const dup = Object.keys(seen).filter(n => seen[n] > 1);
+    if (dup.length) issues.push('⛔ ' + lbl + 'のカート番号 ' + dup.join('・') + ' が重複しています');
+  });
+  const pcSeen = {};
+  (placeCartArr || []).forEach((v, li) => {
+    String(v || '').split(',').map(x => x.trim()).filter(Boolean)
+      .forEach(n => { (pcSeen[n] = pcSeen[n] || []).push(li); });
+  });
+  Object.entries(pcSeen).forEach(([n, lis]) => {
+    if (lis.length < 2) return;
+    const where = lis.map(li => placeNames[li] || '（場所未設定）').join('・');
+    issues.push('⛔ カート番号 ' + n + ' が ' + where + ' に重複して設置されています');
+  });
+  return issues;
+}
+function validateStaffEditLive(payload) {
+  return [].concat(
+    checkDupSlot(payload.slotsPayload, payload.placeNames),
+    checkNoPlace(payload.slotsPayload, payload.placeNames),
+    checkCartNumDup(payload.cart, payload.placeCartArr, payload.placeNames)
+  );
+}
+function renderStaffEditWarnings(issues) {
+  const el = document.getElementById('staff-edit-warnings');
+  if (!el) return;
+  if (!issues || issues.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="edit-warn-box">' + issues.map(msg =>
+    '<div class="edit-warn-item">' + esc(msg) + '</div>'
+  ).join('') + '</div>';
+}
+// 奉仕者・責任者・カート担当・場所名・カート番号のいずれかが変わるたびに呼ぶ
+function onStaffEditChanged() {
+  if (!shiftViewingDate) return;
+  const payload = collectStaffEditPayload(shiftViewingDate);
+  if (!payload) return;
+  renderStaffEditWarnings(validateStaffEditLive(payload));
+}
+
+async function saveStaffEdits() {
+  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
+  if (!shiftViewingDate) return;
+  const d = shiftViewingDate;
+  const payload = collectStaffEditPayload(d);
+  // 場所列が取れない（スロットが無い）状態で保存すると usedPlaces が空で送られ、
+  // 保存済みの場所設定ごと消える。何も編集できていないので保存しない
+  if (!payload) { alert('この時間帯には編集できる枠がありません。'); return; }
+
+  const issues = validateStaffEditLive(payload);
+  if (issues.length > 0) {
+    const ok = confirm('配置に問題がある可能性があります。\n\n' + issues.join('\n') + '\n\nこのまま保存しますか？');
+    if (!ok) return;
+  }
+
+  const btn = document.getElementById('btn-save-staff');
+  if (btn) btn.disabled = true;
+
   showLoading('シフトを保存中...');
   try {
     const result = await apiGet('saveShiftBlock', {
       date: d.date,
       time: d.time,
-      responsible,
-      cart,
-      placeCart: placeCartArr,
-      usedPlaces: placeNames,
-      slots: slotsPayload,
-      uid: SESSION ? SESSION.uid : ''
+      responsible: payload.responsible,
+      cart: payload.cart,
+      placeCart: payload.placeCartArr,
+      usedPlaces: payload.placeNames,
+      slots: payload.slotsPayload,
+      uid: SESSION ? SESSION.uid : '',
+      adminUid: SESSION ? (SESSION.uid || '') : '',
+      adminName: SESSION ? (SESSION.name || '') : '',
+      viaForm: true
     });
     if (result && result.ok === false) throw new Error(result.error || '保存に失敗しました');
     staffEditMode = false;

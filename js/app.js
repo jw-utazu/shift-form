@@ -1616,7 +1616,7 @@ function buildMainScreen() {
   // 自分（またはオーナー以外）の今月送信済みデータ確認
   const myUid = SESSION ? SESSION.uid : '';
   const hasSentThisMonth = myUid && THIS_MONTH[myUid] &&
-    Object.keys(THIS_MONTH[myUid].checkedMap || {}).length > 0;
+    !!THIS_MONTH[myUid].timestamp;
   if (isOwner || _isPreviewMode) {
     // オーナー・プレビュー中：日程条件を無視して常に開ける（フォームは読み取り専用）
     if (isOwner && !_isPreviewMode)   setFormTabState(true,  '希望',   '👁');
@@ -1707,10 +1707,12 @@ function updateNoticeBadge() {
   badge.style.display = n > 0 ? 'flex' : 'none';
 }
 
-async function refreshNotifUnreadCount() {
+async function refreshNotifUnreadCount(notifId) {
   if (!SESSION || !SESSION.uid) return;
   try {
-    const res = await apiGet('getNotificationLog', { uid: SESSION.uid });
+    const params = { uid: SESSION.uid };
+    if (notifId) params.notifId = notifId;
+    const res = await apiGet('getNotificationLog', params);
     if (!res.ok) return;
     _notifHistoryItems = res.items || [];
     _notifUnreadCount  = res.unreadCount || 0;
@@ -1747,7 +1749,7 @@ function openNotifDetail(id) {
 // 通知タップ（?notif=<id> または postMessage）から開く場合：最新データを取得してから
 // 通知履歴タブでその項目の詳細へ直接遷移する
 async function openNotifFromTap(notifId) {
-  await refreshNotifUnreadCount();
+  await refreshNotifUnreadCount(notifId);
   openNoticesModal('history');
   const id = parseInt(notifId, 10);
   if (id) openNotifDetail(id);
@@ -2436,7 +2438,7 @@ function buildWishListBox(status, isOpenPassed) {
   // 受付中・受付終了：送信済み希望一覧を表示
   title.textContent = '📋 送信済みのシフト希望';
   const viewData = THIS_MONTH[viewUid];
-  if (!viewData || Object.keys(viewData.checkedMap || {}).length === 0) {
+  if (!viewData || !viewData.timestamp) {
     const isAfterDeadline = status === '受付終了' || (() => {
       const ed = APP_DATA ? (APP_DATA.eventDates || {}) : {};
       const deadlineStr = ed['締切'];
@@ -2489,7 +2491,7 @@ function buildWishListBox(status, isOpenPassed) {
   }
 
   body.innerHTML =
-    (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">希望スロットがありません</div>') +
+    (items.length ? items.join('') : '<div style="font-size:14px;color:var(--sub);padding:6px 0;">参加可能な日時なしとして提出済みです</div>') +
     tsHtml + editBtn;
   card.style.display = '';
 }
@@ -2932,6 +2934,11 @@ async function submitForm() {
   if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
   if (SESSION && SESSION.isAdmin && !SESSION.uid) { alert('オーナーアカウントでは送信できません。'); return; }
 
+  const selectedCount = Object.values(formState.checkedMap)
+    .reduce((sum, times) => sum + times.size, 0);
+  if (selectedCount === 0 &&
+      !confirm('参加可能な日時を1件も選択していません。\n「参加可能な日時なし」として提出しますか？')) return;
+
   // 重複申込チェック（限定PWメンバーのみ）
   if (isLimitedMember) {
     const otherData = currentPwType === 'normal' ? LIMITED_APP_DATA : APP_DATA;
@@ -2990,7 +2997,9 @@ async function submitForm() {
     await hideLoading();
     const msg = document.getElementById('form-msg');
     msg.className = 'msg success';
-    msg.textContent = '✅ 送信が完了しました！';
+    msg.textContent = selectedCount === 0
+      ? '✅ 参加可能な日時なしとして送信しました！'
+      : '✅ 送信が完了しました！';
     setTimeout(() => {
       buildMainScreen();
       history.back(); // フォーム送信後、main エントリへ戻る

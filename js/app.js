@@ -455,14 +455,18 @@ const SCREEN_DEPTH = { register: 1, main: 2, form: 3, shift: 3, report: 3, more:
 let _currentScreenName = 'register';
 let _currentTab = 'home';
 let _tabDepth   = 0;
+// タブを離れた時点の画面・履歴・スクロール位置。戻ったときに入口へリセットせず、
+// 入力途中のフォームやシフト詳細をそのまま再表示する。
+let _tabSnapshots = {};
 // 履歴を戻している最中の「戻り終わったら開くタブ」。popstate で着地を
 // 確認してから続きを行うための引き継ぎ用（switchTab のコメント参照）
 let _pendingTab = null;
 // 同じく、履歴を1段戻した後に実行したい処理（モーダルを閉じてから
 // タブへ移る場合など）。go(-1) の完了前に次の履歴操作をしないため
 let _afterPopstate = null;
+let _historyNormalizeResolve = null;
 
-function showScreen(name, fromPopstate, stateDepth) {
+function showScreen(name, fromPopstate, stateDepth, skipScreenInit) {
   window.scrollTo(0, 0);
   const isBack = fromPopstate || SCREEN_DEPTH[name] < SCREEN_DEPTH[_currentScreenName];
   const animClass = isBack ? 'screen-enter-back' : 'screen-enter-forward';
@@ -484,11 +488,13 @@ function showScreen(name, fromPopstate, stateDepth) {
 
   _currentScreenName = name;
 
-  if (name === 'form')          _showFormScreen();
-  if (name === 'shift')         _showShiftScreen();
-  if (name === 'road-permit')   _initRoadPermitScreen();
-  if (name === 'distrib-report') _showDistribReportScreen();
-  if (name === 'more')          _showSettingsScreen();
+  if (!skipScreenInit) {
+    if (name === 'form')           _showFormScreen();
+    if (name === 'shift')          _showShiftScreen();
+    if (name === 'road-permit')    _initRoadPermitScreen();
+    if (name === 'distrib-report') _showDistribReportScreen();
+    if (name === 'more')           _showSettingsScreen();
+  }
 
   // form-back-btnのonclickを設定（動的IDのため）
   const formBackBtn = document.getElementById('form-back-btn');
@@ -575,6 +581,7 @@ function setFormTabState(enabled, label, icon) {
 function switchTab(tab) {
   if (tab === _currentTab && _tabDepth <= 1) { window.scrollTo(0, 0); return; }
   if (_pendingTab) return;               // 移動中の二重タップは無視
+  _rememberCurrentTab();
   if (_tabDepth >= 2) {
     // タブ内の詳細にいる：まずタブ入口（深さ1）まで戻り、着地後に続ける
     _pendingTab = tab;
@@ -591,19 +598,67 @@ function _applyTab(tab) {
     if (_tabDepth === 1) history.back();
     return;
   }
-  const scr = TAB_ROOT_SCREEN[tab];
-  if (_tabDepth === 0) {
-    showScreen(scr);                       // ホームの上に1段だけ積む
-  } else {
-    // すでに別のタブ入口にいる：履歴を増やさず今の1段を置き換える。
-    // これで「戻る＝ホーム」の関係が常に保たれる
-    showScreen(scr, true, 1);
-    history.replaceState({ screen: scr, tab, depth: 1 }, '');
+  _showRememberedTab(tab);
+}
+
+function _rememberCurrentTab() {
+  if (!_currentTab || _currentScreenName === 'register') return;
+  const state = Object.assign({}, history.state || {}, {
+    screen: _currentScreenName,
+    tab: _currentTab,
+    depth: _tabDepth,
+  });
+  const snap = { screen: _currentScreenName, depth: _tabDepth, state, scrollY: window.scrollY };
+  if (_currentTab === 'shift' && shiftViewingDate) {
+    snap.shiftDate = shiftViewingDate.date;
+    snap.shiftTime = shiftViewingDate.time;
   }
+  _tabSnapshots[_currentTab] = snap;
+}
+
+function _showRememberedTab(tab) {
+  const root = TAB_ROOT_SCREEN[tab];
+  const snap = _tabSnapshots[tab];
+  const rootState = { screen: root, tab, depth: tab === 'home' ? 0 : 1 };
+  const wasHome = _tabDepth === 0;
+
+  // 現在の1段を対象タブの入口に置き換える。ホームから来た場合だけ1段積む。
+  showScreen(root, true, rootState.depth, !!snap);
+  if (wasHome) history.pushState(rootState, '');
+  else history.replaceState(rootState, '');
+
+  if (snap && snap.depth >= 2) {
+    showScreen(snap.screen, true, snap.depth, true);
+    history.pushState(snap.state, '');
+    syncTabUi(snap.screen, snap.depth);
+    if (tab === 'shift' && snap.shiftDate) {
+      const d = ((SHIFT_DATA && SHIFT_DATA.dates) || []).find(
+        x => x.date === snap.shiftDate && x.time === snap.shiftTime
+      );
+      if (d) {
+        shiftViewingDate = d;
+        document.getElementById('shift-date-list').style.display = 'none';
+        document.getElementById('shift-detail-view').style.display = 'block';
+        _setShiftBackBar(true);
+        document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
+        buildShiftDetail(d);
+      }
+    }
+  } else if (snap) {
+    history.replaceState(snap.state, '');
+    syncTabUi(snap.screen, snap.depth);
+  }
+  setTimeout(() => window.scrollTo(0, snap ? snap.scrollY : 0), 0);
 }
 
 // 戻るボタン（ブラウザ・スマホ）が押されたとき
 window.addEventListener('popstate', function(e) {
+  if (_historyNormalizeResolve) {
+    const resolve = _historyNormalizeResolve;
+    _historyNormalizeResolve = null;
+    resolve();
+    return;
+  }
   // モーダルを直接閉じた際のpopstateを抑制（履歴エントリ除去のhistry.go(-1)由来）
   if (_suppressNextPopstate) {
     _suppressNextPopstate = false;
@@ -662,15 +717,29 @@ window.addEventListener('popstate', function(e) {
     return;
   }
 
-  // shift画面の詳細→一覧の内部遷移（前進で detail エントリに戻った場合）
-  // ※ quickJump（メイン画面から直接開いた詳細）はこの内部遷移の対象外
-  if (screen === 'shift' && state.subScreen === 'detail' && !state.quickJump) {
-    _shiftDetailBack(true);
+  // ブラウザの「進む」でシフト詳細の履歴へ戻った場合は、同じ日時の詳細を再表示する。
+  if (screen === 'shift' && state.subScreen === 'detail') {
+    showScreen('shift', true, state.depth, true);
+    const d = ((SHIFT_DATA && SHIFT_DATA.dates) || []).find(
+      x => x.date === state.shiftDate && x.time === state.shiftTime
+    );
+    if (d) {
+      shiftViewingDate = d;
+      document.getElementById('shift-date-list').style.display = 'none';
+      document.getElementById('shift-detail-view').style.display = 'block';
+      _setShiftBackBar(true);
+      document.getElementById('shift-back-btn').onclick = () => history.back();
+      buildShiftDetail(d);
+    }
     _resumePendingTab();
     return;
   }
 
   showScreen(screen, true, state.depth);
+  const backSnap = _tabSnapshots[state.tab || SCREEN_TAB[screen]];
+  if (backSnap && backSnap.screen === screen && backSnap.depth === state.depth) {
+    setTimeout(() => window.scrollTo(0, backSnap.scrollY || 0), 0);
+  }
   _resumePendingTab();
 });
 
@@ -1479,6 +1548,19 @@ async function initApp() {
   else showLoading('データを読み込み中...');
   // 再読み込み時は一旦通常PWとして再構築し、必要なら最後に限定PWビューへ戻す
   const prevPwType = currentPwType;
+  _tabSnapshots = {};
+  // フォーム・シフト詳細などからの再読込では、その深さ分だけ実際の履歴もmainまで戻す。
+  // 現在エントリだけをmainへ置換すると、下に古いタブ履歴が残って戻る操作が壊れる。
+  if (_mainHistorySetup && _tabDepth > 0) {
+    const steps = _tabDepth;
+    await new Promise(resolve => {
+      _historyNormalizeResolve = resolve;
+      history.go(-steps);
+    });
+    _currentScreenName = 'main';
+    _currentTab = 'home';
+    _tabDepth = 0;
+  }
   currentPwType = 'normal';
   const _tabN = document.getElementById('pw-tab-form-normal');
   const _tabL = document.getElementById('pw-tab-form-limited');
@@ -1542,7 +1624,14 @@ async function initApp() {
       return;
     }
     if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { await hideLoading(); }
-    showScreen('main');
+    // 初回だけ番兵＋mainを積む。再読込・プレビュー切替では現在位置をmainへ
+    // 置き換え、同じmainエントリを何段も増やさない。
+    if (_mainHistorySetup) {
+      history.replaceState({ screen: 'main', tab: 'home', depth: 0 }, '');
+      showScreen('main', true, 0);
+    } else {
+      showScreen('main');
+    }
     // 再読み込み前に限定PWを見ていた場合はビューを復元（タブと表示内容のズレを防ぐ）
     if (prevPwType !== 'normal' && isLimitedMember) {
       await switchFormPwType(prevPwType);
@@ -2993,6 +3082,8 @@ async function submitForm() {
     };
     // 希望一覧の表示対象を送信した人に合わせてリセット
     wishListViewUid = currentFormUid;
+    // 送信成功前のDOM（disabledになった送信ボタンを含む）を次回復元しない。
+    delete _tabSnapshots.form;
 
     await hideLoading();
     const msg = document.getElementById('form-msg');
@@ -3008,7 +3099,7 @@ async function submitForm() {
     await hideLoading();
     const msg = document.getElementById('form-msg');
     msg.className = 'msg error';
-    msg.textContent = '⚠️ 通信エラーが発生しました。もう一度お試しください。';
+    msg.textContent = '⚠️ ' + (e.message || '送信に失敗しました。もう一度お試しください。');
     btn.disabled = false; btn.textContent = '送信する';
   }
 }
@@ -3119,13 +3210,15 @@ function showShiftDetail(dateObj, quickJump) {
     // メイン画面から直接開いた場合：戻るとメイン画面へ（一覧を経由しない）。
     // ホームの真上に1段だけ積まれるので深さは 1
     document.getElementById('shift-back-btn').onclick = () => history.back();
-    history.pushState({ screen: 'shift', subScreen: 'detail', quickJump: true, tab: 'shift', depth: 1 }, '');
+    history.pushState({ screen: 'shift', subScreen: 'detail', quickJump: true, tab: 'shift', depth: 1,
+      shiftDate: dateObj.date, shiftTime: dateObj.time }, '');
     _tabDepth = 1;
   } else {
     document.getElementById('shift-back-btn').onclick = () => _shiftDetailBack();
     // 詳細ページを履歴に積む（戻るボタンで一覧に戻れるよう）。
     // シフト表タブ（深さ1）の上に積むので深さは 2
-    history.pushState({ screen: 'shift', subScreen: 'detail', tab: 'shift', depth: 2 }, '');
+    history.pushState({ screen: 'shift', subScreen: 'detail', tab: 'shift', depth: 2,
+      shiftDate: dateObj.date, shiftTime: dateObj.time }, '');
     _tabDepth = 2;
   }
   _currentTab = 'shift';
@@ -4635,41 +4728,32 @@ async function loadTestLimitedTypePicker() {
 
 // テストアカウントが特定の限定PWタイプを選択したときの切り替え
 async function selectTestLimitedType(newType, newName) {
-  document.querySelectorAll('#test-limited-type-picker .test-limited-chip').forEach(el => {
-    el.classList.toggle('active', el.dataset.type === newType);
-  });
   if (limitedPwType === newType && currentPwType === 'limited') return;
-  limitedPwType = newType;
-  limitedPwName = _testLimitedTabLabel(newName);
-  const tabLimited = document.getElementById('pw-tab-form-limited');
-  if (tabLimited) tabLimited.textContent = limitedPwName;
-  currentPwType = 'limited';
-  // type切替：直前のtypeで覚えたタイムスタンプのまま比較すると誤検知するのでリセット
-  _knownTimestamp = null;
-  document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form';
-  document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited active';
-  _updateTestLimitedPickerVisibility();
+  const prev = _capturePwViewState();
   showLoading('限定PWデータを読み込み中...');
   try {
     await _loadLimitedPwData(newType);
+    limitedPwType = newType;
+    limitedPwName = _testLimitedTabLabel(newName);
+    currentPwType = 'limited';
     _applyLimitedPwData();
+    _knownTimestamp = null;
+    _setPwTypeUi('limited');
+    _tabSnapshots = {};
     buildMainScreen();
     await hideLoading();
   } catch(e) {
-    hideLoading();
+    _restorePwViewState(prev);
+    _setPwTypeUi(prev.currentPwType);
+    try { buildMainScreen(); } catch (_) {}
+    await hideLoading();
     alert('データ読み込みエラー: ' + e.message);
   }
 }
 
 async function switchFormPwType(type) {
   if (currentPwType === type) return;
-  currentPwType = type;
-  // type切替：直前のtypeで覚えたタイムスタンプのまま比較すると誤検知するのでリセット
-  _knownTimestamp = null;
-  document.getElementById('pw-tab-form-normal').className  = 'pw-type-tab-form' + (type === 'normal'  ? ' active' : '');
-  document.getElementById('pw-tab-form-limited').className = 'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
-  _updateTestLimitedPickerVisibility();
-
+  const prev = _capturePwViewState();
   showLoading(type === 'limited' ? '限定PWデータを読み込み中...' : '通常PWデータを読み込み中...');
   try {
     if (type === 'limited') {
@@ -4700,12 +4784,50 @@ async function switchFormPwType(type) {
         if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
       });
     }
+    currentPwType = type;
+    _knownTimestamp = null;
+    _setPwTypeUi(type);
+    _tabSnapshots = {};
     buildMainScreen();
     await hideLoading();
   } catch(e) {
-    hideLoading();
+    _restorePwViewState(prev);
+    _setPwTypeUi(prev.currentPwType);
+    try { buildMainScreen(); } catch (_) {}
+    await hideLoading();
     alert('データ読み込みエラー: ' + e.message);
   }
+}
+
+function _capturePwViewState() {
+  return {
+    currentPwType, limitedPwType, limitedPwName,
+    APP_DATA, SHIFT_DATA, THIS_MONTH, SLOTS, LAST_MONTH, YEAR, MONTH,
+    SHIFT_DATES, SHIFT_DATES_MAP, LIMITED_APP_DATA, LIMITED_SHIFT_DATA, LIMITED_DETAIL,
+    knownTimestamp: _knownTimestamp,
+  };
+}
+
+function _restorePwViewState(s) {
+  currentPwType = s.currentPwType; limitedPwType = s.limitedPwType; limitedPwName = s.limitedPwName;
+  APP_DATA = s.APP_DATA; SHIFT_DATA = s.SHIFT_DATA; THIS_MONTH = s.THIS_MONTH;
+  SLOTS = s.SLOTS; LAST_MONTH = s.LAST_MONTH; YEAR = s.YEAR; MONTH = s.MONTH;
+  SHIFT_DATES = s.SHIFT_DATES; SHIFT_DATES_MAP = s.SHIFT_DATES_MAP;
+  LIMITED_APP_DATA = s.LIMITED_APP_DATA; LIMITED_SHIFT_DATA = s.LIMITED_SHIFT_DATA; LIMITED_DETAIL = s.LIMITED_DETAIL;
+  _knownTimestamp = s.knownTimestamp;
+}
+
+function _setPwTypeUi(type) {
+  document.getElementById('pw-tab-form-normal').className =
+    'pw-type-tab-form' + (type === 'normal' ? ' active' : '');
+  document.getElementById('pw-tab-form-limited').className =
+    'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
+  const tabLimited = document.getElementById('pw-tab-form-limited');
+  if (tabLimited) tabLimited.textContent = limitedPwName;
+  document.querySelectorAll('#test-limited-type-picker .test-limited-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.type === limitedPwType);
+  });
+  _updateTestLimitedPickerVisibility();
 }
 
 // カレンダースワイプジェスチャー（右スワイプ→前月、左スワイプ→次月）

@@ -582,7 +582,13 @@ function switchTab(tab) {
   if (_pendingTab) return;               // 移動中の二重タップは無視
   if (tab === _currentTab) {
     const root = TAB_ROOT_SCREEN[tab];
-    if (_currentScreenName === root) { window.scrollTo(0, 0); return; }
+    // シフト詳細は入口と同じ screen 名を共有するため、HistoryのsubScreenも見る。
+    // screen名だけで判定すると詳細表示中も入口と誤認してしまう。
+    const isSubScreen = !!(history.state && history.state.subScreen);
+    if (_currentScreenName === root && !isSubScreen && _tabDepth <= 1) {
+      window.scrollTo(0, 0);
+      return;
+    }
     // 別タブから戻った後など、選択中タブの詳細を表示している状態でもう一度
     // 同じタブを押したら、そのタブの入口へ戻す。次回も古い詳細を復元しない。
     delete _tabSnapshots[tab];

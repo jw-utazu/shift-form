@@ -579,8 +579,20 @@ function setFormTabState(enabled, label, icon) {
 // アプリ終了確認まで飛ぶ）。そのため戻りが必要な場合は
 // _pendingTab に積んで、popstate で着地を確認してから続きを行う
 function switchTab(tab) {
-  if (tab === _currentTab && _tabDepth <= 1) { window.scrollTo(0, 0); return; }
   if (_pendingTab) return;               // 移動中の二重タップは無視
+  if (tab === _currentTab) {
+    const root = TAB_ROOT_SCREEN[tab];
+    if (_currentScreenName === root) { window.scrollTo(0, 0); return; }
+    // 別タブから戻った後など、選択中タブの詳細を表示している状態でもう一度
+    // 同じタブを押したら、そのタブの入口へ戻す。次回も古い詳細を復元しない。
+    delete _tabSnapshots[tab];
+    if (_tabDepth >= 2) history.go(-(_tabDepth - 1));
+    else {
+      showScreen(root, true, tab === 'home' ? 0 : 1);
+      history.replaceState({ screen: root, tab, depth: tab === 'home' ? 0 : 1 }, '');
+    }
+    return;
+  }
   _rememberCurrentTab();
   if (_tabDepth >= 2) {
     // タブ内の詳細にいる：まずタブ入口（深さ1）まで戻り、着地後に続ける

@@ -4173,9 +4173,11 @@ function closeHelpOutside(e) {
 function openManualModal() {
   const MANUALS = [
     {
-      url: 'https://jw-utazu.github.io/manual/volunteer.html',
+      // 画面を見ながら1つずつ進める新しいマニュアル。
+      // 責任者・会計者ぶんは未着手のため、当面は旧ページのまま残している
+      url: 'https://jw-utazu.github.io/manual/walkthrough.html#/volunteer',
       icon: '📋', bg: 'var(--green-light)', color: 'var(--green-dark)',
-      title: '奉仕者マニュアル', sub: 'アプリの基本的な使い方',
+      title: '奉仕者マニュアル', sub: '画面を見ながら1つずつ進められます',
       badge: null
     },
     SESSION && SESSION.isResponsible ? {

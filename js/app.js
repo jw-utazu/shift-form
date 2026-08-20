@@ -4173,23 +4173,22 @@ function closeHelpOutside(e) {
 function openManualModal() {
   const MANUALS = [
     {
-      // 画面を見ながら1つずつ進める新しいマニュアル。
-      // 責任者・会計者ぶんは未着手のため、当面は旧ページのまま残している
+      // 画面を見ながら1つずつ進める新しいマニュアル
       url: 'https://jw-utazu.github.io/manual/walkthrough.html#/volunteer',
       icon: '📋', bg: 'var(--green-light)', color: 'var(--green-dark)',
       title: '奉仕者マニュアル', sub: '画面を見ながら1つずつ進められます',
       badge: null
     },
     SESSION && SESSION.isResponsible ? {
-      url: 'https://jw-utazu.github.io/manual/manual-responsible.html',
+      url: 'https://jw-utazu.github.io/manual/walkthrough.html#/responsible',
       icon: '🏅', bg: '#fef9c3', color: '#713f12',
-      title: '責任者マニュアル', sub: 'シフト確認・管理者との連携',
+      title: '責任者マニュアル', sub: '中止・メモ・奉仕者の入れ替え',
       badge: { text: '責任者', bg: '#fef9c3', color: '#713f12' }
     } : null,
     SESSION && SESSION.isAccountant ? {
-      url: 'https://jw-utazu.github.io/manual/manual-admin.html',
+      url: 'https://jw-utazu.github.io/manual/walkthrough.html#/accountant',
       icon: '💰', bg: '#dbeafe', color: '#1e40af',
-      title: '会計者マニュアル', sub: '会計情報・道路許可書の管理',
+      title: '会計者マニュアル', sub: '道路使用許可書の登録・差し替え',
       badge: { text: '会計者', bg: '#dbeafe', color: '#1e40af' }
     } : null,
   ].filter(Boolean);

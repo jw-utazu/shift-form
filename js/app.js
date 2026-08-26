@@ -2576,7 +2576,7 @@ function buildWishListBox(status, isOpenPassed) {
             '<div class="csi-main">' +
             '<span style="font-weight:700;color:#9ca3af;text-decoration:line-through;">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
             ' <span style="color:#9ca3af;text-decoration:line-through;">' + esc(s.time) + '</span>' +
-            ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">' + ic('ban') + ' 中止</span>' +
+            ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">' + ic('ban', {color:'#fff'}) + ' 中止</span>' +
             (s.cancelReason ? '<div style="font-size:12px;color:var(--danger-dark);margin-top:2px;">理由：' + esc(s.cancelReason) + '</div>' : '') +
             '</div>' +
             '<span class="csi-arrow">›</span>' +
@@ -2771,7 +2771,7 @@ function buildNextShift(isOpenPassed) {
   if (next.cancelled) {
     card.classList.add('cancelled');
     cancelEl.hidden = false;
-    cancelEl.innerHTML = ic('ban') + ' 中止' + (next.cancelReason ? '：' + esc(next.cancelReason) : '');
+    cancelEl.innerHTML = ic('ban', {color:'#fff'}) + ' 中止' + (next.cancelReason ? '：' + esc(next.cancelReason) : '');
   } else {
     card.classList.remove('cancelled');
     cancelEl.hidden = true;
@@ -3248,7 +3248,7 @@ function buildShiftDateList() {
       '<div class="sdb-main">' +
         '<div class="sdb-head"><span class="sdb-date"><span class="sdb-date-text">' + esc(d.date) + '（' + esc(d.weekday) + '）</span></span><span class="sdb-time">' + esc(d.time) + '</span></div>' +
         (d.cancelled
-          ? '<div class="sdb-cancel-reason">' + ic('ban') + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
+          ? '<div class="sdb-cancel-reason">' + ic('ban', {color:'#DC2626'}) + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
           : (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '')) +
       '</div>' +
       '<div class="sdb-right">' +
@@ -3384,7 +3384,7 @@ function buildShiftDetail(d) {
   html += '</div>';
 
   if (d.cancelled) {
-    html += '<div class="cancel-banner">' + ic('ban') + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
+    html += '<div class="cancel-banner">' + ic('ban', {color:'#fff'}) + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
   }
 
   if (d.memo) {
@@ -4137,7 +4137,7 @@ const HELP_CONTENTS = {
       {
         title: 'その他の表示',
         items: [
-          { icon: ic('ban'), text: '赤いバナーが表示されている日は「中止」です' },
+          { icon: ic('ban', {color:'#DC2626'}), text: '赤いバナーが表示されている日は「中止」です' },
           { icon: ic('square-pen'), text: '責任者メモが表示されている場合は内容を確認してください' },
           { icon: '（見守り）', text: '見守り担当として配置されていることを示します' },
         ]

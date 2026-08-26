@@ -83,6 +83,9 @@ body {
 }
 .app-btn:hover { border-color: var(--main); background: #f5f9ff; }
 .app-ic { font-size: 24px; flex-shrink: 0; }
+.app-ic-form { color: #16a34a; }
+.app-ic-admin { color: #2563eb; }
+.app-ic-create { color: #7c3aed; }
 .app-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .app-tx b { font-size: 14px; }
 .app-tx small { font-size: 11px; color: var(--sub); }

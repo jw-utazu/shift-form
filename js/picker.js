@@ -135,7 +135,7 @@ function _pkRender() {
     if (it.group && it.group !== lastGroup) { html += `<div class="pk-grp">${it.group}</div>`; lastGroup = it.group; }
     const on = _pkOpts.multi ? _pkValues.includes(it.value) : (it.value === _pkOpts.value);
     html += `<button type="button" class="pk-it${on ? ' on' : ''}${it.disabled ? ' dis' : ''}${i === _pkIdx ? ' cur' : ''}" data-i="${i}"${it.disabled ? ' disabled' : ''}>`
-         +  (_pkOpts.multi ? `<span class="pk-cb">${on ? ic('square-check') : ic('square')}</span>` : '')
+         +  (_pkOpts.multi ? `<span class="pk-cb">${on ? ic('square-check', { color: '#15803D' }) : ic('square', { color: '#A1A1AA' })}</span>` : '')
          +  `<span class="pk-body">${it.html || it.label}</span>`
          +  (it.sub ? `<span class="pk-sub">${it.sub}</span>` : '')
          +  `</button>`;

@@ -18,6 +18,10 @@
   --shadow:      0 2px 12px rgba(0,0,0,0.08);
   --shadow-lg:   0 4px 24px rgba(0,0,0,0.12);
 }
+
+/* Lucideアイコン（js/icons.js の ic()）の共通サイズ。
+   絵文字と同じ「周囲のfont-sizeに合わせる」見た目にするため、1emで揃える */
+svg { width: 1em; height: 1em; vertical-align: -0.15em; flex-shrink: 0; }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scrollbar-width: none; -ms-overflow-style: none; overflow-x: hidden; }
 html::-webkit-scrollbar { display: none; }

@@ -27,7 +27,7 @@ function _pkBuild() {
   if (_pkEl) return _pkEl;
   const d = document.createElement('div');
   d.className = 'pk';
-  d.innerHTML = '<div class="pk-hd"><span class="pk-title"></span><button class="pk-x" type="button">✕</button></div>'
+  d.innerHTML = '<div class="pk-hd"><span class="pk-title"></span><button class="pk-x" type="button">' + ic('x') + '</button></div>'
               + '<input class="pk-search" type="text" placeholder="検索">'
               + '<div class="pk-list"></div>'
               + '<div class="pk-note"></div>';
@@ -135,7 +135,7 @@ function _pkRender() {
     if (it.group && it.group !== lastGroup) { html += `<div class="pk-grp">${it.group}</div>`; lastGroup = it.group; }
     const on = _pkOpts.multi ? _pkValues.includes(it.value) : (it.value === _pkOpts.value);
     html += `<button type="button" class="pk-it${on ? ' on' : ''}${it.disabled ? ' dis' : ''}${i === _pkIdx ? ' cur' : ''}" data-i="${i}"${it.disabled ? ' disabled' : ''}>`
-         +  (_pkOpts.multi ? `<span class="pk-cb">${on ? '☑' : '☐'}</span>` : '')
+         +  (_pkOpts.multi ? `<span class="pk-cb">${on ? ic('square-check') : ic('square')}</span>` : '')
          +  `<span class="pk-body">${it.html || it.label}</span>`
          +  (it.sub ? `<span class="pk-sub">${it.sub}</span>` : '')
          +  `</button>`;

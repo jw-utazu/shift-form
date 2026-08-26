@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=33">
+<link rel="stylesheet" href="css/app.css?v=34">
 </head>
 <body>
 
@@ -55,14 +55,14 @@
     <button type="button" id="debugSimulateRegisterBtn" class="debug-simulate-btn">未登録状態を試す</button>
   </div>
   <button type="button" id="debugDateToggleBtn" class="debug-date-toggle">
-    <span class="debug-date-toggle-icon">🧪</span>
+    <span class="debug-date-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15.228 16.852-.923-.383" /><path d="m15.228 19.148-.923.383" /><path d="M16 2v3" /><path d="m16.47 14.305.382.923" /><path d="m16.852 20.772-.383.924" /><path d="m19.148 15.228.383-.923" /><path d="m19.53 21.696-.382-.924" /><path d="m20.773 16.852.924-.383" /><path d="m20.773 19.148.924.383" /><path d="M21 10.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h5.5" /><path d="M3 9h18" /><path d="M8 2v3" /><circle cx="18" cy="18" r="3" /></svg></span>
     <span id="debugDateToggleLabel">実日付</span>
   </button>
 </div>
 
 <!-- シフト更新通知バナー -->
 <div id="shift-update-banner" onclick="reloadShiftData()">
-  ⚠ シフト情報が更新されました。タップして最新データを表示
+  <svg style="color:#B45309" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg> シフト情報が更新されました。タップして最新データを表示
 </div>
 
 <!-- ローディングオーバーレイ -->
@@ -81,7 +81,7 @@
 <div id="screen-register">
   <div style="padding: 16px;">
     <div class="register-card">
-      <div class="register-title">👤 初回登録</div>
+      <div class="register-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> 初回登録</div>
       <div class="register-sub">あなたの名前を選択してください。一度登録すると次回から自動でログインできます。</div>
       <div class="select-wrap">
         <select id="sel-register-name">
@@ -100,13 +100,13 @@
     <div class="hdr-left">
       <button class="help-btn" onclick="openHelp('main')">?</button>
       <button class="help-btn notice-btn" onclick="openNoticesModal()" title="お知らせ">
-        🔔<span class="notice-badge" id="notice-badge" style="display:none;"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg><span class="notice-badge" id="notice-badge" style="display:none;"></span>
       </button>
     </div>
     <h1 id="main-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
       <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
-        <span class="hdr-avatar-fallback">👤</span>
+        <span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span>
       </div>
     </div>
   </div>
@@ -120,7 +120,7 @@
   <div class="container">
     <!-- 次のシフト -->
     <div class="next-shift-card" id="next-shift-card" hidden>
-      <div class="next-shift-label">📅 次のシフト</div>
+      <div class="next-shift-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></svg> 次のシフト</div>
       <div class="next-shift-date" id="next-shift-date">-</div>
       <div class="next-shift-role" id="next-shift-role"></div>
       <div class="next-shift-cancel" id="next-shift-cancel" hidden></div>
@@ -130,7 +130,7 @@
     <!-- 展示内容写真（シフト公開後・写真が登録されている月のみ表示） -->
     <div class="exhibit-card" id="exhibit-photo-card" style="display:none;" onclick="openExhibitPhotoCard(0)">
       <div class="exhibit-card-head">
-        <span class="exhibit-card-title" id="exhibit-photo-title">🖼 展示内容</span>
+        <span class="exhibit-card-title" id="exhibit-photo-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg> 展示内容</span>
         <span class="exhibit-card-count" id="exhibit-photo-count"></span>
         <span class="exhibit-card-arr">›</span>
       </div>
@@ -139,16 +139,16 @@
 
     <!-- 受付状況 -->
     <div class="card status-card" id="reception-status-card">
-      <div class="card-title">📬 シフト希望受付</div>
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg> シフト希望受付</div>
       <div class="status-label">受付情報</div>
       <div class="status-value" id="status-value">-</div>
       <div style="margin-top:8px;font-size:15px;" id="status-dates"></div>
-      <div class="status-closed-msg" id="status-closed-msg">⚠️ 希望の変更は区域係にご依頼ください</div>
+      <div class="status-closed-msg" id="status-closed-msg"><svg style="color:#B45309" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg> 希望の変更は区域係にご依頼ください</div>
     </div>
 
     <!-- 希望一覧ボックス -->
     <div class="card" id="wish-list-card" style="display:none;">
-      <div class="card-title" id="wish-list-title">📋 送信済みのシフト希望</div>
+      <div class="card-title" id="wish-list-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg> 送信済みのシフト希望</div>
       <!-- 代理送信権限がある場合のみ表示するドロップダウン -->
       <div id="wish-list-proxy-area" style="display:none;margin-bottom:10px;">
         <select id="wish-list-proxy-sel" onchange="onWishListProxyChange()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);">
@@ -159,7 +159,7 @@
 
     <!-- カレンダー -->
     <div class="card" id="cal-card">
-      <div class="card-title">🗓️ カレンダー</div>
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></svg> カレンダー</div>
       <div class="cal-month-nav">
         <button class="cal-nav-btn" id="cal-prev-btn" onclick="calNavMonth(-1)">前の月</button>
         <span class="cal-month-label" id="cal-title"></span>
@@ -183,7 +183,7 @@
 
 <!-- プレビューバナー（オーナーのみ） -->
 <div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#5b21b6;color:#fff;font-size:13px;font-weight:600;padding:8px 12px;align-items:center;gap:6px;justify-content:space-between;">
-  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👁 <span id="preview-banner-name"></span>さんとして閲覧中</span>
+  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg> <span id="preview-banner-name"></span>さんとして閲覧中</span>
   <div style="display:flex;gap:6px;flex-shrink:0;">
     <button onclick="openMemberPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">切替</button>
     <button onclick="exitPreview()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">終了</button>
@@ -205,7 +205,7 @@
 <div id="profile-popup">
   <div class="pp-header">
     <div class="pp-avatar" id="pp-avatar">
-      <span style="font-size:22px;">👤</span>
+      <svg style="font-size:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
     </div>
     <div>
       <div class="pp-name" id="pp-name">-</div>
@@ -223,7 +223,7 @@
     <div class="hdr-left"><button class="help-btn" onclick="openHelp('form')">?</button></div>
     <h1 id="form-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
@@ -231,7 +231,7 @@
 
     <!-- 代理送信 -->
     <div class="proxy-sel" id="proxy-area" style="display:none;">
-      <label for="sel-proxy">📤 代理送信</label>
+      <label for="sel-proxy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></svg> 代理送信</label>
       <select id="sel-proxy" onchange="onProxyChange()">
         <option value="">自分（<span id="proxy-my-name"></span>）</option>
       </select>
@@ -240,7 +240,7 @@
     <div id="last-month-card" class="card" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
-          <div style="font-size:16px;font-weight:700;color:#92400e;">📋 先月と同じにする</div>
+          <div style="font-size:16px;font-weight:700;color:#92400e;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg> 先月と同じにする</div>
           <div style="font-size:13px;color:#78350f;margin-top:3px;">ONにすると先月の回答を自動で反映します</div>
         </div>
         <div class="toggle-wrap" onclick="toggleLastMonth()">
@@ -253,7 +253,7 @@
 
     <div id="form-body">
       <div class="card">
-        <div class="card-title">📅 参加希望の時間帯</div>
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></svg> 参加希望の時間帯</div>
         <div id="slots-container"></div>
       </div>
       <div class="card">
@@ -270,7 +270,7 @@
     <div class="hdr-left"><button class="help-btn" onclick="openHelp('shift')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
@@ -296,7 +296,7 @@
     <div class="hdr-left"></div>
     <h1>報告・資料</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
@@ -304,7 +304,7 @@
       <div class="setgrp-t">報告</div>
       <div class="setlist">
         <button class="setrow" id="btn-distrib-report" onclick="showScreen('distrib-report')">
-          <span class="setrow-ic" style="background:#eef2ff;">📦</span>
+          <span class="setrow-ic" style="background:#eef2ff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">配布報告を送る</span>
             <span class="setrow-d">配布した出版物と様子を記録します</span></span>
           <span class="setrow-arr">›</span>
@@ -315,19 +315,19 @@
       <div class="setgrp-t">資料</div>
       <div class="setlist">
         <button class="setrow" id="btn-road-permit" onclick="openRoadPdfModal()">
-          <span class="setrow-ic" style="background:#ecfeff;">🗺</span>
+          <span class="setrow-ic" style="background:#ecfeff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">道路使用許可書</span>
             <span class="setrow-d">現在有効な許可書を表示します</span></span>
           <span class="setrow-arr">›</span>
         </button>
         <button class="setrow" id="btn-accounting" onclick="openAccountingSheet()">
-          <span class="setrow-ic" style="background:#fefce8;">💰</span>
+          <span class="setrow-ic" style="background:#fefce8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">会計情報</span>
             <span class="setrow-d">外部のスプレッドシートを開きます</span></span>
           <span class="setrow-arr">↗</span>
         </button>
         <button class="setrow" id="btn-road-permit-update" onclick="showScreen('road-permit')" style="display:none;">
-          <span class="setrow-ic" style="background:#fffbeb;">📄</span>
+          <span class="setrow-ic" style="background:#fffbeb;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">道路使用許可書を更新</span>
             <span class="setrow-d">会計者のみ・PDFを差し替えます</span></span>
           <span class="setrow-arr">›</span>
@@ -338,13 +338,13 @@
       <div class="setgrp-t">ご意見・不具合</div>
       <div class="setlist">
         <button class="setrow" id="btn-request" onclick="showScreen('request')">
-          <span class="setrow-ic" style="background:#f5f3ff;">💬</span>
+          <span class="setrow-ic" style="background:#f5f3ff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">要望を送る</span>
             <span class="setrow-d">改善のご意見をお寄せください</span></span>
           <span class="setrow-arr">›</span>
         </button>
         <button class="setrow" id="btn-bug" onclick="showScreen('bug')">
-          <span class="setrow-ic" style="background:#fff1f2;">🐛</span>
+          <span class="setrow-ic" style="background:#fff1f2;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-9" /><path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z" /><path d="M14.12 3.88 16 2" /><path d="M21 21a4 4 0 0 0-3.81-4" /><path d="M21 5a4 4 0 0 1-3.55 3.97" /><path d="M22 13h-4" /><path d="M3 21a4 4 0 0 1 3.81-4" /><path d="M3 5a4 4 0 0 0 3.55 3.97" /><path d="M6 13H2" /><path d="m8 2 1.88 1.88" /><path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">バグを報告する</span>
             <span class="setrow-d">不具合・エラーをお知らせください</span></span>
           <span class="setrow-arr">›</span>
@@ -360,7 +360,7 @@
     <div class="hdr-left"></div>
     <h1>設定</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
@@ -370,8 +370,8 @@
       <!-- アイコンをタップすると端末の写真から選べる。
            カメラのしるしを重ねて「押せる」ことが分かるようにしている -->
       <button type="button" class="setprof-avbtn" id="set-avatar-btn" onclick="pickAvatarFile()" title="アイコンを変更">
-        <span class="setprof-av" id="set-avatar"><span style="font-size:24px;">👤</span></span>
-        <span class="setprof-avcam">📷</span>
+        <span class="setprof-av" id="set-avatar"><svg style="font-size:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span>
+        <span class="setprof-avcam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" /><circle cx="12" cy="13" r="3" /></svg></span>
       </button>
       <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="onAvatarFileSelected(event)">
       <div class="setprof-tx">
@@ -385,13 +385,13 @@
       <div class="setgrp-t">アイコン</div>
       <div class="setlist">
         <label class="setrow as-toggle">
-          <span class="setrow-ic" style="background:#eef2ff;">🙈</span>
+          <span class="setrow-ic" style="background:#eef2ff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">他の人には見せない</span>
             <span class="setrow-d" id="avatar-private-desc">自分の画面にだけ表示します</span></span>
           <span class="toggle-switch"><input type="checkbox" id="avatar-private-toggle" onchange="onAvatarPrivacyToggle()"><span class="toggle-slider"></span></span>
         </label>
         <button class="setrow" id="avatar-reset-row" onclick="resetAvatar()" style="display:none;">
-          <span class="setrow-ic" style="background:#f1f5f9;">↩️</span>
+          <span class="setrow-ic" style="background:#f1f5f9;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">アイコンを既定に戻す</span>
             <span class="setrow-d">設定したアイコンを削除し、Googleアカウントのアイコンに戻します</span></span>
           <span class="setrow-arr">›</span>
@@ -404,7 +404,7 @@
       <div class="setgrp-t">通知</div>
       <div class="setlist">
         <label class="setrow as-toggle">
-          <span class="setrow-ic" style="background:#f0fdf4;">🔔</span>
+          <span class="setrow-ic" style="background:#f0fdf4;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">通知を有効にする</span>
             <span class="setrow-d">この端末でプッシュ通知を受け取ります</span></span>
           <span class="toggle-switch"><input type="checkbox" id="push-enable-toggle" onchange="onPushEnableToggle()"><span class="toggle-slider"></span></span>
@@ -431,7 +431,7 @@
       <div class="setgrp-t">サポート</div>
       <div class="setlist">
         <button class="setrow" onclick="openManualModal()">
-          <span class="setrow-ic" style="background:#f0f9ff;">📖</span>
+          <span class="setrow-ic" style="background:#f0f9ff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16" /><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">操作マニュアル</span>
             <span class="setrow-d">使い方をブラウザで開きます</span></span>
           <span class="setrow-arr">›</span>
@@ -443,19 +443,19 @@
       <div class="setgrp-t">アプリ</div>
       <div class="setlist">
         <button class="setrow" id="btn-install" onclick="installPWA()">
-          <span class="setrow-ic" style="background:#ecfdf5;">📲</span>
+          <span class="setrow-ic" style="background:#ecfdf5;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">ホーム画面に追加</span>
             <span class="setrow-d">アプリとして起動できるようになります</span></span>
           <span class="setrow-arr">›</span>
         </button>
         <button class="setrow" id="btn-member-preview" onclick="openMemberPreview()" style="display:none;">
-          <span class="setrow-ic" style="background:#f5f3ff;">👁</span>
+          <span class="setrow-ic" style="background:#f5f3ff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">メンバーとして閲覧</span>
             <span class="setrow-d">オーナーのみ・他の人の画面を確認します</span></span>
           <span class="setrow-arr">›</span>
         </button>
         <button class="setrow danger" onclick="logout()">
-          <span class="setrow-ic" style="background:#fef2f2;">🚪</span>
+          <span class="setrow-ic" style="background:#fef2f2;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /></svg></span>
           <span class="setrow-tx"><span class="setrow-n">ログアウト</span></span>
           <span class="setrow-arr">›</span>
         </button>
@@ -471,13 +471,13 @@
     <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
     <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
-      <div class="card-title">💬 要望・ご意見</div>
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></svg> 要望・ご意見</div>
       <textarea class="req-textarea" id="req-textarea" placeholder="ご自由にご記入ください"></textarea>
       <div id="req-msg"></div>
       <button class="btn-primary" id="btn-req-submit" onclick="submitRequest()">送信する</button>
@@ -492,13 +492,13 @@
     <div class="hdr-left"><button class="help-btn" onclick="openHelp('bug')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
     <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
-      <div class="card-title" style="color:#b91c1c;border-color:#fecaca;">🐛 バグ報告</div>
+      <div class="card-title" style="color:#b91c1c;border-color:#fecaca;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-9" /><path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z" /><path d="M14.12 3.88 16 2" /><path d="M21 21a4 4 0 0 0-3.81-4" /><path d="M21 5a4 4 0 0 1-3.55 3.97" /><path d="M22 13h-4" /><path d="M3 21a4 4 0 0 1 3.81-4" /><path d="M3 5a4 4 0 0 0 3.55 3.97" /><path d="M6 13H2" /><path d="m8 2 1.88 1.88" /><path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" /></svg> バグ報告</div>
       <p style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.7;">アプリの不具合・エラーについて詳しくお知らせください。<br>担当者に通知され、確認・対応します。</p>
       <textarea class="req-textarea" id="bug-textarea" placeholder="例：〇〇の画面で△△をしたら、エラーが出て送信できなかった"></textarea>
       <div id="bug-msg"></div>
@@ -513,27 +513,27 @@
     <div class="hdr-left"><button class="help-btn" onclick="openHelp('distrib-report')">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
     <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
-      <div class="card-title">📦 配布報告</div>
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" /></svg> 配布報告</div>
       <div style="margin-bottom:12px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📅 日付</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></svg> 日付</label>
         <input type="date" id="distrib-date" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;">
       </div>
       <div style="margin-bottom:12px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">🕐 時刻（だいたいで可・任意）</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg> 時刻（だいたいで可・任意）</label>
         <input type="time" id="distrib-time" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;">
       </div>
       <div style="margin-bottom:12px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📚 配布物</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" /></svg> 配布物</label>
         <textarea class="req-textarea" id="distrib-items" style="min-height:80px;" placeholder="例：暮らせます冊子×1"></textarea>
       </div>
       <div style="margin-bottom:4px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📝 備考</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg> 備考</label>
         <textarea class="req-textarea" id="distrib-notes" placeholder="相手の様子や会話の内容など"></textarea>
       </div>
       <div id="distrib-msg"></div>
@@ -548,19 +548,19 @@
     <div class="hdr-left"></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback">👤</span></div>
+      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
     </div>
   </div>
   <div class="container">
     <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
     <div class="card">
-      <div class="card-title" style="color:#92400e;border-color:#fde68a;">📄 道路使用許可書PDF管理</div>
+      <div class="card-title" style="color:#92400e;border-color:#fde68a;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg> 道路使用許可書PDF管理</div>
       <div style="margin-bottom:12px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📝 PDF名</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg> PDF名</label>
         <input type="text" id="road-permit-display-name" style="width:100%;font-size:16px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);box-sizing:border-box;" placeholder="例：道路使用許可書7月">
       </div>
       <div style="margin-bottom:16px;">
-        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">📅 表示期間</label>
+        <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></svg> 表示期間</label>
         <div style="display:flex;align-items:center;gap:8px;">
           <input type="date" id="road-permit-start-date" style="flex:1;font-size:15px;padding:9px 10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;color:var(--text);">
           <span style="color:var(--sub);font-size:14px;flex-shrink:0;">〜</span>
@@ -568,7 +568,7 @@
         </div>
       </div>
       <label style="display:inline-flex;align-items:center;gap:8px;padding:12px 18px;background:#fffbeb;border:2px solid #fde68a;border-radius:10px;cursor:pointer;font-weight:700;color:#92400e;font-size:15px;">
-        📂 PDFを選択してアップロード
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg> PDFを選択してアップロード
         <input type="file" id="road-permit-file-input" accept="application/pdf" style="display:none;" onchange="onRoadPermitFileSelected(event)">
       </label>
       <div id="road-permit-upload-status" hidden style="margin-top:12px;font-size:13px;color:var(--sub);text-align:center;">アップロード中...</div>
@@ -584,7 +584,7 @@
   <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3);display:flex;flex-direction:column;height:96vh;">
     <div style="background:var(--green);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="admin-pdf-preview-title" style="color:#fff;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:10px;"></span>
-      <button onclick="closeAdminPdfPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      <button onclick="closeAdminPdfPreview()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <iframe id="admin-pdf-preview-iframe" src="" style="width:100%;flex:1;min-height:0;border:none;display:block;"></iframe>
   </div>
@@ -593,7 +593,7 @@
 <!-- ===== 道路PDF編集モーダル ===== -->
 <div id="road-pdf-edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditRoadPdf()">
   <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:24px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
-    <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:16px;">📝 PDF情報を編集</div>
+    <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg> PDF情報を編集</div>
     <input type="hidden" id="edit-road-pdf-file-id">
     <div style="margin-bottom:12px;">
       <label style="font-size:13px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">PDF名</label>
@@ -619,8 +619,8 @@
 <div id="notices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center;padding:12px;" onclick="if(event.target===this)closeNoticesModal()">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3);display:flex;flex-direction:column;max-height:80vh;">
     <div style="background:var(--green);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <span style="color:#fff;font-size:15px;font-weight:700;">📢 お知らせ</span>
-      <button onclick="closeNoticesModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      <span style="color:#fff;font-size:15px;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" /><path d="M8 6v8" /></svg> お知らせ</span>
+      <button onclick="closeNoticesModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div class="notif-tabs">
       <button class="notif-tab on" id="notif-tab-notices" onclick="switchNotifTab('notices')">お知らせ</button>
@@ -630,7 +630,7 @@
     <div id="notif-history-body" style="display:none;flex:1;min-height:0;overflow-y:auto;padding:12px 14px;"></div>
     <!-- 通知設定は「設定」タブに移設した（同じ設定が2箇所にあると
          どちらが効いているのか分からなくなるため一本化している） -->
-    <button class="notif-to-settings" onclick="openNotifSettings()">⚙ 通知設定を開く</button>
+    <button class="notif-to-settings" onclick="openNotifSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></svg> 通知設定を開く</button>
   </div>
 </div>
 
@@ -638,8 +638,8 @@
 <div id="road-pdf-view-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center;padding:12px;" onclick="if(event.target===this)closeRoadPdfModal()">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3);display:flex;flex-direction:column;height:96vh;">
     <div style="background:var(--green);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <span style="color:#fff;font-size:15px;font-weight:700;">🗺 道路使用許可書</span>
-      <button onclick="closeRoadPdfModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      <span style="color:#fff;font-size:15px;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></svg> 道路使用許可書</span>
+      <button onclick="closeRoadPdfModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div id="road-pdf-view-body" style="flex:1;min-height:0;font-family:inherit;display:flex;align-items:center;justify-content:center;">
       <div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>
@@ -652,7 +652,7 @@
   <div style="width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;padding:0 12px;">
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:10px;">
       <span id="photo-modal-title" style="color:#fff;font-size:16px;font-weight:700;"></span>
-      <button onclick="closePhotoModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <button onclick="closePhotoModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:22px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div id="photo-modal-img-wrap" style="width:100%;display:flex;align-items:center;justify-content:center;min-height:200px;">
       <div id="photo-modal-loading" style="color:#fff;font-size:14px;">読み込み中...</div>
@@ -680,10 +680,10 @@
       <div class="avc-ring"></div>
     </div>
     <div class="avc-zoom">
-      <span class="avc-zoom-ic" style="font-size:12px;">🔍</span>
+      <span class="avc-zoom-ic" style="font-size:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></span>
       <input type="range" id="avatar-crop-zoom" min="1" max="4" step="0.01" value="1"
              oninput="onAvatarZoomInput(this.value)">
-      <span class="avc-zoom-ic" style="font-size:17px;">🔍</span>
+      <span class="avc-zoom-ic" style="font-size:17px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></span>
     </div>
     <div class="avc-btns">
       <button type="button" class="avc-btn" onclick="closeAvatarCrop()">キャンセル</button>
@@ -696,8 +696,8 @@
 <div id="help-overlay" onclick="closeHelpOutside(event)">
   <div id="help-modal">
     <div class="help-modal-hdr">
-      <div class="help-modal-title">❓ <span id="help-modal-title-text">ヘルプ</span></div>
-      <button class="help-modal-close" onclick="closeHelp()">✕</button>
+      <div class="help-modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg> <span id="help-modal-title-text">ヘルプ</span></div>
+      <button class="help-modal-close" onclick="closeHelp()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div class="help-modal-body" id="help-modal-body"></div>
     <div class="help-modal-footer">
@@ -710,8 +710,8 @@
 <div id="manual-overlay" onclick="closeManualOutside(event)">
   <div id="manual-modal">
     <div class="help-modal-hdr">
-      <div class="help-modal-title">📖 操作マニュアル</div>
-      <button class="help-modal-close" onclick="closeManualModal()">✕</button>
+      <div class="help-modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16" /><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></svg> 操作マニュアル</div>
+      <button class="help-modal-close" onclick="closeManualModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div id="manual-modal-body" style="overflow-y:auto;flex:1;"></div>
     <div class="help-modal-footer">閲覧したいマニュアルを選んでください</div>
@@ -722,8 +722,8 @@
 <div id="pwa-install-overlay" onclick="closePwaInstallOutside(event)">
   <div id="pwa-install-modal">
     <div class="help-modal-hdr">
-      <div class="help-modal-title">📲 アプリとしてインストール</div>
-      <button class="help-modal-close" onclick="closePwaInstallModal()">✕</button>
+      <div class="help-modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></svg> アプリとしてインストール</div>
+      <button class="help-modal-close" onclick="closePwaInstallModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
     </div>
     <div class="help-modal-body">
       <div id="pwa-auto-section" style="display:none;margin-bottom:16px;">
@@ -746,7 +746,7 @@
 <!-- ===== 中止インフォポップアップ ===== -->
 <div id="cancel-info-overlay" onclick="closeCancelInfoPopup()">
   <div id="cancel-info-popup" onclick="event.stopPropagation()">
-    <div class="ci-icon">⛔</div>
+    <div class="ci-icon"><svg style="color:#DC2626" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M4.929 4.929 19.07 19.071" /></svg></div>
     <div class="ci-title">このシフトは中止になっています</div>
     <div class="ci-reason" id="cancel-info-reason" style="display:none;"></div>
     <div class="ci-msg">詳細は責任者に直接<br>ご連絡ください。</div>
@@ -759,24 +759,25 @@
      タブ切り替えは履歴を積まず、タブ内のドリルダウンだけが履歴を積む -->
 <nav class="tabbar" id="tabbar" style="display:none;">
   <button class="tabbtn active" id="tab-home"   onclick="switchTab('home')">
-    <span class="tab-ic">🏠</span><span class="tab-n">ホーム</span>
+    <span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></span><span class="tab-n">ホーム</span>
   </button>
   <button class="tabbtn" id="tab-form"   onclick="switchTab('form')">
-    <span class="tab-ic">📝</span><span class="tab-n">希望</span>
+    <span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg></span><span class="tab-n">希望</span>
   </button>
   <button class="tabbtn" id="tab-shift"  onclick="switchTab('shift')">
-    <span class="tab-ic">📋</span><span class="tab-n">シフト表</span>
+    <span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg></span><span class="tab-n">シフト表</span>
   </button>
   <button class="tabbtn" id="tab-report" onclick="switchTab('report')">
-    <span class="tab-ic">📦</span><span class="tab-n">報告</span>
+    <span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" /></svg></span><span class="tab-n">報告</span>
   </button>
   <button class="tabbtn" id="tab-more"   onclick="switchTab('more')">
-    <span class="tab-ic">⚙️</span><span class="tab-n">設定</span>
+    <span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></svg></span><span class="tab-n">設定</span>
   </button>
 </nav>
 
+<script src="js/icons.js?v=1"></script>
 <script src="js/session.js?v=6"></script>
-<script src="js/picker.js?v=1"></script>
-<script src="js/app.js?v=64"></script>
+<script src="js/picker.js?v=2"></script>
+<script src="js/app.js?v=65"></script>
 </body>
 </html>

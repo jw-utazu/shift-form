@@ -571,14 +571,14 @@ function _showSettingsScreen() {
 
 // 希望タブの有効・無効とラベル。受付期間外はタブ自体を押せなくする
 let _formTabEnabled = true;
-function setFormTabState(enabled, label, icon) {
+function setFormTabState(enabled, label, iconName) {
   _formTabEnabled = enabled;
   const btn = document.getElementById('tab-form');
   if (!btn) return;
   btn.disabled = !enabled;
-  const ic = btn.querySelector('.tab-ic');
+  const icEl = btn.querySelector('.tab-ic');
   const nm = btn.querySelector('.tab-n');
-  if (ic) ic.textContent = icon;
+  if (icEl) icEl.innerHTML = ic(iconName);
   if (nm) nm.textContent = label;
   btn.title = enabled ? '' : 'いまは受付期間外です';
 }
@@ -932,7 +932,7 @@ async function doRegister() {
     await hideLoading();
     const msg = document.getElementById('register-msg');
     msg.className = 'msg error';
-    msg.textContent = '⚠️ ' + e.message;
+    msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' ' + esc(e.message);
     btn.disabled = false; btn.textContent = '登録する';
   }
 }
@@ -1192,11 +1192,11 @@ function updateAvatarUI() {
   // アイコンを消した直後など、写真が無い状態にも必ず戻せるようにする
   const showFallback = () => {
     document.querySelectorAll('.hdr-avatar').forEach(el => {
-      el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>';
+      el.innerHTML = '<span class="hdr-avatar-fallback">' + ic('user') + '</span>';
     });
     [['pp-avatar', 22], ['set-avatar', 24]].forEach(([id, size]) => {
       const av = document.getElementById(id);
-      if (av) av.innerHTML = '<span style="font-size:' + size + 'px;">👤</span>';
+      if (av) av.innerHTML = '<span style="font-size:' + size + 'px;">' + ic('user') + '</span>';
     });
   };
 
@@ -1208,7 +1208,7 @@ function updateAvatarUI() {
       const img = document.createElement('img');
       img.src = pic;
       img.alt = SESSION.name || '';
-      img.onerror = () => { el.innerHTML = '<span class="hdr-avatar-fallback">👤</span>'; };
+      img.onerror = () => { el.innerHTML = '<span class="hdr-avatar-fallback">' + ic('user') + '</span>'; };
       el.innerHTML = '';
       el.appendChild(img);
     });
@@ -1219,7 +1219,7 @@ function updateAvatarUI() {
       const img = document.createElement('img');
       img.src = pic;
       img.alt = SESSION.name || '';
-      img.onerror = () => { av.innerHTML = '<span style="font-size:' + size + 'px;">👤</span>'; };
+      img.onerror = () => { av.innerHTML = '<span style="font-size:' + size + 'px;">' + ic('user') + '</span>'; };
       av.innerHTML = '';
       av.appendChild(img);
     });
@@ -1479,7 +1479,7 @@ function renderPreviewMemberList(members) {
   }
   list.innerHTML = members.map(m =>
     `<button onclick="startPreview('${esc(m.uid)}','${esc(m.name)}','${esc(m.email||'')}')" style="width:100%;background:none;border:none;text-align:left;padding:12px 16px;cursor:pointer;font-size:14px;color:#1f2937;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:18px;">${m.gender === 'M' ? '👨' : '👩'}</span>
+      <span style="font-size:18px;">${m.gender === 'M' ? ic('mars') : ic('venus')}</span>
       <span style="font-weight:600;">${esc(m.name)}</span>
       ${m.isResponsible ? '<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:4px;">責任者</span>' : ''}
       ${m.isCart        ? '<span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:4px;">カート</span>' : ''}
@@ -1784,16 +1784,16 @@ function buildMainScreen() {
     !!THIS_MONTH[myUid].timestamp;
   if (isOwner || _isPreviewMode) {
     // オーナー・プレビュー中：日程条件を無視して常に開ける（フォームは読み取り専用）
-    if (isOwner && !_isPreviewMode)   setFormTabState(true,  '希望',   '👁');
-    else if (hasSentThisMonth)        setFormTabState(true,  '希望',   '✏️');
-    else                              setFormTabState(true,  '希望',   '📝');
+    if (isOwner && !_isPreviewMode)   setFormTabState(true,  '希望',   'eye');
+    else if (hasSentThisMonth)        setFormTabState(true,  '希望',   'pencil');
+    else                              setFormTabState(true,  '希望',   'square-pen');
   } else if (isOpenPassed || status === '受付終了') {
-    setFormTabState(false, '希望', '📝');
+    setFormTabState(false, '希望', 'square-pen');
   } else if (status === '受付中') {
-    setFormTabState(true, '希望', hasSentThisMonth ? '✏️' : '📝');
+    setFormTabState(true, '希望', hasSentThisMonth ? 'pencil' : 'square-pen');
   } else {
     // 準備中
-    setFormTabState(false, '希望', '📝');
+    setFormTabState(false, '希望', 'square-pen');
   }
 
   // ── 希望一覧ボックスを構築 ──
@@ -1819,20 +1819,20 @@ function buildMainScreen() {
   document.getElementById('status-closed-msg').classList.remove('show');
 
   if (isDeadlineToday) {
-    sv.textContent = '🔒 締切日';
+    sv.innerHTML = ic('lock') + ' 締切日';
     sv.classList.add('status-closed');
     sv.style.color = 'var(--danger)';
     sd.innerHTML = '';
   } else if (status === '受付中') {
-    sv.textContent = '✅ 受付中';
+    sv.innerHTML = ic('circle-check-big', {color:'#15803D'}) + ' 受付中';
     sv.classList.add('status-open');
     sd.innerHTML = '';
   } else if (status === '準備中') {
-    sv.textContent = '⏳ 受付準備中';
+    sv.innerHTML = ic('hourglass') + ' 受付準備中';
     sv.classList.add('status-prep');
     sd.textContent = '';
   } else {
-    sv.textContent = '🔒 受付終了';
+    sv.innerHTML = ic('lock') + ' 受付終了';
     sv.classList.add('status-closed');
     sd.textContent = '';
     document.getElementById('status-closed-msg').classList.add('show');
@@ -2309,15 +2309,15 @@ function buildCalendar() {
           if (isShiftNorm) {
             const row = document.createElement('div');
             row.className = 'cal-shift-row csr-normal';
-            row.textContent = '🟢 PW' + (normTimes.length > 1 ? ' ' + normTimes.length + '件'
-                                        : normTimes.length === 1 ? ' ' + normTimes[0] : '');
+            row.innerHTML = ic('__dot__', {color:'#16a34a'}) + ' PW' + (normTimes.length > 1 ? ' ' + normTimes.length + '件'
+                                        : normTimes.length === 1 ? ' ' + esc(normTimes[0]) : '');
             el.appendChild(row);
           }
           if (isShiftLtdHere) {
             const row = document.createElement('div');
             row.className = 'cal-shift-row csr-limited';
-            row.textContent = '🟣 限定' + (ltdTimes.length > 1 ? ' ' + ltdTimes.length + '件'
-                                          : ltdTimes.length === 1 ? ' ' + ltdTimes[0] : '');
+            row.innerHTML = ic('__dot__', {color:'#9333ea'}) + ' 限定' + (ltdTimes.length > 1 ? ' ' + ltdTimes.length + '件'
+                                          : ltdTimes.length === 1 ? ' ' + esc(ltdTimes[0]) : '');
             el.appendChild(row);
           }
 
@@ -2410,17 +2410,17 @@ function toggleShiftTimeBoxUnified(keyNorm, keyLtd, y, m, d, normTimes, ltdTimes
     lbl.style.cssText = 'font-size:0.75rem;font-weight:700;margin-top:4px;padding:2px 4px;border-radius:3px;';
     lbl.style.background = cls === 'normal' ? '#dcfce7' : '#ede9fe';
     lbl.style.color       = cls === 'normal' ? '#166534' : '#5b21b6';
-    lbl.textContent = prefix;
+    lbl.innerHTML = prefix;
     boxList.appendChild(lbl);
     times.forEach(t => {
       const item = document.createElement('div');
       item.className = 'shift-time-item';
-      item.innerHTML = '🕐 ' + esc(t);
+      item.innerHTML = ic('clock') + ' ' + esc(t);
       boxList.appendChild(item);
     });
   };
-  makeItems(normTimes, '🟢 通常PW', 'normal');
-  makeItems(ltdTimes,  '🟣 限定PW', 'limited');
+  makeItems(normTimes, ic('__dot__', {color:'#16a34a'}) + ' 通常PW', 'normal');
+  makeItems(ltdTimes,  ic('__dot__', {color:'#9333ea'}) + ' 限定PW', 'limited');
   if (normTimes.length === 0 && ltdTimes.length === 0) {
     boxList.innerHTML = '<div class="shift-time-item">時間帯情報がありません</div>';
   }
@@ -2463,7 +2463,7 @@ function toggleShiftTimeBox(key, y, m, d, times_override) {
     times.forEach(t => {
       const item = document.createElement('div');
       item.className   = 'shift-time-item';
-      item.innerHTML   = '🕐 ' + esc(t);
+      item.innerHTML   = ic('clock') + ' ' + esc(t);
       boxList.appendChild(item);
     });
   }
@@ -2565,7 +2565,7 @@ function buildWishListBox(status, isOpenPassed) {
       else if (d.cart && [...(d.cart.bring||[]), ...(d.cart.take||[])].some(c => c.name === viewName)) role = 'カート担当';
       targetShifts.push({ date: d.date, weekday: d.weekday, time: d.time, role, cancelled: d.cancelled, cancelReason: d.cancelReason, dateObj: d });
     });
-    title.textContent = '✅ 確定シフト一覧';
+    title.innerHTML = ic('circle-check-big', {color:'#15803D'}) + ' 確定シフト一覧';
     if (targetShifts.length === 0) {
       card.style.display = 'none';
       return;
@@ -2576,7 +2576,7 @@ function buildWishListBox(status, isOpenPassed) {
             '<div class="csi-main">' +
             '<span style="font-weight:700;color:#9ca3af;text-decoration:line-through;">' + esc(s.date) + '（' + esc(s.weekday) + '）</span>' +
             ' <span style="color:#9ca3af;text-decoration:line-through;">' + esc(s.time) + '</span>' +
-            ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">⛔ 中止</span>' +
+            ' <span style="font-size:12px;background:var(--danger);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">' + ic('ban') + ' 中止</span>' +
             (s.cancelReason ? '<div style="font-size:12px;color:var(--danger-dark);margin-top:2px;">理由：' + esc(s.cancelReason) + '</div>' : '') +
             '</div>' +
             '<span class="csi-arrow">›</span>' +
@@ -2601,7 +2601,7 @@ function buildWishListBox(status, isOpenPassed) {
   }
 
   // 受付中・受付終了：送信済み希望一覧を表示
-  title.textContent = '📋 送信済みのシフト希望';
+  title.innerHTML = ic('clipboard') + ' 送信済みのシフト希望';
   const viewData = THIS_MONTH[viewUid];
   if (!viewData || !viewData.timestamp) {
     const isAfterDeadline = status === '受付終了' || (() => {
@@ -2652,7 +2652,7 @@ function buildWishListBox(status, isOpenPassed) {
   let editBtn = '';
   if (status === '受付中') {
     // 編集ボタン押下時は wishListViewUid の人のフォームを開く
-    editBtn = '<button data-uid="' + esc(viewUid) + '" onclick="openFormForUid(this.dataset.uid)" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ シフト希望を編集する</button>';
+    editBtn = '<button data-uid="' + esc(viewUid) + '" onclick="openFormForUid(this.dataset.uid)" style="margin-top:12px;width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">' + ic('pencil') + ' シフト希望を編集する</button>';
   }
 
   body.innerHTML =
@@ -2771,7 +2771,7 @@ function buildNextShift(isOpenPassed) {
   if (next.cancelled) {
     card.classList.add('cancelled');
     cancelEl.hidden = false;
-    cancelEl.textContent = '⛔ 中止' + (next.cancelReason ? '：' + next.cancelReason : '');
+    cancelEl.innerHTML = ic('ban') + ' 中止' + (next.cancelReason ? '：' + esc(next.cancelReason) : '');
   } else {
     card.classList.remove('cancelled');
     cancelEl.hidden = true;
@@ -3180,9 +3180,9 @@ async function submitForm() {
     await hideLoading();
     const msg = document.getElementById('form-msg');
     msg.className = 'msg success';
-    msg.textContent = selectedCount === 0
-      ? '✅ 参加可能な日時なしとして送信しました！'
-      : '✅ 送信が完了しました！';
+    msg.innerHTML = ic('circle-check-big', {color:'#15803D'}) + (selectedCount === 0
+      ? ' 参加可能な日時なしとして送信しました！'
+      : ' 送信が完了しました！');
     setTimeout(() => {
       buildMainScreen();
       history.back(); // フォーム送信後、main エントリへ戻る
@@ -3191,7 +3191,7 @@ async function submitForm() {
     await hideLoading();
     const msg = document.getElementById('form-msg');
     msg.className = 'msg error';
-    msg.textContent = '⚠️ ' + (e.message || '送信に失敗しました。もう一度お試しください。');
+    msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' ' + esc(e.message || '送信に失敗しました。もう一度お試しください。');
     btn.disabled = false; btn.textContent = '送信する';
   }
 }
@@ -3230,14 +3230,14 @@ function buildShiftDateList() {
     const cartAll = d.cart ? [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name) : [];
     let subHtml = '';
     if (respNames.length > 0) {
-      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">👤 責任者</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">' + ic('user') + ' 責任者</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
     }
     if (cartAll.length > 0 && d.cart) {
       const bringStr = (d.cart.bring || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
       const takeStr = (d.cart.take || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
-      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">🛒 カート</span>' +
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">' + ic('__cart__') + ' カート</span>' +
         (bringStr ? '<span class="sdb-sub-val">持込 ' + bringStr + '</span>' : '') +
         (bringStr && takeStr ? '<span style="color:var(--border);">/</span>' : '') +
         (takeStr ? '<span class="sdb-sub-val">持帰 ' + takeStr + '</span>' : '') +
@@ -3248,7 +3248,7 @@ function buildShiftDateList() {
       '<div class="sdb-main">' +
         '<div class="sdb-head"><span class="sdb-date"><span class="sdb-date-text">' + esc(d.date) + '（' + esc(d.weekday) + '）</span></span><span class="sdb-time">' + esc(d.time) + '</span></div>' +
         (d.cancelled
-          ? '<div class="sdb-cancel-reason">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
+          ? '<div class="sdb-cancel-reason">' + ic('ban') + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>'
           : (subHtml ? '<div class="sdb-sub">' + subHtml + '</div>' : '')) +
       '</div>' +
       '<div class="sdb-right">' +
@@ -3384,11 +3384,11 @@ function buildShiftDetail(d) {
   html += '</div>';
 
   if (d.cancelled) {
-    html += '<div class="cancel-banner">⛔ 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
+    html += '<div class="cancel-banner">' + ic('ban') + ' 中止' + (d.cancelReason ? '：' + esc(d.cancelReason) : '') + '</div>';
   }
 
   if (d.memo) {
-    html += '<div class="memo-box"><label>📝 責任者メモ</label>' + esc(d.memo) + '</div>';
+    html += '<div class="memo-box"><label>' + ic('square-pen') + ' 責任者メモ</label>' + esc(d.memo) + '</div>';
   }
 
   if (staffEditMode) {
@@ -3417,7 +3417,7 @@ function buildShiftDetail(d) {
     }
   }
   if (d.cart) {
-    html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🖼 展示内容写真を見る</button>';
+    html += '<button onclick="openExhibitPhotoFromShift()" style="margin:4px 0 8px;padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">' + ic('image') + ' 展示内容写真を見る</button>';
   }
 
   if (d.slots && d.slots.length > 0) {
@@ -3943,12 +3943,12 @@ async function submitRequest() {
     const data = await apiGet('postRequest', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
     if (!data.ok) throw new Error(data.error);
     hideLoading();
-    msg.className = 'msg success'; msg.textContent = '✅ 要望を送信しました！';
+    msg.className = 'msg success'; msg.innerHTML = ic('circle-check-big', {color:'#15803D'}) + ' 要望を送信しました！';
     ta.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } catch (e) {
     hideLoading();
-    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    msg.className = 'msg error'; msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' 送信に失敗しました。';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } finally {
     btn.disabled = false; btn.textContent = '送信する';
@@ -3970,12 +3970,12 @@ async function submitBugReport() {
     const data = await apiGet('postBugReport', { uid: SESSION.uid, name: SESSION.name, body: ta.value.trim() });
     if (!data.ok) throw new Error(data.error);
     hideLoading();
-    msg.className = 'msg success'; msg.textContent = '✅ バグ報告を送信しました！担当者に通知されます。';
+    msg.className = 'msg success'; msg.innerHTML = ic('circle-check-big', {color:'#15803D'}) + ' バグ報告を送信しました！担当者に通知されます。';
     ta.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } catch (e) {
     hideLoading();
-    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    msg.className = 'msg error'; msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' 送信に失敗しました。';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } finally {
     btn.disabled = false; btn.textContent = '送信する';
@@ -4012,12 +4012,12 @@ async function submitDistributionReport() {
     });
     if (!data.ok) throw new Error(data.error);
     hideLoading();
-    msg.className = 'msg success'; msg.textContent = '✅ 配布報告を送信しました！';
+    msg.className = 'msg success'; msg.innerHTML = ic('circle-check-big', {color:'#15803D'}) + ' 配布報告を送信しました！';
     timeInput.value = ''; itemsInput.value = ''; notesInput.value = '';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } catch (e) {
     hideLoading();
-    msg.className = 'msg error'; msg.textContent = '⚠️ 送信に失敗しました。';
+    msg.className = 'msg error'; msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' 送信に失敗しました。';
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } finally {
     btn.disabled = false; btn.textContent = '送信する';
@@ -4032,9 +4032,9 @@ const HELP_CONTENTS = {
       {
         title: 'このアプリでできること',
         items: [
-          { icon: '📝', text: 'シフト希望を送る（参加できる時間帯を申告）' },
-          { icon: '📋', text: 'シフト表を確認する（公開後に閲覧可能）' },
-          { icon: '💬', text: '区域係への要望・ご意見を送る' },
+          { icon: ic('square-pen'), text: 'シフト希望を送る（参加できる時間帯を申告）' },
+          { icon: ic('clipboard'), text: 'シフト表を確認する（公開後に閲覧可能）' },
+          { icon: ic('message-circle'), text: '区域係への要望・ご意見を送る' },
         ]
       },
       {
@@ -4049,7 +4049,7 @@ const HELP_CONTENTS = {
       {
         title: 'ログインできない場合',
         items: [
-          { icon: '⚠️', text: 'アクセス許可されていないアカウントではログインできません。区域係にご連絡ください。' },
+          { icon: ic('triangle-alert', {color:'#B45309'}), text: 'アクセス許可されていないアカウントではログインできません。区域係にご連絡ください。' },
         ]
       }
     ]
@@ -4071,11 +4071,11 @@ const HELP_CONTENTS = {
       {
         title: '各ボタンの説明',
         items: [
-          { icon: '📝', text: '「シフト希望を送る」：受付中のみ利用可。参加できる時間帯を選んで送信します。' },
-          { icon: '📋', text: '「シフト表を見る」：シフト公開後に全員のシフト表を確認できます。' },
-          { icon: '🖼', text: '「〇月の展示内容」：公開されたシフトの月の展示写真です。サムネイルをタップすると拡大して見られます。シフト公開前や、写真が登録されていない月は表示されません。' },
-          { icon: '⚙️', text: '「その他のメニュー」：要望・バグ報告・インストール・操作マニュアルがまとまっています。タップで開きます。' },
-          { icon: '💬', text: '「要望を送る」：区域係へのご意見・要望を送ることができます。' },
+          { icon: ic('square-pen'), text: '「シフト希望を送る」：受付中のみ利用可。参加できる時間帯を選んで送信します。' },
+          { icon: ic('clipboard'), text: '「シフト表を見る」：シフト公開後に全員のシフト表を確認できます。' },
+          { icon: ic('image'), text: '「〇月の展示内容」：公開されたシフトの月の展示写真です。サムネイルをタップすると拡大して見られます。シフト公開前や、写真が登録されていない月は表示されません。' },
+          { icon: ic('settings'), text: '「その他のメニュー」：要望・バグ報告・インストール・操作マニュアルがまとまっています。タップで開きます。' },
+          { icon: ic('message-circle'), text: '「要望を送る」：区域係へのご意見・要望を送ることができます。' },
         ]
       }
     ]
@@ -4095,22 +4095,22 @@ const HELP_CONTENTS = {
       {
         title: 'カート担当不可について',
         items: [
-          { icon: '🛒', text: 'カート担当に指定されている方のみ表示される項目です' },
-          { icon: '⚠️', text: 'その時間帯にカート担当ができない場合はチェックを入れてください' },
+          { icon: ic('__cart__'), text: 'カート担当に指定されている方のみ表示される項目です' },
+          { icon: ic('triangle-alert', {color:'#B45309'}), text: 'その時間帯にカート担当ができない場合はチェックを入れてください' },
         ]
       },
       {
         title: '備考欄について',
         items: [
-          { icon: '📝', text: '途中参加・早退などがある場合はボタンで種類を選んでください' },
-          { icon: '🕐', text: '「遅れて参加」「早めに退出」「一部のみ」を選ぶと時刻を選択できます' },
-          { icon: '✏️', text: 'それ以外の連絡事項は「その他」を選んで入力してください' },
+          { icon: ic('square-pen'), text: '途中参加・早退などがある場合はボタンで種類を選んでください' },
+          { icon: ic('clock'), text: '「遅れて参加」「早めに退出」「一部のみ」を選ぶと時刻を選択できます' },
+          { icon: ic('pencil'), text: 'それ以外の連絡事項は「その他」を選んで入力してください' },
         ]
       },
       {
         title: '先月と同じにする',
         items: [
-          { icon: '🔄', text: '先月の回答がある場合に表示されます。ONにすると先月と同じ時間帯が自動で選択されます。' },
+          { icon: ic('refresh-cw'), text: '先月の回答がある場合に表示されます。ONにすると先月と同じ時間帯が自動で選択されます。' },
         ]
       }
     ]
@@ -4129,16 +4129,16 @@ const HELP_CONTENTS = {
       {
         title: '各エリアの見方',
         items: [
-          { icon: '🔵', text: '北口エリアの担当者一覧（時間ごとに最大3名）' },
-          { icon: '🟠', text: '南口エリアの担当者一覧（時間ごとに最大3名）' },
-          { icon: '🛒', text: 'カート欄：持込・持帰担当者とカート番号' },
+          { icon: ic('__dot__', {color:'#2563eb'}), text: '北口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: ic('__dot__', {color:'#ea580c'}), text: '南口エリアの担当者一覧（時間ごとに最大3名）' },
+          { icon: ic('__cart__'), text: 'カート欄：持込・持帰担当者とカート番号' },
         ]
       },
       {
         title: 'その他の表示',
         items: [
-          { icon: '⛔', text: '赤いバナーが表示されている日は「中止」です' },
-          { icon: '📝', text: '責任者メモが表示されている場合は内容を確認してください' },
+          { icon: ic('ban'), text: '赤いバナーが表示されている日は「中止」です' },
+          { icon: ic('square-pen'), text: '責任者メモが表示されている場合は内容を確認してください' },
           { icon: '（見守り）', text: '見守り担当として配置されていることを示します' },
         ]
       }
@@ -4158,7 +4158,7 @@ const HELP_CONTENTS = {
       {
         title: '注意事項',
         items: [
-          { icon: '⚠️', text: 'このフォームはシフト希望の変更には使用できません。シフト希望の変更は直接区域係にご連絡ください。' },
+          { icon: ic('triangle-alert', {color:'#B45309'}), text: 'このフォームはシフト希望の変更には使用できません。シフト希望の変更は直接区域係にご連絡ください。' },
         ]
       }
     ]
@@ -4249,19 +4249,19 @@ function openManualModal() {
     {
       // 画面を見ながら1つずつ進める新しいマニュアル
       url: 'https://jw-utazu.github.io/manual/walkthrough.html#/volunteer',
-      icon: '📋', bg: 'var(--green-light)', color: 'var(--green-dark)',
+      icon: ic('book-open'), bg: 'var(--green-light)', color: 'var(--green-dark)',
       title: '奉仕者マニュアル', sub: '画面を見ながら1つずつ進められます',
       badge: null
     },
     SESSION && SESSION.isResponsible ? {
       url: 'https://jw-utazu.github.io/manual/walkthrough.html#/responsible',
-      icon: '🏅', bg: '#fef9c3', color: '#713f12',
+      icon: ic('book-open'), bg: '#fef9c3', color: '#713f12',
       title: '責任者マニュアル', sub: '中止・メモ・奉仕者の入れ替え',
       badge: { text: '責任者', bg: '#fef9c3', color: '#713f12' }
     } : null,
     SESSION && SESSION.isAccountant ? {
       url: 'https://jw-utazu.github.io/manual/walkthrough.html#/accountant',
-      icon: '💰', bg: '#dbeafe', color: '#1e40af',
+      icon: ic('book-open'), bg: '#dbeafe', color: '#1e40af',
       title: '会計者マニュアル', sub: '道路使用許可書の登録・差し替え',
       badge: { text: '会計者', bg: '#dbeafe', color: '#1e40af' }
     } : null,
@@ -4387,7 +4387,7 @@ async function openPhotoModal(category, ym) {
   const counter = document.getElementById('photo-modal-counter');
 
   overlay.style.display = 'flex';
-  titleEl.textContent   = category === 'road' ? '🗺 道路使用許可書' : '🖼 カート展示内容';
+  titleEl.innerHTML   = category === 'road' ? (ic('map') + ' 道路使用許可書') : (ic('image') + ' カート展示内容');
   imgEl.style.display   = 'none';
   loadEl.style.display  = 'block';
   counter.textContent   = '';
@@ -4482,7 +4482,7 @@ async function loadExhibitPhotoCard(isOpenPassed) {
     thumbs.innerHTML   = '';
     return;
   }
-  titleEl.textContent = '🖼 ' + exMonth + '月の展示内容';
+  titleEl.innerHTML = ic('image') + ' ' + exMonth + '月の展示内容';
   countEl.textContent = '';
   thumbs.innerHTML = '<div class="exhibit-skel"><span class="exhibit-skel-spin"></span>展示内容の写真を読み込み中...</div>';
   card.style.display = '';
@@ -4517,7 +4517,7 @@ async function loadExhibitPhotoCard(isOpenPassed) {
 // カードから開く：取得済みリストを使い回すので再取得せず即座に表示できる
 function openExhibitPhotoCard(idx) {
   if (!_exhibitPhotos.length) { openPhotoModal('exhibit'); return; }
-  document.getElementById('photo-modal-title').textContent   = '🖼 カート展示内容';
+  document.getElementById('photo-modal-title').innerHTML   = ic('image') + ' カート展示内容';
   document.getElementById('photo-modal-overlay').style.display = 'flex';
   _photoList = _exhibitPhotos.slice();
   showPhoto(idx || 0);
@@ -4608,7 +4608,7 @@ async function _initRoadPermitScreen() {
     const title = document.createElement('div');
     title.className = 'card-title';
     title.style.marginBottom = '12px';
-    title.textContent = '📋 登録済みPDF';
+    title.innerHTML = ic('clipboard') + ' 登録済みPDF';
     card.appendChild(title);
 
     pdfs.forEach(p => {
@@ -4626,7 +4626,7 @@ async function _initRoadPermitScreen() {
       summary.style.cssText = 'display:flex;align-items:center;gap:10px;';
       const icon = document.createElement('span');
       icon.style.cssText = 'font-size:20px;flex-shrink:0;';
-      icon.textContent = '📄';
+      icon.innerHTML = ic('file-text');
       const info = document.createElement('div');
       info.style.cssText = 'flex:1;min-width:0;';
       const labelEl = document.createElement('div');
@@ -4636,7 +4636,7 @@ async function _initRoadPermitScreen() {
       if (period) {
         const periodEl = document.createElement('div');
         periodEl.style.cssText = 'font-size:11px;color:#92400e;font-weight:700;margin-top:1px;';
-        periodEl.textContent = '📅 ' + period;
+        periodEl.innerHTML = ic('calendar') + ' ' + esc(period);
         info.appendChild(periodEl);
       }
       const updatedEl = document.createElement('div');
@@ -4652,14 +4652,14 @@ async function _initRoadPermitScreen() {
         const button = document.createElement('button');
         button.type = 'button';
         button.style.cssText = 'flex:1;padding:7px 6px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;' + style;
-        button.textContent = text;
+        button.innerHTML = text;
         button.addEventListener('click', handler);
         return button;
       };
       actions.append(
-        makeButton('🔍 プレビュー', 'background:#f0fdf4;border:1px solid var(--border);color:var(--green);', () => showAdminPdfPreview(fileId, label)),
-        makeButton('✏️ 編集', 'background:#fffbeb;border:1px solid #fde68a;color:#92400e;', () => openEditRoadPdf(fileId, label, startDate, endDate)),
-        makeButton('🗑 削除', 'background:#fff1f2;border:1px solid #fca5a5;color:#b91c1c;', () => deleteRoadPdf(fileId, label))
+        makeButton(ic('search') + ' プレビュー', 'background:#f0fdf4;border:1px solid var(--border);color:var(--green);', () => showAdminPdfPreview(fileId, label)),
+        makeButton(ic('pencil') + ' 編集', 'background:#fffbeb;border:1px solid #fde68a;color:#92400e;', () => openEditRoadPdf(fileId, label, startDate, endDate)),
+        makeButton(ic('trash-2') + ' 削除', 'background:#fff1f2;border:1px solid #fca5a5;color:#b91c1c;', () => deleteRoadPdf(fileId, label))
       );
       row.appendChild(actions);
       card.appendChild(row);

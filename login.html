@@ -8,7 +8,7 @@
 <link rel="icon" href="./logo.png" type="image/png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <script src="https://accounts.google.com/gsi/client" defer onload="initGoogleLogin()"></script>
-<link rel="stylesheet" href="css/login.css?v=1">
+<link rel="stylesheet" href="css/login.css?v=2">
 </head>
 <body>
 
@@ -34,15 +34,15 @@
     <div id="sec-choose" style="display:none;">
       <div class="sub"><span id="choose-name"></span><br>使用するアプリを選んでください</div>
       <button class="app-btn" onclick="goApp('form')">
-        <span class="app-ic">📋</span>
+        <span class="app-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg></span>
         <span class="app-tx"><b>フォームアプリ</b><small>シフト希望の提出・シフト表の閲覧</small></span>
       </button>
       <button class="app-btn" onclick="goApp('admin')">
-        <span class="app-ic">🛡</span>
+        <span class="app-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg></span>
         <span class="app-tx"><b>PW管理アプリ</b><small>募集・公開・メンバー管理</small></span>
       </button>
       <button class="app-btn" onclick="goApp('create')">
-        <span class="app-ic">🗂</span>
+        <span class="app-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></svg></span>
         <span class="app-tx"><b>シフト管理アプリ</b><small>シフト作成・希望確認</small></span>
       </button>
       <button class="link" onclick="switchAccount()">別のアカウントでログイン</button>
@@ -50,7 +50,7 @@
 
     <!-- 救済ログイン -->
     <div id="sec-recovery" style="display:none;">
-      <div class="sec-title">🔑 ログインできない場合</div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /><path d="m21 2-9.6 9.6" /><circle cx="7.5" cy="15.5" r="5.5" /></svg> ログインできない場合</div>
 
       <div id="rec-step-form">
         <div class="sub small">
@@ -91,6 +91,7 @@
   <div id="busy-text">確認中...</div>
 </div>
 
+<script src="js/icons.js?v=1"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/login.js?v=7"></script>
 </body>

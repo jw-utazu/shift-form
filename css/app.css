@@ -687,6 +687,11 @@ body::-webkit-scrollbar { display: none; }
   animation: helpSlideUp .25s ease;
 }
 
+/* 道路使用許可書モーダルはクラスで開閉する（inline display の状態変更は禁止） */
+#road-pdf-view-modal.show,
+#road-pdf-edit-overlay.show { display: flex !important; }
+#road-pdf-view-body.has-document { display: block !important; }
+
 /* ===================== フォーム画面 ===================== */
 #screen-form { display: none; }
 /* ===== 画面遷移アニメーション ===== */

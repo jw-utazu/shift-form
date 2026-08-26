@@ -18,6 +18,7 @@ let _returnUrl = '';
 // 「別のアカウントを追加」から来たとき（?add=1）。
 // 既にログイン済みでも素通りさせず、必ず Google の選択画面を出す
 let _addMode = false;
+let _recoveryStartGoogleIdentity = '';
 
 // ============================================================
 // 共通ユーティリティ
@@ -42,27 +43,29 @@ function showErr(msg) {
 }
 
 function api(action, params) {
-  const url = API_URL + '?action=' + encodeURIComponent(action) +
-              '&params=' + encodeURIComponent(JSON.stringify(params || {}));
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 30000);
-  return fetch(url, { redirect: 'follow', signal: ctrl.signal,
-                      headers: { 'Authorization': 'Bearer ' + ANON_KEY } })
-    .then(r => { clearTimeout(timer); return r.json(); })
+  const headers = { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' };
+  const token = pwgwsGetSessionToken();
+  if (token) headers['X-PWGWS-Session'] = token;
+  return fetch(API_URL, { method: 'POST', redirect: 'follow', signal: ctrl.signal,
+                      headers: headers, body: JSON.stringify(Object.assign({ action: action }, params || {})) })
+    .then(async r => {
+      clearTimeout(timer);
+      let data = null;
+      try { data = await r.json(); } catch (_) {}
+      if (r.status === 401) {
+        pwgwsInvalidateCurrentToken();
+        throw new Error('ログインの有効期限が切れました');
+      }
+      if (r.status === 403) throw new Error((data && data.error) || 'このアカウントは許可されていません');
+      if (!r.ok) throw new Error((data && data.error) || ('通信エラー (' + r.status + ')'));
+      return data;
+    })
     .catch(err => {
       clearTimeout(timer);
-      throw new Error(err.name === 'AbortError' ? '通信タイムアウト' : '通信エラー');
+      throw new Error(err.name === 'AbortError' ? '通信タイムアウト' : (err.message || '通信エラー'));
     });
-}
-
-// Googleが返す ID トークン（JWT）のペイロードを取り出す。
-// atob() はバイト列を1文字1バイトの文字列として返すため、そのまま JSON.parse すると
-// 日本語（UTF-8で複数バイト）の氏名が文字化けする。TextDecoder で正しく復号する
-function decodeJwtPayload(credential) {
-  const b64   = credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  const bin   = atob(b64);
-  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
 }
 
 // 戻り先URLは同一オリジンのものだけ許可する（外部サイトへ飛ばされるのを防ぐ）
@@ -122,10 +125,10 @@ async function resumeExisting(s, recToken) {
   try {
     // 救済ログイン中はそちらを優先（Googleアカウントが使えない状態のため）
     if (recToken) {
-      const r = await api('validateRecoverySession', { sessionToken: recToken });
+      const r = await api('validateRecoverySession', {});
       if (r.ok) { routeByPermission(r, r.name); return; }
     }
-    if (s) {
+    if (s && s.token) {
       const res = await authByEmail(s.email);
       // 表示名はサーバー（会衆の登録名）を優先する。保存済みのGoogle表示名は
       // 以前のバージョンで文字化けしたまま保存されている可能性があるため
@@ -136,19 +139,8 @@ async function resumeExisting(s, recToken) {
   show('signin');
 }
 
-// auth は email をクエリで渡す仕様のため専用に組み立てる
-function authByEmail(email) {
-  const url = API_URL + '?action=auth&source=form&email=' + encodeURIComponent(email);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 30000);
-  return fetch(url, { redirect: 'follow', signal: ctrl.signal,
-                      headers: { 'Authorization': 'Bearer ' + ANON_KEY } })
-    .then(r => { clearTimeout(timer); return r.json(); })
-    .catch(err => {
-      clearTimeout(timer);
-      throw new Error(err.name === 'AbortError' ? '通信タイムアウト' : '通信エラー');
-    });
-}
+// email は旧呼び出しとの互換引数。本人性はsession headerからサーバーが復元する。
+function authByEmail(_email) { return api('auth', { source: 'form' }); }
 
 // ============================================================
 // Google ログイン
@@ -178,10 +170,13 @@ async function onGoogleCredential(response) {
   setBusy(true, 'アカウントを確認中...');
   showErr('');
   try {
-    const payload = decodeJwtPayload(response.credential);
-    const email   = payload.email   || '';
-    const name    = payload.name    || '';
-    const picture = payload.picture || '';
+    // credential の中身をブラウザでは信用しない。署名・iss/aud/時刻・sub/email は
+    // サーバーがGoogle JWKSで検証し、不透明なsession tokenへ交換する。
+    const exchanged = await api('exchangeGoogleCredential', { credential: response.credential });
+    const email = exchanged.email || '';
+    const name = exchanged.name || '';
+    const picture = exchanged.picture || '';
+    pwgwsSaveSession(email, name, picture, exchanged.sessionToken, exchanged.expiresAt);
 
     const res = await authByEmail(email);
     if (!res.ok) {
@@ -193,9 +188,6 @@ async function onGoogleCredential(response) {
       return;
     }
 
-    // 共通セッションを保存（権限は保存しない。各アプリが毎回サーバーに問い合わせる）
-    pwgwsSaveSession(email, name, picture);
-
     // 初回登録が必要な人はフォームアプリ側の登録画面へ送る
     // （uid が未確定でアイコンを保存できないため、保存は登録完了後に行う）
     if (res.needsRegister) { location.replace(APP_FORM); return; }
@@ -205,7 +197,7 @@ async function onGoogleCredential(response) {
     // アイコンは無くても使えるので、失敗してもログインは続行する
     if (picture) {
       setBusy(true, 'プロフィールを準備中...');
-      try { await api('saveGoogleAvatar', { email, pictureUrl: picture }); } catch (_) {}
+      try { await api('saveGoogleAvatar', { pictureUrl: picture }); } catch (_) {}
     }
 
     routeByPermission(res, res.name || name);
@@ -266,7 +258,15 @@ function getDeviceToken() {
   return t;
 }
 
-function openRecovery() { showErr(''); show('recovery'); }
+function currentGoogleIdentity() {
+  const s = pwgwsGetSession();
+  return s ? s.email + ':' + (s.token || '') : '';
+}
+function openRecovery() {
+  _recoveryStartGoogleIdentity = currentGoogleIdentity();
+  showErr('');
+  show('recovery');
+}
 function backToSignin() { showErr(''); show('signin'); }
 
 function setRecMsg(id, text, isErr) {
@@ -329,7 +329,15 @@ async function submitRecoveryOtp() {
       btn.disabled = false;
       return;
     }
-    try { localStorage.setItem('pwgws_recovery_session', res.sessionToken); } catch (_) {}
+    const googleIdentityChanged = currentGoogleIdentity() !== _recoveryStartGoogleIdentity;
+    if (!pwgwsSaveRecoveryToken(res.sessionToken, _recoveryStartGoogleIdentity)) {
+      setRecMsg('rec-otp-msg', googleIdentityChanged
+        ? 'Googleログインへ切り替わったため、救済ログインは適用しませんでした。画面を更新します。'
+        : 'ログイン情報をこの端末に保存できませんでした。ブラウザの保存設定をご確認ください。', true);
+      btn.disabled = false;
+      if (googleIdentityChanged) setTimeout(() => location.reload(), 0);
+      return;
+    }
     alert('ログインしました。\n\nこのログインは ' + res.days + '日間 有効です。\n' +
           '期限が切れる前に、区域係に連絡してメールアドレスの変更を済ませてください。');
     routeByPermission(res, res.name);

@@ -10,7 +10,9 @@ const VAPID_PUBLIC_KEY = "BJHGZvJP5c29-zK_c2XT5ZIx5-XSYPBKna4RW05tqtGcZfdjkmU5O_
 if (typeof pwgwsGetSession !== 'function') {
   console.warn('[session] session.js が読み込めませんでした。最低限の動作で継続します');
   window.pwgwsGetSession           = function () { return null; };
+  window.pwgwsGetSessionToken      = function () { return ''; };
   window.pwgwsSaveSession          = function () {};
+  window.pwgwsInvalidateCurrentToken = function () {};
   window.pwgwsClearSession         = function () {
     try { localStorage.removeItem('pwgws_session'); } catch (_) {}
     try { localStorage.removeItem('pwgws_recovery_session'); } catch (_) {}
@@ -20,6 +22,7 @@ if (typeof pwgwsGetSession !== 'function') {
       (reason ? '&reason=' + encodeURIComponent(reason) : ''));
   };
   window.pwgwsShouldRedirectToLogin = function () { return true; };
+  window.pwgwsEnforceRelogin        = function () { return false; };
   // 複数アカウント：切り替えはできないが、押しても何も起きないだけで済むようにする
   window.PWGWS_FORM_URL             = 'https://jw-utazu.github.io/shift-form/';
   window.pwgwsGetAccounts           = function () { return []; };
@@ -30,6 +33,18 @@ if (typeof pwgwsGetSession !== 'function') {
     alert('アカウント機能を読み込めませんでした。ページを再読み込みしてください。');
   };
 }
+
+// 別タブでアカウントまたは token が変わったら、旧 principal の通信を直ちに止める。
+// session.js がこのイベントを同期発火した直後に reload するため、応答が戻って旧画面を
+// 更新する余地を残さない。
+const _activeApiControllers = new Set();
+let _sessionChangeReloading = false;
+window.addEventListener('pwgws:session-changing', () => {
+  _sessionChangeReloading = true;
+  _activeApiControllers.forEach(controller => controller.abort());
+  _activeApiControllers.clear();
+  showLoading('アカウントを切り替えています...');
+});
 
 // ============================================================
 // テストアカウント専用：疑似日付シミュレーション
@@ -110,62 +125,61 @@ function initDebugDatePanel() {
   }
 }
 
-// ===== JSONP通信ユーティリティ（CORSを回避）=====
-// actionはAPIのルーターで受け付けるアクション名
-// paramsはオブジェクト（APIにJSONで渡す）
-// extraQueryはURLに直接付加するオブジェクト（email等）
-// fetch方式（リダイレクト追従対応・Android Chrome対応）
-function apiGet(action, params, extraQuery) {
-  // type パラメータを自動付与（明示的に渡された type が優先）
+// ===== API通信 =====
+// 名称は既存呼び出しとの互換のため残すが、URLにparamsを載せずPOSTへ統一する。
+function apiRequest(action, params, timeoutMs) {
+  if (_sessionChangeReloading) {
+    const err = new Error('アカウント切替中です');
+    err.authError = true;
+    return Promise.reject(err);
+  }
   const effectiveType = currentPwType === 'limited' ? limitedPwType : currentPwType;
   const p = Object.assign({ type: effectiveType }, params || {});
   const fakeNow = getDebugFakeNow();
   if (fakeNow) p.fakeNow = fakeNow;
-  let url = API_URL + '?action=' + encodeURIComponent(action);
-  url += '&params=' + encodeURIComponent(JSON.stringify(p));
-  // テストアカウントでのログイン中はemailを常に送る。email未指定だとサーバー側で
-  // テストアカウント判定ができず、fakeNowや代理送信デモ用の候補などが無効化されるため
-  if (SESSION && SESSION.email === TEST_EMAIL && (!extraQuery || !extraQuery.email)) {
-    url += '&email=' + encodeURIComponent(SESSION.email);
-  }
-  if (extraQuery) {
-    Object.entries(extraQuery).forEach(([k, v]) => {
-      url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
-    });
-  }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000);
-  return fetch(url, { redirect: 'follow', signal: controller.signal, headers: { 'Authorization': 'Bearer ' + ANON_KEY } })
-    .then(r => { clearTimeout(timer); return r.json(); })
+  _activeApiControllers.add(controller);
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 60000);
+  const headers = { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' };
+  const token = pwgwsGetSessionToken();
+  if (token) headers['X-PWGWS-Session'] = token;
+  return fetch(API_URL, {
+    method: 'POST', redirect: 'follow', signal: controller.signal, headers: headers,
+    body: JSON.stringify(Object.assign({ action: action }, p))
+  }).then(async r => {
+      clearTimeout(timer);
+      let data = null;
+      try { data = await r.json(); } catch (_) {}
+      if (r.status === 401) {
+        pwgwsInvalidateCurrentToken();
+        pwgwsGoToLogin('expired');
+        const err = new Error('ログインの有効期限が切れました');
+        err.authError = true;
+        throw err;
+      }
+      if (r.status === 403) throw new Error((data && data.error) || 'この操作を行う権限がありません');
+      if (!r.ok) throw new Error((data && data.error) || ('通信エラー (' + r.status + ')'));
+      if (data && data.error && !data.ok) throw new Error(data.error);
+      return data;
+    })
     .catch(err => {
       clearTimeout(timer);
       console.error('[api]', action, err);
+      if (_sessionChangeReloading) {
+        const staleError = new Error('アカウント切替中です');
+        staleError.authError = true;
+        throw staleError;
+      }
       if (err.name === 'AbortError') throw new Error('通信タイムアウト');
-      throw new Error('通信エラー（サーバーへの接続に失敗）');
-    });
+      throw err;
+    })
+    .finally(() => _activeApiControllers.delete(controller));
 }
 
-// ===== API POST（PDF等の大容量データ用） =====
-function apiPost(action, params) {
-  const payload = Object.assign({ action }, params);
-  const fakeNow = getDebugFakeNow();
-  if (fakeNow) {
-    payload.fakeNow = payload.fakeNow || fakeNow;
-    if (SESSION && SESSION.email) payload.email = payload.email || SESSION.email;
-  }
-  return fetch(API_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).then(r => r.json()).then(d => {
-    if (d && d.error && !d.ok) throw new Error(d.error);
-    return d;
-  }).catch(err => {
-    console.error('[api]', action, err);
-    throw err;
-  });
+function apiGet(action, params, extraQuery) {
+  return apiRequest(action, Object.assign({}, params || {}, extraQuery || {}), 60000);
 }
+function apiPost(action, params) { return apiRequest(action, params, 180000); }
 
 // ===== グローバル状態 =====
 let currentPwType = 'normal'; // 'normal' | 'limited'
@@ -694,13 +708,13 @@ window.addEventListener('popstate', function(e) {
     _modalInHistory = null;
     if (which === 'help')        document.getElementById('help-overlay').classList.remove('show');
     else if (which === 'notices')  document.getElementById('notices-modal').style.display = 'none';
-    else if (which === 'roadPdf')  document.getElementById('road-pdf-view-modal').style.display = 'none';
+    else if (which === 'roadPdf')  document.getElementById('road-pdf-view-modal').classList.remove('show');
     else if (which === 'adminPdf') {
       document.getElementById('admin-pdf-preview-overlay').style.display = 'none';
       document.getElementById('admin-pdf-preview-iframe').src = '';
     }
     else if (which === 'staffEdit')   exitStaffEditMode();
-    else if (which === 'roadPdfEdit') document.getElementById('road-pdf-edit-overlay').style.display = 'none';
+    else if (which === 'roadPdfEdit') document.getElementById('road-pdf-edit-overlay').classList.remove('show');
     return;
   }
 
@@ -843,13 +857,13 @@ async function tryRecoverySession() {
   try { token = localStorage.getItem(REC_SESSION_KEY) || ''; } catch (_) {}
   if (!token) return false;
   try {
-    const res = await apiGet('validateRecoverySession', { sessionToken: token });
+    const res = await apiGet('validateRecoverySession', {});
     if (!res.ok) {
       try { localStorage.removeItem(REC_SESSION_KEY); } catch (_) {}
       return false;
     }
     SESSION = {
-      uid: res.uid, name: res.name, email: '', token: '',
+      uid: res.uid, name: res.name, email: res.email || '', token: pwgwsGetSessionToken(),
       isAdmin: res.isAdmin, isResponsible: res.isResponsible,
       isCart: res.isCart, isAccountant: res.isAccountant || false,
       positionName: res.positionName || '', extraCaps: res.extraCaps || [],
@@ -875,7 +889,7 @@ function buildRegisterScreen(members, email, token, displayName, picture) {
   sel.innerHTML = '<option value="">-- 選択してください --</option>';
   members.forEach(m => {
     const opt = document.createElement('option');
-    opt.value = m.name;
+    opt.value = String(m.memberId);
     opt.textContent = m.name;
     sel.appendChild(opt);
   });
@@ -888,29 +902,30 @@ function buildRegisterScreen(members, email, token, displayName, picture) {
 
 async function doRegister() {
   const sel   = document.getElementById('sel-register-name');
-  const name  = sel.value;
+  const memberId = sel.value;
   const email = sel.dataset.email;
-  if (!name) { alert('名前を選択してください。'); return; }
+  if (!memberId) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
   showLoading('登録中...');
   try {
-    const data = await apiGet('register', { email, name });
+    const data = await apiGet('register', { memberId: memberId });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
     const picture = sel.dataset.picture || '';
     SESSION = {
-      uid: data.uid, name: data.name, email: email, token: sel.dataset.token,
+      uid: data.uid, name: data.name, email: data.email || email, token: pwgwsGetSessionToken(),
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
       positionName: data.positionName || '', extraCaps: data.extraCaps || [],
       proxyTargets: data.proxyTargets || [],
       picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false, avatarHasGoogle: false
     };
-    saveSession({ email, token: sel.dataset.token, picture: picture });
+    saveSession({ email: data.email || email, token: pwgwsGetSessionToken(), picture: picture });
+    pwgwsSaveSession(data.email || email, data.name, picture);
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
     // Googleのアイコンをこのタイミングでサーバーに保存する
     if (picture) {
-      try { await apiGet('saveGoogleAvatar', { email, pictureUrl: picture }); } catch (_) {}
+      try { await apiGet('saveGoogleAvatar', { pictureUrl: picture }); } catch (_) {}
     }
     await initApp();
   } catch (e) {
@@ -1300,6 +1315,45 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+// ブラウザのPush購読はアカウントを切り替えても同じendpointのまま残る。
+// 起動時に現在のprincipalへ必ず再送し、旧利用者への紐付けをサーバー側transactionで外す。
+// 再紐付けに失敗した場合は、旧利用者の通知をこの端末へ届けないことを優先して購読を解除する。
+async function rebindExistingPushSubscription() {
+  if (_isPreviewMode || !SESSION || !('serviceWorker' in navigator) || !('PushManager' in window)) return true;
+  let sub = null;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('./sw.js');
+    sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (!sub) return true;
+    // owner のようにuidを持たないprincipalへはPushを紐付けられない。
+    // 前アカウントの購読を残すとその人の通知が届くため、端末側購読を失効させる。
+    if (!SESSION.uid) {
+      await sub.unsubscribe();
+      const ownerToggle = document.getElementById('push-enable-toggle');
+      if (ownerToggle) ownerToggle.checked = false;
+      return true;
+    }
+    const json = sub.toJSON();
+    const res = await apiGet('savePushSubscription', {
+      uid: SESSION.uid,
+      endpoint: json.endpoint,
+      p256dh: json.keys && json.keys.p256dh,
+      auth: json.keys && json.keys.auth,
+    });
+    if (!res || !res.ok) throw new Error((res && res.error) || '再登録に失敗しました');
+    return true;
+  } catch (e) {
+    console.error('[push] endpointの再紐付けに失敗しました', e);
+    if (sub) {
+      try { await sub.unsubscribe(); } catch (_) {}
+    }
+    const toggle = document.getElementById('push-enable-toggle');
+    if (toggle) toggle.checked = false;
+    alert('アカウント切替後の通知設定を更新できなかったため、この端末の通知を無効にしました。\n設定画面からもう一度有効にしてください。');
+    return false;
+  }
+}
+
 async function onPushEnableToggle() {
   const toggle = document.getElementById('push-enable-toggle');
   if (toggle.checked) {
@@ -1591,7 +1645,8 @@ async function initApp() {
       uid ? apiGet('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
       apiGet('dataMini', { type: 'normal' }),
       apiGet('getFormDetail', { type: 'normal' }),
-      apiGet('getShiftTable', { type: 'normal' })
+      apiGet('getShiftTable', { type: 'normal' }),
+      rebindExistingPushSubscription()
     ]);
 
     isLimitedMember = limRes.ok && limRes.isLimited;
@@ -1613,6 +1668,9 @@ async function initApp() {
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) await _loadLimitedPwData(limitedPwType);
 
+    // 通常／限定PWのどちらでも同じ形を参照できるよう、詳細APIの共通mapを
+    // その表示中データへ載せる。旧データ構造（thisMonthData等）は比較に使わない。
+    formData.crossPwConflicts = detail.crossPwConflicts || formData.crossPwConflicts || {};
     APP_DATA    = formData;
     SHIFT_DATA  = shiftData;
     // getFormDetail側のthisMonthDataはslots付きで正しく生成されているのでそちらを優先
@@ -2679,6 +2737,18 @@ function goToShiftDetail(dateObj) {
 }
 
 function buildNextShift(isOpenPassed) {
+  const card = document.getElementById('next-shift-card');
+  if (!card) return;
+  const dateEl = document.getElementById('next-shift-date');
+  const roleEl = document.getElementById('next-shift-role');
+  const cancelEl = document.getElementById('next-shift-cancel');
+  // 再構築前に前アカウント／前月の内容とclick handlerを必ず破棄する。
+  card.hidden = true;
+  card.onclick = null;
+  card.classList.remove('cancelled');
+  if (dateEl) dateEl.textContent = '';
+  if (roleEl) roleEl.textContent = '';
+  if (cancelEl) { cancelEl.textContent = ''; cancelEl.hidden = true; }
   if (!SHIFT_DATA || !SHIFT_DATA.dates || !SESSION) return;
   // SHIFT_DATA には「作成完了・確認完了・公開予定日到達・まだ当月内」を満たした月のシフトしか
   // 入ってこない。それは申込中の月とは別の月でありうる（今月のシフトが動いている最中に
@@ -2696,24 +2766,22 @@ function buildNextShift(isOpenPassed) {
     return isMyCellInDate(d);
   });
   if (!next) return;
-  const card = document.getElementById('next-shift-card');
-  card.style.display = '';
+  card.hidden = false;
   card.onclick = () => goToShiftDetail(next);
   if (next.cancelled) {
     card.classList.add('cancelled');
-    const cancelEl = document.getElementById('next-shift-cancel');
-    cancelEl.style.display = '';
+    cancelEl.hidden = false;
     cancelEl.textContent = '⛔ 中止' + (next.cancelReason ? '：' + next.cancelReason : '');
   } else {
     card.classList.remove('cancelled');
-    document.getElementById('next-shift-cancel').style.display = 'none';
+    cancelEl.hidden = true;
   }
-  document.getElementById('next-shift-date').textContent = next.date + '（' + next.weekday + '） ' + next.time;
+  dateEl.textContent = next.date + '（' + next.weekday + '） ' + next.time;
   // 役割判定
   let role = '奉仕者';
   if ((next.responsible || []).includes(name)) role = '責任者';
   else if ((next.cart && [...(next.cart.bring||[]), ...(next.cart.take||[])]).some(c => c.name === name)) role = 'カート担当';
-  document.getElementById('next-shift-role').textContent = '役割: ' + role;
+  roleEl.textContent = '役割: ' + role;
 }
 
 // ===== フォーム画面 =====
@@ -3046,30 +3114,36 @@ async function submitForm() {
   if (selectedCount === 0 &&
       !confirm('参加可能な日時を1件も選択していません。\n「参加可能な日時なし」として提出しますか？')) return;
 
-  // 重複申込チェック（限定PWメンバーのみ）
-  if (isLimitedMember) {
-    const otherData = currentPwType === 'normal' ? LIMITED_APP_DATA : APP_DATA;
-    const otherMonthKey = currentPwType === 'normal' ? 'limitedThisMonth' : 'thisMonthData';
-    const otherApply = (otherData && (otherData.thisMonthData || otherData[otherMonthKey])) || {};
-    const myDates = new Set();
-    Object.keys(formState.checkedMap).forEach(k => {
-      // k = "週 日付" 形式（例："第2週 6/14(日)"）→ 日付部分を抽出
-      const m = k.match(/(\d+\/\d+)/);
-      if (m) myDates.add(m[1]);
+  // APIが通常／限定PW共通形で返す別PW申込だけを参照する。
+  // crossPwConflicts: { [uid]: [{ date:'M/D', pwType, pwName }] }
+  const selectedDates = new Set();
+  Object.entries(formState.checkedMap).forEach(([k, times]) => {
+    if (!times || times.size === 0) return;
+    // k = "週 日付" 形式（例："第2週 6/14(日)"）→ 日付部分を抽出
+    const m = k.match(/(\d+\/\d+)/);
+    if (m) selectedDates.add(m[1]);
+  });
+  const seenCrossPw = new Set();
+  const crossPwConflicts = (((APP_DATA || {}).crossPwConflicts || {})[currentFormUid] || [])
+    .filter(c => c && selectedDates.has(String(c.date || '')))
+    .filter(c => {
+      const key = String(c.date || '') + '\u0000' + String(c.pwType || '');
+      if (seenCrossPw.has(key)) return false;
+      seenCrossPw.add(key);
+      return true;
     });
-    const conflicts = [];
-    const otherUidData = otherApply[currentFormUid] || {};
-    const otherDates = new Set();
-    Object.keys(otherUidData.checkedMap || {}).forEach(k => {
-      const m = k.match(/(\d+\/\d+)/);
-      if (m) otherDates.add(m[1]);
+  if (crossPwConflicts.length > 0) {
+    const byDate = {};
+    crossPwConflicts.forEach(c => {
+      const date = String(c.date || '');
+      const pwName = String(c.pwName || c.pwType || '別のPW');
+      if (!byDate[date]) byDate[date] = [];
+      if (!byDate[date].includes(pwName)) byDate[date].push(pwName);
     });
-    myDates.forEach(d => { if (otherDates.has(d)) conflicts.push(d); });
-    if (conflicts.length > 0) {
-      const otherLabel = currentPwType === 'normal' ? '限定PW' : '通常PW';
-      const msg = conflicts.join(', ') + ' は' + otherLabel + 'にも申込があります。\n両方に申し込んでもかまいませんが、シフトに入れるのはどちらか一方になります。\nこのまま送信しますか？';
-      if (!confirm(msg)) return;
-    }
+    const conflictLines = Object.keys(byDate).map(date => '・' + date + '（' + byDate[date].join('・') + '）');
+    const msg = '次の日程は別のPWにも申込があります。\n' + conflictLines.join('\n') +
+      '\n\n両方に申し込んでもかまいませんが、シフトに入れるのはどちらか一方になります。\nこのまま送信しますか？';
+    if (!confirm(msg)) return;
   }
 
   const btn = document.getElementById('btn-submit');
@@ -4246,29 +4320,22 @@ function esc(s) {
   // 通常のGoogle認証より前に判定する）。有効期限はサーバー側で検証される
   if (await tryRecoverySession()) return; // initApp() 内でスプラッシュを閉じる
 
-  // セッション復元を試みる（email/tokenのみ保存、権限は毎回サーバーから再取得）
-  // 共通ログイン画面でログイン済みなら、このアプリ固有のセッションが無くても引き継ぐ
-  let saved = loadSession();
-  if (!saved || !saved.email) {
-    const shared = pwgwsGetSession();
-    if (shared) {
-      saved = { email: shared.email, token: '', picture: shared.picture || '' };
-      saveSession(saved);
-    }
-  }
-  if (saved && saved.email) {
-    if (saved.needsRegister) {
-      // 初回登録途中でリロードされた場合は登録画面へ
-      hideBootSplash();
-      buildRegisterScreen(saved.members || [], saved.email, saved.token || '', '', saved.picture || '');
-      return;
-    }
-    // email+tokenがあればサーバーに再認証して最新データを取得
+  // アプリ固有キャッシュでは本人確認しない。共通セッションの不透明tokenと、
+  // サーバーが返す現在の権限だけで復元する。
+  const shared = pwgwsGetSession();
+  const sessionToken = pwgwsGetSessionToken();
+  const appCache = loadSession();
+  const saved = shared && sessionToken ? {
+    email: shared.email,
+    token: sessionToken,
+    picture: shared.picture || (appCache && appCache.email === shared.email ? appCache.picture : '') || ''
+  } : null;
+  if (saved) {
     setBootStep(2, '認証情報を確認中...');
     try {
-      const restoreAuthQuery = { source: 'form', email: saved.email };
+      const restoreAuthQuery = { source: 'form' };
       if (_consumeSimulateRegisterFlag()) restoreAuthQuery.simulateRegister = '1';
-      const data = await apiGet('auth', null, restoreAuthQuery);
+      const data = await apiGet('auth', restoreAuthQuery);
       if (!data.ok) {
         hideBootSplash();
         clearSession();
@@ -4277,11 +4344,11 @@ function esc(s) {
       }
       if (data.needsRegister) {
         hideBootSplash();
-        buildRegisterScreen(data.members || [], saved.email, saved.token || '', '', saved.picture || '');
+        buildRegisterScreen(data.members || [], data.email || saved.email, saved.token, '', saved.picture || '');
         return;
       }
       SESSION = {
-        uid: data.uid, name: data.name, email: saved.email, token: saved.token,
+        uid: data.uid, name: data.name, email: data.email || saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
         positionName: data.positionName || '', extraCaps: data.extraCaps || [],
@@ -4294,9 +4361,9 @@ function esc(s) {
       return;
     } catch(e) {
       hideBootSplash();
-      // 通信エラー時は共通ログイン画面へ
-      clearSession();
-      pwgwsGoToLogin();
+      // アプリ表示用キャッシュだけ破棄する。別アカウントの有効なsession一覧は残す。
+      try { localStorage.removeItem(SS_KEY); } catch (_) {}
+      pwgwsGoToLogin(e && e.authError ? 'expired' : '');
       return;
     }
   }
@@ -4459,11 +4526,8 @@ function openExhibitPhotoCard(idx) {
 // ===== 道路使用許可書PDF閲覧モーダル（全ユーザー向け） =====
 async function openRoadPdfModal() {
   const modal = document.getElementById('road-pdf-view-modal');
-  modal.style.display = 'flex';
-  history.pushState({ screen: _currentScreenName, modal: 'roadPdf' }, '');
-  _modalInHistory = 'roadPdf';
   const body = document.getElementById('road-pdf-view-body');
-  body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">読み込み中...</div>';
+  showLoading('道路使用許可書を読み込み中...');
   try {
     const res = await apiGet('getRoadPdfs', {});
     const allPdfs = (res && res.pdfs) || [];
@@ -4476,19 +4540,36 @@ async function openRoadPdfModal() {
       if (p.endDate   && today > _parseLocalDate(p.endDate))   return false;
       return true;
     });
+    body.classList.remove('has-document');
+    body.replaceChildren();
     if (!pdfs.length) {
-      body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:20px;font-size:14px;">道路使用許可書が登録されていません</div>';
-      return;
+      const empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;color:var(--sub);padding:20px;font-size:14px;';
+      empty.textContent = '道路使用許可書が登録されていません';
+      body.appendChild(empty);
+    } else {
+      body.classList.add('has-document');
+      const iframe = document.createElement('iframe');
+      iframe.src = 'https://drive.google.com/file/d/' + String(pdfs[0].fileId || '') + '/preview';
+      iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+      iframe.title = '道路使用許可書';
+      body.appendChild(iframe);
     }
-    body.style.display = 'block';
-    body.innerHTML = '<iframe src="https://drive.google.com/file/d/' + pdfs[0].fileId + '/preview" style="width:100%;height:100%;border:none;display:block;"></iframe>';
   } catch(e) {
-    body.innerHTML = '<div style="color:var(--danger);padding:12px;font-size:13px;">読み込みに失敗しました</div>';
+    const error = document.createElement('div');
+    error.style.cssText = 'color:var(--danger);padding:12px;font-size:13px;';
+    error.textContent = '読み込みに失敗しました';
+    body.replaceChildren(error);
+  } finally {
+    modal.classList.add('show');
+    history.pushState({ screen: _currentScreenName, modal: 'roadPdf' }, '');
+    _modalInHistory = 'roadPdf';
+    await hideLoading();
   }
 }
 
 function closeRoadPdfModal() {
-  document.getElementById('road-pdf-view-modal').style.display = 'none';
+  document.getElementById('road-pdf-view-modal').classList.remove('show');
   if (_modalInHistory === 'roadPdf') {
     _modalInHistory = null;
     _suppressNextPopstate = true;
@@ -4499,53 +4580,97 @@ function closeRoadPdfModal() {
 // ===== 道路使用許可書PDF管理画面（会計者向け） =====
 async function _initRoadPermitScreen() {
   const card = document.getElementById('road-permit-list-card');
-  card.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub);font-size:14px;">読み込み中...</div>';
-  document.getElementById('road-permit-file-input').value = '';
-  document.getElementById('road-permit-upload-status').style.display = 'none';
-
-  // デフォルト値をセット
   const today = new Date();
   function _pad(n) { return String(n).padStart(2, '0'); }
   function _fmtDate(d) { return d.getFullYear() + '-' + _pad(d.getMonth()+1) + '-' + _pad(d.getDate()); }
   const managedYear  = YEAR  || today.getFullYear();
   const managedMonth = MONTH || (today.getMonth() + 1);
   const endOfMonth   = new Date(managedYear, managedMonth, 0);
-  document.getElementById('road-permit-display-name').value = '道路使用許可書' + managedMonth + '月';
-  document.getElementById('road-permit-start-date').value   = _fmtDate(today);
-  document.getElementById('road-permit-end-date').value     = _fmtDate(endOfMonth);
-
+  showLoading('道路使用許可書を読み込み中...');
   try {
     const res = await apiGet('getRoadPdfs', {});
     const pdfs = (res && res.pdfs) || [];
+
+    document.getElementById('road-permit-file-input').value = '';
+    document.getElementById('road-permit-upload-status').hidden = true;
+    document.getElementById('road-permit-display-name').value = '道路使用許可書' + managedMonth + '月';
+    document.getElementById('road-permit-start-date').value   = _fmtDate(today);
+    document.getElementById('road-permit-end-date').value     = _fmtDate(endOfMonth);
+    card.replaceChildren();
     if (!pdfs.length) {
-      card.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub);font-size:13px;">登録されているPDFはありません</div>';
+      const empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;padding:20px;color:var(--sub);font-size:13px;';
+      empty.textContent = '登録されているPDFはありません';
+      card.appendChild(empty);
       return;
     }
-    card.innerHTML = '<div class="card-title" style="margin-bottom:12px;">📋 登録済みPDF</div>'
-      + pdfs.map(p => {
-        const label = p.displayName || p.fileName;
-        const period = (p.startDate || p.endDate)
-          ? (p.startDate ? p.startDate.replace(/-/g,'/') : '') + '〜' + (p.endDate ? p.endDate.replace(/-/g,'/') : '')
-          : '';
-        const esc = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">'
-          + '<div style="display:flex;align-items:center;gap:10px;">'
-          + '<span style="font-size:20px;flex-shrink:0;">📄</span>'
-          + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>'
-          + (period ? '<div style="font-size:11px;color:#92400e;font-weight:700;margin-top:1px;">📅 ' + period + '</div>' : '')
-          + '<div style="font-size:12px;color:var(--sub);margin-top:1px;">' + p.updatedAt + '</div>'
-          + '</div>'
-          + '</div>'
-          + '<div style="display:flex;gap:6px;margin-top:8px;padding-left:30px;">'
-          + '<button onclick="showAdminPdfPreview(\'' + p.fileId + '\',\'' + esc(label) + '\')" style="flex:1;padding:7px 6px;background:#f0fdf4;border:1px solid var(--border);border-radius:8px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🔍 プレビュー</button>'
-          + '<button onclick="openEditRoadPdf(\'' + p.fileId + '\',\'' + esc(label) + '\',\'' + (p.startDate||'') + '\',\'' + (p.endDate||'') + '\')" style="flex:1;padding:7px 6px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ 編集</button>'
-          + '<button onclick="deleteRoadPdf(\'' + p.fileId + '\',\'' + esc(label) + '\')" style="flex:1;padding:7px 6px;background:#fff1f2;border:1px solid #fca5a5;border-radius:8px;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🗑 削除</button>'
-          + '</div>'
-          + '</div>';
-      }).join('');
+
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.style.marginBottom = '12px';
+    title.textContent = '📋 登録済みPDF';
+    card.appendChild(title);
+
+    pdfs.forEach(p => {
+      const fileId = String(p.fileId || '');
+      const label = String(p.displayName || p.fileName || '名称未設定');
+      const startDate = String(p.startDate || '');
+      const endDate = String(p.endDate || '');
+      const period = (startDate || endDate)
+        ? (startDate ? startDate.replace(/-/g, '/') : '') + '〜' + (endDate ? endDate.replace(/-/g, '/') : '')
+        : '';
+
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--border);';
+      const summary = document.createElement('div');
+      summary.style.cssText = 'display:flex;align-items:center;gap:10px;';
+      const icon = document.createElement('span');
+      icon.style.cssText = 'font-size:20px;flex-shrink:0;';
+      icon.textContent = '📄';
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+      const labelEl = document.createElement('div');
+      labelEl.style.cssText = 'font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      labelEl.textContent = label;
+      info.appendChild(labelEl);
+      if (period) {
+        const periodEl = document.createElement('div');
+        periodEl.style.cssText = 'font-size:11px;color:#92400e;font-weight:700;margin-top:1px;';
+        periodEl.textContent = '📅 ' + period;
+        info.appendChild(periodEl);
+      }
+      const updatedEl = document.createElement('div');
+      updatedEl.style.cssText = 'font-size:12px;color:var(--sub);margin-top:1px;';
+      updatedEl.textContent = String(p.updatedAt || '');
+      info.appendChild(updatedEl);
+      summary.append(icon, info);
+      row.appendChild(summary);
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;margin-top:8px;padding-left:30px;';
+      const makeButton = (text, style, handler) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.style.cssText = 'flex:1;padding:7px 6px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;' + style;
+        button.textContent = text;
+        button.addEventListener('click', handler);
+        return button;
+      };
+      actions.append(
+        makeButton('🔍 プレビュー', 'background:#f0fdf4;border:1px solid var(--border);color:var(--green);', () => showAdminPdfPreview(fileId, label)),
+        makeButton('✏️ 編集', 'background:#fffbeb;border:1px solid #fde68a;color:#92400e;', () => openEditRoadPdf(fileId, label, startDate, endDate)),
+        makeButton('🗑 削除', 'background:#fff1f2;border:1px solid #fca5a5;color:#b91c1c;', () => deleteRoadPdf(fileId, label))
+      );
+      row.appendChild(actions);
+      card.appendChild(row);
+    });
   } catch(e) {
-    card.innerHTML = '<div style="color:var(--danger);padding:12px;font-size:13px;">読み込みに失敗しました: ' + e.message + '</div>';
+    const error = document.createElement('div');
+    error.style.cssText = 'color:var(--danger);padding:12px;font-size:13px;';
+    error.textContent = '読み込みに失敗しました: ' + e.message;
+    card.replaceChildren(error);
+  } finally {
+    await hideLoading();
   }
 }
 
@@ -4562,7 +4687,7 @@ async function onRoadPermitFileSelected(event) {
   const startDate = document.getElementById('road-permit-start-date').value;
   const endDate   = document.getElementById('road-permit-end-date').value;
   const statusEl = document.getElementById('road-permit-upload-status');
-  statusEl.style.display = 'none';
+  statusEl.hidden = true;
   showLoading('PDFをアップロード中...');
   try {
     const base64 = await new Promise((resolve, reject) => {
@@ -4576,13 +4701,13 @@ async function onRoadPermitFileSelected(event) {
     const res = await apiPost('uploadRoadPdf', { base64, fileName: driveFileName, displayName, startDate, endDate });
     if (!res.ok) throw new Error(res.error || 'アップロード失敗');
     await hideLoading();
-    statusEl.style.display = 'block';
+    statusEl.hidden = false;
     statusEl.textContent = 'アップロード完了！';
     document.getElementById('road-permit-file-input').value = '';
     await _initRoadPermitScreen();
   } catch(e) {
     await hideLoading();
-    statusEl.style.display = 'block';
+    statusEl.hidden = false;
     statusEl.textContent = 'エラー: ' + e.message;
   }
 }
@@ -4627,12 +4752,12 @@ function openEditRoadPdf(fileId, displayName, startDate, endDate) {
   document.getElementById('edit-road-pdf-end-date').value = endDate;
   document.getElementById('edit-road-pdf-msg').textContent = '';
   document.getElementById('edit-road-pdf-save-btn').disabled = false;
-  document.getElementById('road-pdf-edit-overlay').style.display = 'flex';
+  document.getElementById('road-pdf-edit-overlay').classList.add('show');
   history.pushState({ screen: _currentScreenName, modal: 'roadPdfEdit' }, '');
   _modalInHistory = 'roadPdfEdit';
 }
 function closeEditRoadPdf() {
-  document.getElementById('road-pdf-edit-overlay').style.display = 'none';
+  document.getElementById('road-pdf-edit-overlay').classList.remove('show');
   if (_modalInHistory === 'roadPdfEdit') {
     _modalInHistory = null;
     _suppressNextPopstate = true;
@@ -4676,6 +4801,7 @@ async function _loadLimitedPwData(type) {
     apiGet('getFormDetail', { type }),
     apiGet('getShiftTable', { type })
   ]);
+  limFormData.crossPwConflicts = limDetail.crossPwConflicts || limFormData.crossPwConflicts || {};
   LIMITED_APP_DATA   = limFormData;
   LIMITED_SHIFT_DATA = limShiftData;
   LIMITED_DETAIL     = limDetail;
@@ -4786,6 +4912,7 @@ async function switchFormPwType(type) {
         apiGet('getFormDetail', { type: 'normal' }),
         apiGet('getShiftTable', { type: 'normal' })
       ]);
+      formData.crossPwConflicts = detail.crossPwConflicts || formData.crossPwConflicts || {};
       APP_DATA   = formData;
       SHIFT_DATA = shiftData;
       THIS_MONTH  = (detail.thisMonthData && Object.keys(detail.thisMonthData).length > 0)

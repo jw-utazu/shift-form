@@ -1350,38 +1350,117 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+// この端末で「通知を有効にする」を選んだのが誰かを残しておく。
+// ブラウザのPush購読は、Service Workerの作り直しや購読の期限切れで
+// 本人が何もしなくても消えることがある。購読の有無だけでトグルを描くと、
+// その瞬間から「ONにしたはずなのにOFFに戻っている」ようにしか見えないため、
+// 本人の意思はここに保存し、購読が消えていれば黙って作り直す。
+const PUSH_INTENT_KEY = 'pwgws_push_enabled_uid';
+function getPushIntentUid() {
+  try { return localStorage.getItem(PUSH_INTENT_KEY) || ''; } catch (_) { return ''; }
+}
+function setPushIntentUid(uid) {
+  try {
+    if (uid) localStorage.setItem(PUSH_INTENT_KEY, uid);
+    else localStorage.removeItem(PUSH_INTENT_KEY);
+  } catch (_) {}
+}
+
+function pushSupported() {
+  return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+}
+
+// 起動直後は getRegistration() が undefined を返すことがある（登録は残っているのに
+// まだ解決していない）。本人が通知をONにしている端末に限り、登録し直して確実に取得する
+async function getPushRegistration() {
+  if (!pushSupported()) return null;
+  try {
+    let reg = await navigator.serviceWorker.getRegistration('./sw.js');
+    // 見つからないのに本人はONにしている＝登録が消えたか、まだ解決していない。
+    // register() は既存があれば同じ登録を返すだけなので、この場合だけ登録し直す
+    // （通知を使っていない人にまでService Workerを入れない）
+    if (!reg && SESSION && SESSION.uid && getPushIntentUid() === SESSION.uid) {
+      reg = await navigator.serviceWorker.register('./sw.js');
+    }
+    return reg || null;
+  } catch (e) {
+    console.error('[push] Service Workerの取得に失敗しました', e);
+    return null;
+  }
+}
+
+// 購読をサーバーへ登録する。成功したらこの端末の「ON」の意思も更新する
+async function savePushSubscriptionToServer(sub) {
+  const json = sub.toJSON();
+  const res = await apiGet('savePushSubscription', {
+    uid: SESSION.uid,
+    endpoint: json.endpoint,
+    p256dh: json.keys && json.keys.p256dh,
+    auth: json.keys && json.keys.auth,
+  });
+  if (!res || !res.ok) throw new Error((res && res.error) || '登録に失敗しました');
+  setPushIntentUid(SESSION.uid);
+}
+
+// 端末側の購読を取り出す。本人がONにしたはずなのに購読が消えている場合は、
+// 通知の許可が残っている限り作り直す（許可ダイアログは出ない）。
+// 作り直した購読はendpointが変わっているため、呼び出し側で
+// サーバーへ登録し直す必要がある。それを isNew で伝える
+async function getOrRestorePushSubscription(reg) {
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) return { sub: sub, isNew: false };
+  if (!SESSION || !SESSION.uid) return { sub: null, isNew: false };
+  if (getPushIntentUid() !== SESSION.uid) return { sub: null, isNew: false };
+  if (Notification.permission !== 'granted') { setPushIntentUid(''); return { sub: null, isNew: false }; }
+  try {
+    const fresh = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    return { sub: fresh, isNew: true };
+  } catch (e) {
+    console.error('[push] 購読の作り直しに失敗しました', e);
+    return { sub: null, isNew: false };
+  }
+}
+
 // ブラウザのPush購読はアカウントを切り替えても同じendpointのまま残る。
 // 起動時に現在のprincipalへ必ず再送し、旧利用者への紐付けをサーバー側transactionで外す。
-// 再紐付けに失敗した場合は、旧利用者の通知をこの端末へ届けないことを優先して購読を解除する。
+//
+// 再紐付けに失敗したときに購読を解除してよいのは「この端末でONにした人」と
+// 今の利用者が違うときだけ。同じ人なら通信不良が理由なので、解除すると
+// 本人の設定が無言で消える（再読み込みのたびにトグルがOFFへ戻る）。
 async function rebindExistingPushSubscription() {
-  if (_isPreviewMode || !SESSION || !('serviceWorker' in navigator) || !('PushManager' in window)) return true;
+  if (_isPreviewMode || !SESSION || !pushSupported()) return true;
+  const reg = await getPushRegistration();
+  if (!reg) return true;
   let sub = null;
   try {
-    const reg = await navigator.serviceWorker.getRegistration('./sw.js');
-    sub = reg ? await reg.pushManager.getSubscription() : null;
+    sub = (await getOrRestorePushSubscription(reg)).sub;
     if (!sub) return true;
     // owner のようにuidを持たないprincipalへはPushを紐付けられない。
     // 前アカウントの購読を残すとその人の通知が届くため、端末側購読を失効させる。
     if (!SESSION.uid) {
       await sub.unsubscribe();
+      setPushIntentUid('');
       const ownerToggle = document.getElementById('push-enable-toggle');
       if (ownerToggle) ownerToggle.checked = false;
       return true;
     }
-    const json = sub.toJSON();
-    const res = await apiGet('savePushSubscription', {
-      uid: SESSION.uid,
-      endpoint: json.endpoint,
-      p256dh: json.keys && json.keys.p256dh,
-      auth: json.keys && json.keys.auth,
-    });
-    if (!res || !res.ok) throw new Error((res && res.error) || '再登録に失敗しました');
+    await savePushSubscriptionToServer(sub);
     return true;
   } catch (e) {
     console.error('[push] endpointの再紐付けに失敗しました', e);
+    const intentUid = getPushIntentUid();
+    if (intentUid && intentUid === SESSION.uid) {
+      // 同じ利用者の端末。サーバー側の紐付けも既にこの人なので、
+      // 購読は残したまま次の起動でやり直す
+      return false;
+    }
     if (sub) {
       try { await sub.unsubscribe(); } catch (_) {}
     }
+    setPushIntentUid('');
     const toggle = document.getElementById('push-enable-toggle');
     if (toggle) toggle.checked = false;
     alert('アカウント切替後の通知設定を更新できなかったため、この端末の通知を無効にしました。\n設定画面からもう一度有効にしてください。');
@@ -1400,7 +1479,7 @@ async function onPushEnableToggle() {
 
 async function enablePushNotifications() {
   const toggle = document.getElementById('push-enable-toggle');
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!pushSupported()) {
     alert('この端末・ブラウザは通知に対応していません');
     if (toggle) toggle.checked = false;
     return;
@@ -1412,6 +1491,13 @@ async function enablePushNotifications() {
   }
   try {
     const reg = await navigator.serviceWorker.register('./sw.js');
+    // subscribe() は有効なService Workerを要求する。登録直後は起動が
+    // 終わっていないことがあるため、有効になるまで待ってから購読する。
+    // ready が解決しない端末で操作が固まらないよう、待つのは10秒まで
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(resolve => setTimeout(resolve, 10000)),
+    ]);
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') { alert('通知が許可されませんでした'); if (toggle) toggle.checked = false; return; }
     let sub = await reg.pushManager.getSubscription();
@@ -1421,14 +1507,7 @@ async function enablePushNotifications() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
     }
-    const json = sub.toJSON();
-    const res = await apiGet('savePushSubscription', {
-      uid: SESSION.uid,
-      endpoint: json.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-    });
-    if (!res.ok) throw new Error(res.error || '登録に失敗しました');
+    await savePushSubscriptionToServer(sub);
     await refreshPushPrefSection();
   } catch (e) {
     alert('通知の設定に失敗しました: ' + e.message);
@@ -1437,6 +1516,9 @@ async function enablePushNotifications() {
 }
 
 async function disablePushNotifications() {
+  // 本人がOFFにした意思は、購読の解除に失敗しても必ず残す。
+  // 残っていると次の起動で自動的に購読を作り直してしまう
+  setPushIntentUid('');
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration('./sw.js');
@@ -1453,16 +1535,22 @@ async function disablePushNotifications() {
 }
 
 // 種類トグルは常に表示しておき（HTML側でデフォルトON）、購読・設定状況が分かり次第
-// 「通知を有効にする」トグルと各トグルのチェック状態だけを更新する
+// 「通知を有効にする」トグルと各トグルのチェック状態だけを更新する。
+//
+// 購読が消えていても本人がONにしたままなら作り直すので、
+// 設定画面を開き直しただけでOFFに見えることはない
 async function refreshPushPrefSection() {
   const enableToggle = document.getElementById('push-enable-toggle');
-  if (!SESSION || !SESSION.uid) return;
+  if (!SESSION || !SESSION.uid) { if (enableToggle) enableToggle.checked = false; return; }
   try {
-    if (!('serviceWorker' in navigator)) { if (enableToggle) enableToggle.checked = false; return; }
-    const reg = await navigator.serviceWorker.getRegistration('./sw.js');
-    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    const reg = await getPushRegistration();
+    if (!reg) { if (enableToggle) enableToggle.checked = false; return; }
+    const { sub, isNew } = await getOrRestorePushSubscription(reg);
     if (enableToggle) enableToggle.checked = !!sub;
     if (!sub) return;
+    // 作り直した購読はサーバーがまだ知らない。失敗しても次の起動で
+    // rebindExistingPushSubscription がやり直すので、ここでは握りつぶす
+    if (isNew) { try { await savePushSubscriptionToServer(sub); } catch (_) {} }
     const res = await apiGet('getPushPreferences', { uid: SESSION.uid });
     if (!res.ok) return;
     document.getElementById('pref-published').checked = res.notifyPublished !== false;

@@ -849,20 +849,23 @@ body::-webkit-scrollbar { display: none; }
   align-items: center;
   justify-content: center;
   gap: 2px;
+  margin: 0 2px;
   padding: 7px 2px 6px;
+  border-radius: 10px;
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  color: #9ca3af;
+  color: #52525b;
   -webkit-tap-highlight-color: transparent;
-  transition: color .12s;
+  transition: color .12s, background .12s;
 }
-.tab-ic { font-size: 20px; line-height: 1; opacity: .72; transition: opacity .12s, color .12s; }
+.tab-ic { font-size: 20px; line-height: 1; }
 .tab-n  { font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; }
-.tabbtn.active { color: var(--green); }
-.tabbtn.active .tab-ic { opacity: 1; }
-.tabbtn:disabled { opacity: .38; cursor: default; }
+/* アクティブは色だけでなく面（背景）でも示す。押せる／押せないの区別は
+   非アクティブの色を濃いグレーに上げ、期間外(disabled)だけ薄く残すことで作る */
+.tabbtn.active { color: var(--green-dark); background: var(--green-light); }
+.tabbtn:disabled { color: #c7cbd1; cursor: default; }
 /* タブバーの高さ分だけ本文の下に余白を作る（body の padding-bottom を上書き） */
 body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
 

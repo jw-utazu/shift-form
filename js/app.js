@@ -256,9 +256,16 @@ if (_isIOS) {
 function installPWA() {
   if (window.matchMedia('(display-mode: standalone)').matches) return;
   document.getElementById('pwa-install-overlay').classList.add('show');
+  history.pushState({ screen: _currentScreenName, modal: 'pwaInstall' }, '');
+  _modalInHistory = 'pwaInstall';
 }
 function closePwaInstallModal() {
   document.getElementById('pwa-install-overlay').classList.remove('show');
+  if (_modalInHistory === 'pwaInstall') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 function closePwaInstallOutside(e) {
   if (e.target === document.getElementById('pwa-install-overlay')) closePwaInstallModal();
@@ -707,6 +714,7 @@ window.addEventListener('popstate', function(e) {
     const which = _modalInHistory;
     _modalInHistory = null;
     if (which === 'help')        document.getElementById('help-overlay').classList.remove('show');
+    else if (which === 'manual')   document.getElementById('manual-overlay').classList.remove('show');
     else if (which === 'notices')  document.getElementById('notices-modal').style.display = 'none';
     else if (which === 'roadPdf')  document.getElementById('road-pdf-view-modal').classList.remove('show');
     else if (which === 'adminPdf') {
@@ -715,6 +723,27 @@ window.addEventListener('popstate', function(e) {
     }
     else if (which === 'staffEdit')   exitStaffEditMode();
     else if (which === 'roadPdfEdit') document.getElementById('road-pdf-edit-overlay').classList.remove('show');
+    else if (which === 'memberPreview') {
+      document.getElementById('member-preview-overlay').style.display = 'none';
+      document.getElementById('member-preview-modal').style.display   = 'none';
+    }
+    else if (which === 'photo') {
+      document.getElementById('photo-modal-overlay').style.display = 'none';
+      _photoList = []; _photoCurrent = 0;
+    }
+    else if (which === 'cancelInfo') document.getElementById('cancel-info-overlay').classList.remove('show');
+    else if (which === 'pwaInstall') document.getElementById('pwa-install-overlay').classList.remove('show');
+    else if (which === 'profile') {
+      document.getElementById('profile-popup').classList.remove('show');
+      document.getElementById('profile-overlay').classList.remove('show');
+    }
+    else if (which === 'avatarCrop') {
+      document.getElementById('avatar-crop-overlay').classList.remove('show');
+      if (_avCrop && _avCrop.src && typeof _avCrop.src.close === 'function') {
+        try { _avCrop.src.close(); } catch (_) {}
+      }
+      _avCrop = null;
+    }
     return;
   }
 
@@ -1016,6 +1045,8 @@ function _openAvatarCrop(loaded) {
   };
   document.getElementById('avatar-crop-zoom').value = 1;
   _avCropRedraw();
+  history.pushState({ screen: _currentScreenName, modal: 'avatarCrop' }, '');
+  _modalInHistory = 'avatarCrop';
 }
 
 function closeAvatarCrop() {
@@ -1025,6 +1056,11 @@ function closeAvatarCrop() {
     try { _avCrop.src.close(); } catch (_) {}
   }
   _avCrop = null;
+  if (_modalInHistory === 'avatarCrop') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 // 枠を完全に覆う最小倍率。これを 1 として、そこから拡大していく
@@ -1287,11 +1323,18 @@ function toggleProfilePopup() {
     updateAvatarUI();
     popup.classList.add('show');
     overlay.classList.add('show');
+    history.pushState({ screen: _currentScreenName, modal: 'profile' }, '');
+    _modalInHistory = 'profile';
   }
 }
 function closeProfilePopup() {
   document.getElementById('profile-popup').classList.remove('show');
   document.getElementById('profile-overlay').classList.remove('show');
+  if (_modalInHistory === 'profile') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 // ===== プッシュ通知（Web Push） =====
@@ -1462,6 +1505,8 @@ async function openMemberPreview() {
   list.innerHTML = '<div style="padding:16px;text-align:center;color:#6b7280;font-size:14px;">読み込み中...</div>';
   overlay.style.display = 'block';
   modal.style.display   = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'memberPreview' }, '');
+  _modalInHistory = 'memberPreview';
   try {
     const data = await apiGet('getMemberList');
     _previewMemberList = (data.members || []);
@@ -1497,6 +1542,11 @@ function closeMemberPreviewModal() {
   document.getElementById('member-preview-overlay').style.display = 'none';
   document.getElementById('member-preview-modal').style.display   = 'none';
   document.getElementById('member-preview-search').value = '';
+  if (_modalInHistory === 'memberPreview') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 async function startPreview(uid, name, email) {
@@ -3230,18 +3280,19 @@ function buildShiftDateList() {
     const cartAll = d.cart ? [...(d.cart.bring || []), ...(d.cart.take || [])].filter(c => c.name) : [];
     let subHtml = '';
     if (respNames.length > 0) {
-      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">' + ic('user') + ' 責任者</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label sdb-chip-blue">' + ic('user') + ' 責任者</span><span class="sdb-sub-val">' + respNames.map(esc).join('、') + '</span></div>';
     }
     if (cartAll.length > 0 && d.cart) {
       const bringStr = (d.cart.bring || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
       const takeStr = (d.cart.take || []).filter(c => c.name)
         .map(c => esc(c.name) + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '')).join('、');
-      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label">' + ic('__cart__') + ' カート</span>' +
-        (bringStr ? '<span class="sdb-sub-val">持込 ' + bringStr + '</span>' : '') +
-        (bringStr && takeStr ? '<span style="color:var(--border);">/</span>' : '') +
-        (takeStr ? '<span class="sdb-sub-val">持帰 ' + takeStr + '</span>' : '') +
-        '</div>';
+      subHtml += '<div class="sdb-sub-row"><span class="sdb-sub-label sdb-chip-amber">' + ic('__cart__') + ' カート</span>' +
+        '<span class="sdb-sub-valgroup">' +
+        (bringStr ? '<span class="sdb-sub-val">持ち込み ' + bringStr + '</span>' : '') +
+        (bringStr && takeStr ? '<span class="sdb-sub-sep">/</span>' : '') +
+        (takeStr ? '<span class="sdb-sub-val">持ち帰り ' + takeStr + '</span>' : '') +
+        '</span></div>';
     }
 
     btn.innerHTML =
@@ -3270,9 +3321,16 @@ function showCancelInfoPopup(reason) {
     reasonEl.style.display = 'none';
   }
   document.getElementById('cancel-info-overlay').classList.add('show');
+  history.pushState({ screen: _currentScreenName, modal: 'cancelInfo' }, '');
+  _modalInHistory = 'cancelInfo';
 }
 function closeCancelInfoPopup() {
   document.getElementById('cancel-info-overlay').classList.remove('show');
+  if (_modalInHistory === 'cancelInfo') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 function showShiftDetail(dateObj, quickJump) {
@@ -3408,10 +3466,10 @@ function buildShiftDetail(d) {
     if (allCart.length > 0) {
       html += '<div class="cart-info-row"><span class="cart-label-s">カート：</span>';
       (d.cart.bring || []).filter(c => c.name).forEach(c => {
-        html += '<span>持込: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
+        html += '<span>持ち込み: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
       });
       (d.cart.take || []).filter(c => c.name).forEach(c => {
-        html += '<span>持帰: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
+        html += '<span>持ち帰り: <b>' + esc(c.name) + '</b>' + (c.cartNo ? '(' + esc(c.cartNo) + ')' : '') + '</span>&nbsp;';
       });
       html += '</div>';
     }
@@ -4131,7 +4189,7 @@ const HELP_CONTENTS = {
         items: [
           { icon: ic('__dot__', {color:'#2563eb'}), text: '北口エリアの担当者一覧（時間ごとに最大3名）' },
           { icon: ic('__dot__', {color:'#ea580c'}), text: '南口エリアの担当者一覧（時間ごとに最大3名）' },
-          { icon: ic('__cart__'), text: 'カート欄：持込・持帰担当者とカート番号' },
+          { icon: ic('__cart__'), text: 'カート欄：持ち込み・持ち帰り担当者とカート番号' },
         ]
       },
       {
@@ -4280,10 +4338,17 @@ function openManualModal() {
   ).join('');
 
   document.getElementById('manual-overlay').classList.add('show');
+  history.pushState({ screen: _currentScreenName, modal: 'manual' }, '');
+  _modalInHistory = 'manual';
 }
 
 function closeManualModal() {
   document.getElementById('manual-overlay').classList.remove('show');
+  if (_modalInHistory === 'manual') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 function closeManualOutside(e) {
@@ -4387,6 +4452,8 @@ async function openPhotoModal(category, ym) {
   const counter = document.getElementById('photo-modal-counter');
 
   overlay.style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'photo' }, '');
+  _modalInHistory = 'photo';
   titleEl.innerHTML   = category === 'road' ? (ic('map') + ' 道路使用許可書') : (ic('image') + ' カート展示内容');
   imgEl.style.display   = 'none';
   loadEl.style.display  = 'block';
@@ -4439,6 +4506,11 @@ function photoNav(delta) {
 function closePhotoModal() {
   document.getElementById('photo-modal-overlay').style.display = 'none';
   _photoList = []; _photoCurrent = 0;
+  if (_modalInHistory === 'photo') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+  }
 }
 
 function openAccountingSheet() {
@@ -4519,6 +4591,8 @@ function openExhibitPhotoCard(idx) {
   if (!_exhibitPhotos.length) { openPhotoModal('exhibit'); return; }
   document.getElementById('photo-modal-title').innerHTML   = ic('image') + ' カート展示内容';
   document.getElementById('photo-modal-overlay').style.display = 'flex';
+  history.pushState({ screen: _currentScreenName, modal: 'photo' }, '');
+  _modalInHistory = 'photo';
   _photoList = _exhibitPhotos.slice();
   showPhoto(idx || 0);
 }

@@ -279,44 +279,36 @@ async function installPWADirect() {
 }
 
 
-// ===== 起動スプラッシュ（admin/シフト管理アプリと共通の見た目・3ステップ進捗） =====
-// ログイン自体は共通ログイン画面（login.html）で完了済みのため、このアプリでは
-// ステップ2（権限確認）からスタートする。初回起動が終わったら以降は
-// 通常のローディングオーバーレイ（showLoading/hideLoading）を使う
+// ===== 起動スプラッシュ（admin/シフト管理アプリと共通の見た目） =====
+// ロゴのフェードだけ見せて、内部処理の段階（ログイン→権限確認→データ読込）は
+// 表示しない。初回起動が終わったら以降は通常のローディングオーバーレイ
+// （showLoading/hideLoading）を使う
 let _firstBootDone = false;
-function setBootStep(step, msg) {
-  document.getElementById('ld-status').textContent = msg;
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('ldst-' + i);
-    el.classList.remove('active', 'done');
-    if (i < step) el.classList.add('done');
-    else if (i === step) el.classList.add('active');
-    if (i < 3) document.getElementById('ldsl-' + i).classList.toggle('done', i < step);
-  }
-  const pct = [0, 20, 55, 80];
-  document.getElementById('ld-bar').style.width = pct[step] + '%';
+let _ldSpinnerTimer = null;
+// 起動処理が1.5秒を超えて終わらないときだけスピナーを出す保険。通常は一瞬で終わるので出ない想定
+function startBootSpinnerTimer() {
+  clearTimeout(_ldSpinnerTimer);
+  _ldSpinnerTimer = setTimeout(() => {
+    const sp = document.getElementById('ld-spinner');
+    if (sp) sp.classList.add('show');
+  }, 1500);
 }
-function showBootSplash(step, msg) {
+function stopBootSpinnerTimer() {
+  clearTimeout(_ldSpinnerTimer);
+  const sp = document.getElementById('ld-spinner');
+  if (sp) sp.classList.remove('show');
+}
+function showBootSplash() {
   const el = document.getElementById('loading');
   if (el && !el.classList.contains('show')) el.classList.add('show');
-  setBootStep(step, msg);
+  startBootSpinnerTimer();
 }
-// バックグラウンドタブでは requestAnimationFrame が発火しないため、
-// タイマーでも必ず完了させる（admin側と同じ対策）
 function hideBootSplash() {
-  const bar = document.getElementById('ld-bar');
-  if (bar) bar.style.width = '100%';
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    setTimeout(() => {
-      const el = document.getElementById('loading');
-      if (el) el.classList.remove('show');
-    }, 400);
-  };
-  requestAnimationFrame(() => requestAnimationFrame(finish));
-  setTimeout(finish, 1000);
+  stopBootSpinnerTimer();
+  const el = document.getElementById('loading');
+  if (!el) return;
+  el.classList.add('fade-out');
+  setTimeout(() => { el.classList.remove('show', 'fade-out'); }, 350);
 }
 
 // ===== ローディング =====
@@ -1661,13 +1653,14 @@ function logout() {
 }
 
 // ===== アプリ初期化 =====
-async function initApp() {
+// preload を渡すと isLimitedMember・dataMini・getFormDetail・getShiftTable の
+// 再取得をせず、formBootstrap で取得済みのデータをそのまま使う（起動時専用）
+async function initApp(preload) {
   initDebugDatePanel();
-  // 初回起動時のみ起動スプラッシュ（ステップ3：データ読込）を使う。
+  // 初回起動時は起動スプラッシュを使う（ロゴのフェードのみ、文言は出さない）。
   // 再読み込みやメンバープレビュー切替時は通常のローディングオーバーレイのまま
   const isBoot = !_firstBootDone;
-  if (isBoot) setBootStep(3, 'データを読み込み中...');
-  else showLoading('データを読み込み中...');
+  if (!isBoot) showLoading('データを読み込み中...');
   // 再読み込み時は一旦通常PWとして再構築し、必要なら最後に限定PWビューへ戻す
   const prevPwType = currentPwType;
   _tabSnapshots = {};
@@ -1689,15 +1682,24 @@ async function initApp() {
   if (_tabN) _tabN.className = 'pw-type-tab-form active';
   if (_tabL) _tabL.className = 'pw-type-tab-form limited';
   try {
-    // isLimitedMember チェックと dataMini・getFormDetail・getShiftTable を並列取得
+    // isLimitedMember チェックと dataMini・getFormDetail・getShiftTable を並列取得。
+    // preload があれば formBootstrap で取得済みなので取り直さない
     const uid = SESSION ? SESSION.uid : '';
-    const [limRes, formData, detail, shiftData] = await Promise.all([
-      uid ? apiGet('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
-      apiGet('dataMini', { type: 'normal' }),
-      apiGet('getFormDetail', { type: 'normal' }),
-      apiGet('getShiftTable', { type: 'normal' }),
-      rebindExistingPushSubscription()
-    ]);
+    const [limRes, formData, detail, shiftData] = preload
+      ? await Promise.all([
+          Promise.resolve(preload.limited),
+          Promise.resolve(preload.formData),
+          Promise.resolve(preload.detail),
+          Promise.resolve(preload.shiftTable),
+          rebindExistingPushSubscription()
+        ])
+      : await Promise.all([
+          uid ? apiGet('isLimitedMember', { uid }) : Promise.resolve({ ok: true, isLimited: false }),
+          apiGet('dataMini', { type: 'normal' }),
+          apiGet('getFormDetail', { type: 'normal' }),
+          apiGet('getShiftTable', { type: 'normal' }),
+          rebindExistingPushSubscription()
+        ]);
 
     isLimitedMember = limRes.ok && limRes.isLimited;
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
@@ -4378,8 +4380,8 @@ function esc(s) {
     localStorage.removeItem('debugFakeNow');
   }
 
-  // 起動スプラッシュを表示（ログインは共通ログイン画面で完了済みなのでステップ2から）
-  showBootSplash(2, '認証情報を確認中...');
+  // 起動スプラッシュを表示（ログインは共通ログイン画面で完了済み）
+  showBootSplash();
 
   // 救済ログインのセッションを先に確認する（Googleアカウントが使えない人のため、
   // 通常のGoogle認証より前に判定する）。有効期限はサーバー側で検証される
@@ -4396,11 +4398,12 @@ function esc(s) {
     picture: shared.picture || (appCache && appCache.email === shared.email ? appCache.picture : '') || ''
   } : null;
   if (saved) {
-    setBootStep(2, '認証情報を確認中...');
     try {
+      // 権限確認と初期データ取得を1回のAPI呼び出し（formBootstrap）にまとめて、
+      // 起動時の往復を1回減らす
       const restoreAuthQuery = { source: 'form' };
       if (_consumeSimulateRegisterFlag()) restoreAuthQuery.simulateRegister = '1';
-      const data = await apiGet('auth', restoreAuthQuery);
+      const data = await apiGet('formBootstrap', restoreAuthQuery);
       if (!data.ok) {
         hideBootSplash();
         clearSession();
@@ -4421,8 +4424,9 @@ function esc(s) {
         avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate,
         avatarHasGoogle: !!data.avatarHasGoogle
       };
-      // スプラッシュを閉じずそのままinitAppへ（ステップ3への切替はinitApp内で行う）
-      await initApp();
+      // スプラッシュを閉じずそのままinitAppへ。formBootstrapで取得済みのデータを渡し、
+      // isLimitedMember・dataMini・getFormDetail・getShiftTableの再取得を省く
+      await initApp({ limited: data.limited, formData: data.formData, detail: data.detail, shiftTable: data.shiftTable });
       return;
     } catch(e) {
       hideBootSplash();

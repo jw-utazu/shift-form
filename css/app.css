@@ -739,6 +739,13 @@ body::-webkit-scrollbar { display: none; }
 .setrow.as-toggle:active { background: none; }
 .setrow.compact { padding: 9px 12px; }
 .setrow.compact .setrow-n { font-weight: 600; font-size: 14px; }
+/* 開閉はクラスで行う（style属性を付けると属性セレクタに不意に一致するため） */
+.setgrp-hide { display: none; }
+/* 設定できない通知（申請・報告）の右端に出す固定ラベル。トグルと同じ位置に置く */
+.setrow-fixed {
+  flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--sub);
+  background: #f1f5f9; border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
 
 /* 設定タブ先頭のプロフィール */
 .setprof {

@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=39">
+<link rel="stylesheet" href="css/app.css?v=40">
 </head>
 <body>
 
@@ -397,16 +397,37 @@
       <div id="push-pref-section">
         <div class="setgrp-t" style="margin-top:14px;">通知の種類</div>
         <div class="setlist">
-          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">シフト公開時</span></span>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">シフト公開時</span>
+              <span class="setrow-d">自分に割り当てのある月のシフトが公開されたとき</span></span>
             <span class="toggle-switch"><input type="checkbox" id="pref-published" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">担当変更・中止時</span></span>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">担当変更・中止時</span>
+              <span class="setrow-d">自分の担当が入れ替わったとき・担当日が中止になったとき</span></span>
             <span class="toggle-switch"><input type="checkbox" id="pref-changed" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">締切リマインド</span></span>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">締切リマインド</span>
+              <span class="setrow-d">希望提出の締切前日に、まだ提出していないとき</span></span>
             <span class="toggle-switch"><input type="checkbox" id="pref-deadline" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">お知らせ配信時</span></span>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">お知らせ配信時</span>
+              <span class="setrow-d">新しいお知らせの表示が始まったとき</span></span>
             <span class="toggle-switch"><input type="checkbox" id="pref-notice" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
-          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">本日のシフトリマインド</span></span>
+          <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">本日のシフトリマインド</span>
+              <span class="setrow-d">担当のある日の朝に、時間帯と役割をお知らせ</span></span>
             <span class="toggle-switch"><input type="checkbox" id="pref-today" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+        </div>
+
+        <!-- 管理者だけに出す。承認・確認や申請の連絡はここでまとめて扱う -->
+        <div id="admin-pref-wrap" class="setgrp-hide">
+          <div class="setgrp-t" style="margin-top:14px;">管理者向けの通知</div>
+          <div class="setlist">
+            <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">確認・承認の依頼</span>
+                <span class="setrow-d">自分が確認者・承認者になっている予定表やシフトについて、確認や承認を頼まれたとき・期日を過ぎても済んでいないとき</span></span>
+              <span class="toggle-switch"><input type="checkbox" id="pref-admin-task" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+            <label class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">予定表・シフトの状況</span>
+                <span class="setrow-d">確認が揃ったとき・差し戻されたとき・公開予定日を過ぎても公開されていないとき</span></span>
+              <span class="toggle-switch"><input type="checkbox" id="pref-admin-status" checked onchange="onPushPrefChange()"><span class="toggle-slider"></span></span></label>
+            <div class="setrow as-toggle compact"><span class="setrow-tx"><span class="setrow-n">申請・報告の受付</span>
+                <span class="setrow-d">ログインできない旨の申請やバグ報告が届いたとき。対応を待っている人がいるため、この通知は止められません</span></span>
+              <span class="setrow-fixed">常にオン</span></div>
+          </div>
         </div>
       </div>
     </div>

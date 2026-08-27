@@ -1539,8 +1539,17 @@ async function disablePushNotifications() {
 //
 // 購読が消えていても本人がONにしたままなら作り直すので、
 // 設定画面を開き直しただけでOFFに見えることはない
+// 管理者向けの通知設定を出す相手か。オーナー（uidなし）はプッシュ購読自体ができないため対象外
+function isAdminPrefUser() {
+  return !!(SESSION && SESSION.isAdmin && SESSION.uid);
+}
+
 async function refreshPushPrefSection() {
   const enableToggle = document.getElementById('push-enable-toggle');
+  // 管理者向けの項目は「どんなときに通知が来るか」を読む役目も兼ねるので、
+  // 購読の状態に関わらず、表示するかどうかだけは先に決めておく
+  const adminWrap = document.getElementById('admin-pref-wrap');
+  if (adminWrap) adminWrap.classList.toggle('setgrp-hide', !isAdminPrefUser());
   if (!SESSION || !SESSION.uid) { if (enableToggle) enableToggle.checked = false; return; }
   try {
     const reg = await getPushRegistration();
@@ -1558,20 +1567,30 @@ async function refreshPushPrefSection() {
     document.getElementById('pref-deadline').checked  = res.notifyDeadline  !== false;
     document.getElementById('pref-notice').checked    = res.notifyNotice    !== false;
     document.getElementById('pref-today').checked     = res.notifyToday     !== false;
+    if (isAdminPrefUser()) {
+      document.getElementById('pref-admin-task').checked   = res.notifyAdminTask   !== false;
+      document.getElementById('pref-admin-status').checked = res.notifyAdminStatus !== false;
+    }
   } catch (e) { /* 取得失敗時はデフォルト表示のまま */ }
 }
 
 async function onPushPrefChange() {
   if (!SESSION || !SESSION.uid) return;
   try {
-    await apiGet('savePushPreferences', {
+    const params = {
       uid: SESSION.uid,
       notifyPublished: document.getElementById('pref-published').checked,
       notifyChanged:   document.getElementById('pref-changed').checked,
       notifyDeadline:  document.getElementById('pref-deadline').checked,
       notifyNotice:    document.getElementById('pref-notice').checked,
       notifyToday:     document.getElementById('pref-today').checked,
-    });
+    };
+    // 管理者以外は管理者向けの項目を送らない（API側は送られてこなかった項目に触れない）
+    if (isAdminPrefUser()) {
+      params.notifyAdminTask   = document.getElementById('pref-admin-task').checked;
+      params.notifyAdminStatus = document.getElementById('pref-admin-status').checked;
+    }
+    await apiGet('savePushPreferences', params);
   } catch (e) { alert('設定の保存に失敗しました: ' + e.message); }
 }
 

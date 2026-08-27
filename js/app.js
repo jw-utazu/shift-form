@@ -4494,10 +4494,15 @@ function showPhoto(idx) {
   imgEl.style.display  = 'none';
   loadEl.style.display = 'block';
   loadEl.textContent   = '読み込み中...';
-  const url = _photoList[_photoCurrent].url;
+  const photo    = _photoList[_photoCurrent];
+  const fallback = photo.fallbackUrl && photo.fallbackUrl !== photo.url ? photo.fallbackUrl : '';
+  let triedFallback = false;
   imgEl.onload = () => { loadEl.style.display = 'none'; imgEl.style.display = 'block'; };
-  imgEl.onerror = () => { loadEl.textContent = '画像を読み込めませんでした'; };
-  imgEl.src = url;
+  imgEl.onerror = () => {
+    if (fallback && !triedFallback) { triedFallback = true; imgEl.src = fallback; return; }
+    loadEl.textContent = '画像を読み込めませんでした';
+  };
+  imgEl.src = photo.url;
   counter.textContent = (_photoCurrent + 1) + ' / ' + _photoList.length;
   prevBtn.style.opacity = _photoCurrent === 0 ? '0.3' : '1';
   nextBtn.style.opacity = _photoCurrent === _photoList.length - 1 ? '0.3' : '1';
@@ -4532,9 +4537,20 @@ let _exhibitPhotos  = [];
 let _exhibitLoadSeq = 0;
 const EXHIBIT_THUMB_MAX = 4;
 
-// 一覧のサムネイルは軽量サイズで取得する（拡大モーダル側は w1920 のまま）
+// 一覧のサムネイルは軽量サイズで取得する（拡大モーダル側は w1920 のまま）。
+// URLは2形式ある：Drive CDN直リンク（末尾 =w1920）と drive.google.com（&sz=w1920）
 function _exhibitThumbUrl(url) {
-  return String(url || '').replace(/([?&]sz=)w\d+/, '$1w400');
+  const s = String(url || '');
+  if (/=w\d+$/.test(s)) return s.replace(/=w\d+$/, '=w400');
+  return s.replace(/([?&]sz=)w\d+/, '$1w400');
+}
+
+// Drive CDN直リンクは署名に有効期限があるため、読めなかったら従来URLで1度だけ再試行する
+function _photoImgFallback(img) {
+  const fb = img.getAttribute('data-fallback');
+  img.removeAttribute('data-fallback');
+  img.onerror = null;
+  if (fb) img.src = fb;
 }
 
 // buildMainScreen から呼ぶ。表示するのは公開済みシフトの年月の写真のみで、
@@ -4578,8 +4594,11 @@ async function loadExhibitPhotoCard(isOpenPassed) {
   countEl.textContent = _exhibitPhotos.length + '枚';
   let html = '';
   _exhibitPhotos.slice(0, EXHIBIT_THUMB_MAX).forEach((p, i) => {
+    const fb = p.fallbackUrl && p.fallbackUrl !== p.url ? _exhibitThumbUrl(p.fallbackUrl) : '';
     html += '<div class="exhibit-thumb" onclick="event.stopPropagation();openExhibitPhotoCard(' + i + ')">'
-          +   '<img src="' + esc(_exhibitThumbUrl(p.url)) + '" alt="展示内容写真' + (i + 1) + '" loading="lazy">'
+          +   '<img src="' + esc(_exhibitThumbUrl(p.url)) + '"'
+          +     (fb ? ' data-fallback="' + esc(fb) + '" onerror="_photoImgFallback(this)"' : '')
+          +     ' alt="展示内容写真' + (i + 1) + '" loading="lazy">'
           + '</div>';
   });
   if (_exhibitPhotos.length > EXHIBIT_THUMB_MAX) {

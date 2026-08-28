@@ -4560,7 +4560,6 @@ async function openPhotoModal(category, ym) {
   const titleEl = document.getElementById('photo-modal-title');
   const imgEl   = document.getElementById('photo-modal-img');
   const loadEl  = document.getElementById('photo-modal-loading');
-  const counter = document.getElementById('photo-modal-counter');
 
   overlay.style.display = 'flex';
   history.pushState({ screen: _currentScreenName, modal: 'photo' }, '');
@@ -4568,7 +4567,6 @@ async function openPhotoModal(category, ym) {
   titleEl.innerHTML   = category === 'road' ? (ic('map') + ' 道路使用許可書') : (ic('image') + ' カート展示内容');
   imgEl.style.display   = 'none';
   loadEl.style.display  = 'block';
-  counter.textContent   = '';
   _photoList    = [];
   _photoCurrent = 0;
 
@@ -4591,11 +4589,8 @@ async function openPhotoModal(category, ym) {
 }
 
 function showPhoto(idx) {
-  const imgEl   = document.getElementById('photo-modal-img');
-  const loadEl  = document.getElementById('photo-modal-loading');
-  const counter = document.getElementById('photo-modal-counter');
-  const prevBtn = document.getElementById('photo-prev-btn');
-  const nextBtn = document.getElementById('photo-next-btn');
+  const imgEl  = document.getElementById('photo-modal-img');
+  const loadEl = document.getElementById('photo-modal-loading');
   if (!_photoList.length) return;
   _photoCurrent = Math.max(0, Math.min(idx, _photoList.length - 1));
   imgEl.style.display  = 'none';
@@ -4610,13 +4605,6 @@ function showPhoto(idx) {
     loadEl.textContent = '画像を読み込めませんでした';
   };
   imgEl.src = photo.url;
-  counter.textContent = (_photoCurrent + 1) + ' / ' + _photoList.length;
-  prevBtn.style.opacity = _photoCurrent === 0 ? '0.3' : '1';
-  nextBtn.style.opacity = _photoCurrent === _photoList.length - 1 ? '0.3' : '1';
-}
-
-function photoNav(delta) {
-  showPhoto(_photoCurrent + delta);
 }
 
 function closePhotoModal() {
@@ -4640,9 +4628,9 @@ function openExhibitPhotoFromShift() {
 }
 
 // ===== ホーム：展示内容写真カード =====
+// 月に1枚だけ登録される運用のため、複数枚の選択UI（サムネイル一覧・+N表示）は持たない
 let _exhibitPhotos  = [];
 let _exhibitLoadSeq = 0;
-const EXHIBIT_THUMB_MAX = 4;
 
 // 一覧のサムネイルは軽量サイズで取得する（拡大モーダル側は w1920 のまま）。
 // URLは2形式ある：Drive CDN直リンク（末尾 =w1920）と drive.google.com（&sz=w1920）
@@ -4660,31 +4648,25 @@ function _photoImgFallback(img) {
   if (fb) img.src = fb;
 }
 
-// buildMainScreen から呼ぶ。表示するのは公開済みシフトの年月の写真のみで、
-// シフト公開前・写真が1枚も無い月はカードごと非表示にして要素を増やさない
+// buildMainScreen から呼ぶ。表示するのは公開済みシフトの年月の写真のみ。
+// 読み込み中や写真が無い月は常に非表示のままにし、写真が確認できたときだけ表示する
+// （「まず表示してから無ければ隠す」ではなく「無ければ表示しない」の順にする）
 async function loadExhibitPhotoCard(isOpenPassed) {
   const card    = document.getElementById('exhibit-photo-card');
   const thumbs  = document.getElementById('exhibit-photo-thumbs');
-  const countEl = document.getElementById('exhibit-photo-count');
   const titleEl = document.getElementById('exhibit-photo-title');
-  if (!card || !thumbs || !countEl || !titleEl) return;
+  if (!card || !thumbs || !titleEl) return;
   // 年月・PWタイプの切替が連続したとき、古い応答が後着して上書きするのを防ぐ
   const seq = ++_exhibitLoadSeq;
   _exhibitPhotos = [];
+  card.style.display = 'none';
+  thumbs.innerHTML   = '';
   // 公開中のシフトがあればその月を、無ければ申込中の月を対象にする。
   // 来月の申込が始まっても今月のシフトはまだ動いているため、公開中のシフトを優先する
   const exYear  = (SHIFT_DATA && SHIFT_DATA.published && SHIFT_DATA.year)  || YEAR  || new Date().getFullYear();
   const exMonth = (SHIFT_DATA && SHIFT_DATA.published && SHIFT_DATA.month) || MONTH || (new Date().getMonth() + 1);
   // シフト公開前は通信もせずに非表示のままにする
-  if (!isOpenPassed && !(SHIFT_DATA && SHIFT_DATA.published)) {
-    card.style.display = 'none';
-    thumbs.innerHTML   = '';
-    return;
-  }
-  titleEl.innerHTML = ic('image') + ' ' + exMonth + '月の展示内容';
-  countEl.textContent = '';
-  thumbs.innerHTML = '<div class="exhibit-skel"><span class="exhibit-skel-spin"></span>展示内容の写真を読み込み中...</div>';
-  card.style.display = '';
+  if (!isOpenPassed && !(SHIFT_DATA && SHIFT_DATA.published)) return;
   try {
     const res = await apiGet('getPhotos', { category: 'exhibit', year: exYear, month: exMonth });
     if (seq !== _exhibitLoadSeq) return;
@@ -4693,38 +4675,27 @@ async function loadExhibitPhotoCard(isOpenPassed) {
     if (seq !== _exhibitLoadSeq) return;
     _exhibitPhotos = [];
   }
-  if (_exhibitPhotos.length === 0) {
-    card.style.display = 'none';
-    thumbs.innerHTML   = '';
-    return;
-  }
-  countEl.textContent = _exhibitPhotos.length + '枚';
-  let html = '';
-  _exhibitPhotos.slice(0, EXHIBIT_THUMB_MAX).forEach((p, i) => {
-    const fb = p.fallbackUrl && p.fallbackUrl !== p.url ? _exhibitThumbUrl(p.fallbackUrl) : '';
-    html += '<div class="exhibit-thumb" onclick="event.stopPropagation();openExhibitPhotoCard(' + i + ')">'
-          +   '<img src="' + esc(_exhibitThumbUrl(p.url)) + '"'
-          +     (fb ? ' data-fallback="' + esc(fb) + '" onerror="_photoImgFallback(this)"' : '')
-          +     ' alt="展示内容写真' + (i + 1) + '" loading="lazy">'
-          + '</div>';
-  });
-  if (_exhibitPhotos.length > EXHIBIT_THUMB_MAX) {
-    html += '<div class="exhibit-thumb exhibit-thumb-more" onclick="event.stopPropagation();openExhibitPhotoCard(' + EXHIBIT_THUMB_MAX + ')">'
-          +   '+' + (_exhibitPhotos.length - EXHIBIT_THUMB_MAX)
-          + '</div>';
-  }
-  thumbs.innerHTML = html;
+  if (_exhibitPhotos.length === 0) return; // 非表示のまま
+  const p  = _exhibitPhotos[0];
+  const fb = p.fallbackUrl && p.fallbackUrl !== p.url ? _exhibitThumbUrl(p.fallbackUrl) : '';
+  titleEl.innerHTML = ic('image') + ' ' + exMonth + '月の展示内容';
+  thumbs.innerHTML = '<div class="exhibit-thumb" onclick="event.stopPropagation();openExhibitPhotoCard()">'
+        +   '<img src="' + esc(_exhibitThumbUrl(p.url)) + '"'
+        +     (fb ? ' data-fallback="' + esc(fb) + '" onerror="_photoImgFallback(this)"' : '')
+        +     ' alt="展示内容写真" loading="lazy">'
+        + '</div>';
+  card.style.display = '';
 }
 
-// カードから開く：取得済みリストを使い回すので再取得せず即座に表示できる
-function openExhibitPhotoCard(idx) {
+// カードから開く：取得済みの1枚を使い回すので再取得せず即座に表示できる
+function openExhibitPhotoCard() {
   if (!_exhibitPhotos.length) { openPhotoModal('exhibit'); return; }
   document.getElementById('photo-modal-title').innerHTML   = ic('image') + ' カート展示内容';
   document.getElementById('photo-modal-overlay').style.display = 'flex';
   history.pushState({ screen: _currentScreenName, modal: 'photo' }, '');
   _modalInHistory = 'photo';
   _photoList = _exhibitPhotos.slice();
-  showPhoto(idx || 0);
+  showPhoto(0);
 }
 
 // ===== 道路使用許可書PDF閲覧モーダル（全ユーザー向け） =====

@@ -4230,28 +4230,53 @@ function initGuideLauncher() {
   applyCollapsed(collapsed, false);
 
   let startPoint = null;
+  let touchStartPoint = null;
   let skipClickUntil = 0;
-  button.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
-    startPoint = { x: e.clientX, y: e.clientY };
-    try { button.setPointerCapture(e.pointerId); } catch (_) {}
+  const startGesture = (x, y) => {
+    startPoint = { x, y };
     button.classList.add('dragging');
-  });
-  button.addEventListener('pointerup', e => {
-    if (!startPoint) return;
-    const dx = e.clientX - startPoint.x;
-    const dy = e.clientY - startPoint.y;
-    startPoint = null;
-    button.classList.remove('dragging');
-    if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy)) return;
+  };
+  const finishGesture = (x, y, touch = false) => {
+    const point = touch ? touchStartPoint : startPoint;
+    if (!point) return;
+    const dx = x - point.x;
+    const dy = y - point.y;
+    if (touch) touchStartPoint = null;
+    else startPoint = null;
+    if (!startPoint && !touchStartPoint) button.classList.remove('dragging');
+    if (Math.abs(dx) < 36 || Math.abs(dx) <= Math.abs(dy)) return;
     applyCollapsed(dx > 0);
     // touch端末で発生する直後のclickでは案内を二重に開かない
     skipClickUntil = Date.now() + 500;
+  };
+  button.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    startGesture(e.clientX, e.clientY);
+    try { button.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  button.addEventListener('pointerup', e => {
+    finishGesture(e.clientX, e.clientY);
   });
   button.addEventListener('pointercancel', () => {
     startPoint = null;
-    button.classList.remove('dragging');
+    if (!touchStartPoint) button.classList.remove('dragging');
   });
+  // PointerEventが使えないWebView向けのフォールバック
+  button.addEventListener('touchstart', e => {
+    const touch = e.changedTouches[0];
+    if (touch) {
+      touchStartPoint = { x: touch.clientX, y: touch.clientY };
+      button.classList.add('dragging');
+    }
+  }, { passive: true });
+  button.addEventListener('touchend', e => {
+    const touch = e.changedTouches[0];
+    if (touch) finishGesture(touch.clientX, touch.clientY, true);
+  }, { passive: true });
+  button.addEventListener('touchcancel', () => {
+    touchStartPoint = null;
+    if (!startPoint) button.classList.remove('dragging');
+  }, { passive: true });
   button.addEventListener('click', e => {
     if (Date.now() < skipClickUntil) {
       e.preventDefault();

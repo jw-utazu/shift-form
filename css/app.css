@@ -1445,6 +1445,9 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   font: inherit;
   font-size: 13px;
   font-weight: 700;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform .15s, background .15s;
 }

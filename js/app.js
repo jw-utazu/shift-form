@@ -223,6 +223,7 @@ let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識�
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
 let _currentNotices = [];          // 現在表示可能なお知らせ一覧（ベルアイコンのバッジ・モーダル用）
+let _guideTrail = [];              // かんたん案内で選択した質問の履歴
 
 // ===== PWA =====
 const _isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -547,6 +548,9 @@ function syncTabUi(name, stateDepth) {
   if (bar) bar.style.display = show ? '' : 'none';
   document.body.classList.toggle('has-tabbar', show);
 
+  const guideLauncher = document.getElementById('guide-launcher');
+  if (guideLauncher) guideLauncher.classList.toggle('is-hidden', !show);
+
   Object.keys(TAB_ROOT_SCREEN).forEach(t => {
     const btn = document.getElementById('tab-' + t);
     if (btn) btn.classList.toggle('active', t === _currentTab);
@@ -725,6 +729,7 @@ window.addEventListener('popstate', function(e) {
     }
     else if (which === 'cancelInfo') document.getElementById('cancel-info-overlay').classList.remove('show');
     else if (which === 'pwaInstall') document.getElementById('pwa-install-overlay').classList.remove('show');
+    else if (which === 'guide') document.getElementById('guide-overlay').classList.remove('show');
     else if (which === 'profile') {
       document.getElementById('profile-popup').classList.remove('show');
       document.getElementById('profile-overlay').classList.remove('show');
@@ -4188,6 +4193,380 @@ async function submitDistributionReport() {
     setTimeout(() => { msg.className = 'msg'; msg.textContent = ''; }, 3000);
   } finally {
     btn.disabled = false; btn.textContent = '送信する';
+  }
+}
+
+// ===== 困ったときのかんたん案内 =====
+// まずは選択式で目的を絞り、最後に既存の画面へ移動する。
+// 自由入力やAI APIは使わず、案内の内容を毎回同じにする。
+const GUIDE_NODES = {
+  start: {
+    message: '何をしたいですか？',
+    choices: [
+      { label: '希望を提出・確認したい', next: 'form' },
+      { label: 'シフト表・自分の担当を見たい', action: 'openShift' },
+      { label: '配布報告を送りたい', next: 'distribution' },
+      { label: '要望・質問を送りたい', next: 'request' },
+      { label: '不具合を報告したい', next: 'bug' },
+      { label: '設定や通知を確認したい', action: 'openMore' },
+      { label: '操作マニュアルを見たい', action: 'openManual' },
+      { label: 'この画面の説明を見たい', action: 'openHelp' },
+    ]
+  },
+  form: {
+    message: '希望についてですね。どちらですか？',
+    choices: [
+      { label: '希望提出画面を開く', action: 'openForm' },
+      { label: '提出した希望を確認したい', action: 'openForm' },
+      { label: '提出後の希望を変更したい', next: 'formChange' },
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  formChange: {
+    message: '提出後の希望の変更は、このアプリのフォームからは受け付けていません。区域係へ直接ご連絡ください。',
+    choices: [
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  request: {
+    message: '区域係へ送る要望・質問を入力してください。入力後に内容を確認してから送信します。',
+    form: { kind: 'request', title: '要望・質問', field: 'body', label: '内容', placeholder: 'ご意見・ご質問を入力してください' }
+  },
+  bug: {
+    message: '不具合の内容を入力してください。「どの画面で」「何をしたら」「どうなったか」を書くと伝わりやすくなります。',
+    form: { kind: 'bug', title: '不具合の報告', field: 'body', label: '不具合の内容', placeholder: '例：シフト表で日付を押したら表示されませんでした' }
+  },
+  distribution: {
+    message: '配布報告の内容を入力してください。入力後に内容を確認してから送信します。',
+    form: { kind: 'distribution', title: '配布報告' }
+  }
+};
+
+let _guideFormValues = {};
+let _guideFormError = '';
+let _guideDraft = null;
+let _guideResult = null;
+let _guideSubmitting = false;
+
+function _guideAddBubble(parent, type, message) {
+  const el = document.createElement('div');
+  el.className = 'guide-bubble ' + type;
+  el.textContent = message;
+  parent.appendChild(el);
+}
+
+function renderGuide() {
+  const messages = document.getElementById('guide-messages');
+  const choices = document.getElementById('guide-choice-list');
+  if (!messages || !choices) return;
+
+  messages.innerHTML = '';
+  choices.innerHTML = '';
+
+  let node = GUIDE_NODES.start;
+  _guideAddBubble(messages, 'assistant', node.message);
+  _guideTrail.forEach(choice => {
+    _guideAddBubble(messages, 'user', choice.label);
+    node = GUIDE_NODES[choice.next] || GUIDE_NODES.start;
+    _guideAddBubble(messages, 'assistant', node.message);
+  });
+
+  if (_guideResult) {
+    _guideAddBubble(messages, 'assistant', _guideResult.message);
+    if (_guideResult.ok) {
+      _guideAddChoice(choices, '閉じる', { action: 'close' });
+      _guideAddChoice(choices, '別の操作をする', { action: 'reset' });
+    } else {
+      _guideAddChoice(choices, 'もう一度送信する', { action: 'submitDraft' });
+      _guideAddChoice(choices, '入力内容を修正する', { action: 'editDraft' });
+      _guideAddChoice(choices, '最初に戻る', { action: 'reset' });
+    }
+  } else if (_guideDraft) {
+    _guideAddBubble(messages, 'assistant', '次の内容で送信しますか？\n\n' + _guideDraft.summary);
+    _guideAddChoice(choices, 'この内容で送信する', { action: 'submitDraft' });
+    _guideAddChoice(choices, '入力内容を修正する', { action: 'editDraft' });
+    _guideAddChoice(choices, '最初に戻る', { action: 'reset' });
+  } else if (node.form) {
+    _guideRenderForm(choices, node.form);
+  } else {
+    (node.choices || []).forEach(choice => _guideAddChoice(choices, choice.label, choice));
+  }
+
+  const back = document.getElementById('guide-back-btn');
+  const reset = document.getElementById('guide-reset-btn');
+  if (back) back.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult;
+  if (reset) reset.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult;
+
+  const body = document.querySelector('.guide-modal-body');
+  if (body) setTimeout(() => { body.scrollTop = body.scrollHeight; }, 0);
+}
+
+function _guideAddChoice(parent, labelText, choice) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'guide-choice';
+  button.disabled = _guideSubmitting;
+  button.onclick = () => guideChoose(choice);
+
+  const label = document.createElement('span');
+  label.textContent = labelText;
+  const arrow = document.createElement('span');
+  arrow.className = 'guide-choice-arr';
+  arrow.textContent = '›';
+  button.appendChild(label);
+  button.appendChild(arrow);
+  parent.appendChild(button);
+}
+
+function _guideRenderForm(parent, form) {
+  if (form.kind === 'distribution' && !_guideFormValues.reportDate) {
+    const today = getSimulatedToday();
+    _guideFormValues.reportDate = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'guide-form';
+
+  const title = document.createElement('div');
+  title.className = 'guide-form-title';
+  title.textContent = form.title;
+  wrap.appendChild(title);
+
+  const addField = (key, labelText, type, placeholder, multiline) => {
+    const field = document.createElement('label');
+    field.className = 'guide-field';
+    const label = document.createElement('span');
+    label.className = 'guide-field-label';
+    label.textContent = labelText;
+    field.appendChild(label);
+    const input = document.createElement(multiline ? 'textarea' : 'input');
+    input.className = 'guide-field-input';
+    if (!multiline) input.type = type;
+    input.placeholder = placeholder || '';
+    input.value = _guideFormValues[key] || '';
+    input.oninput = () => { _guideFormValues[key] = input.value; };
+    field.appendChild(input);
+    wrap.appendChild(field);
+  };
+
+  if (form.kind === 'distribution') {
+    addField('reportDate', '日付', 'date', '', false);
+    addField('reportTime', '時刻（任意）', 'time', '', false);
+    addField('items', '配布物', 'text', '例：暮らせます冊子×1', true);
+    addField('notes', '備考（任意）', 'text', '必要があれば入力してください', true);
+  } else {
+    addField(form.field, form.label, 'text', form.placeholder, true);
+  }
+
+  if (_guideFormError) {
+    const error = document.createElement('div');
+    error.className = 'guide-form-error';
+    error.textContent = _guideFormError;
+    wrap.appendChild(error);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'guide-form-note';
+  note.textContent = '送信前に内容を確認する画面が表示されます。';
+  wrap.appendChild(note);
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'guide-form-submit';
+  submit.textContent = '内容を確認する';
+  submit.disabled = _guideSubmitting;
+  submit.onclick = () => guideConfirmForm(form.kind);
+  wrap.appendChild(submit);
+  parent.appendChild(wrap);
+}
+
+function _guideReadForm(kind) {
+  const data = Object.assign({}, _guideFormValues);
+  if (kind === 'distribution') {
+    if (!data.reportDate) return { error: '日付を選択してください。' };
+    if (!String(data.items || '').trim()) return { error: '配布物を入力してください。' };
+    data.items = String(data.items).trim();
+    data.notes = String(data.notes || '').trim();
+    data.reportTime = String(data.reportTime || '');
+    return { data };
+  }
+  if (!String(data.body || '').trim()) return { error: '内容を入力してください。' };
+  data.body = String(data.body).trim();
+  return { data };
+}
+
+function _guideDraftSummary(kind, data) {
+  if (kind === 'distribution') {
+    return '日付：' + data.reportDate +
+      '\n時刻：' + (data.reportTime || '未入力') +
+      '\n配布物：' + data.items +
+      (data.notes ? '\n備考：' + data.notes : '');
+  }
+  return data.body;
+}
+
+function guideConfirmForm(kind) {
+  _guideFormError = '';
+  const result = _guideReadForm(kind);
+  if (result.error) {
+    _guideFormError = result.error;
+    renderGuide();
+    return;
+  }
+  _guideDraft = { kind, data: result.data, summary: _guideDraftSummary(kind, result.data) };
+  _guideResult = null;
+  renderGuide();
+}
+
+function guideChoose(choice) {
+  if (!choice) return;
+  if (choice.action) {
+    _guideRunAction(choice.action);
+    return;
+  }
+  if (!choice.next || !GUIDE_NODES[choice.next]) return;
+  _guideTrail.push(choice);
+  renderGuide();
+}
+
+function guideBack() {
+  if (_guideResult) {
+    _guideResult = null;
+    renderGuide();
+    return;
+  }
+  if (_guideDraft) {
+    _guideDraft = null;
+    renderGuide();
+    return;
+  }
+  if (_guideTrail.length === 0) return;
+  _guideTrail.pop();
+  renderGuide();
+}
+
+function guideReset() {
+  _guideTrail = [];
+  _guideFormValues = {};
+  _guideFormError = '';
+  _guideDraft = null;
+  _guideResult = null;
+  renderGuide();
+}
+
+function openGuide() {
+  if (_modalInHistory) return;
+  guideReset();
+  document.getElementById('guide-overlay').classList.add('show');
+  history.pushState({ screen: _currentScreenName, modal: 'guide' }, '');
+  _modalInHistory = 'guide';
+}
+
+function closeGuide() {
+  const overlay = document.getElementById('guide-overlay');
+  if (overlay) overlay.classList.remove('show');
+  _guideTrail = [];
+  if (_modalInHistory === 'guide') {
+    _modalInHistory = null;
+    _suppressNextPopstate = true;
+    history.go(-1);
+    return true;
+  }
+  return false;
+}
+
+function closeGuideOutside(e) {
+  if (e.target === document.getElementById('guide-overlay')) closeGuide();
+}
+
+function _guideRunAction(actionName) {
+  const actions = {
+    openForm:   () => switchTab('form'),
+    openShift:  () => switchTab('shift'),
+    openMore:   () => switchTab('more'),
+    openRequest: () => showScreen('request'),
+    openBug:      () => showScreen('bug'),
+    openManual:   () => openManualModal(),
+    openHelp:     () => openHelp(HELP_CONTENTS[_currentScreenName] ? _currentScreenName : 'main'),
+  };
+  if (actionName === 'reset') {
+    guideReset();
+    return;
+  }
+  if (actionName === 'editDraft') {
+    _guideDraft = null;
+    _guideResult = null;
+    _guideFormError = '';
+    renderGuide();
+    return;
+  }
+  if (actionName === 'submitDraft') {
+    guideSubmitDraft();
+    return;
+  }
+  if (actionName === 'close') {
+    closeGuide();
+    return;
+  }
+  const action = actions[actionName];
+  if (!action) return;
+  if (closeGuide()) _afterPopstate = action;
+  else action();
+}
+
+async function guideSubmitDraft() {
+  if (_guideSubmitting || !_guideDraft) return;
+  if (_isPreviewMode) {
+    _guideResult = { ok: false, message: '閲覧モード中は送信できません。' };
+    renderGuide();
+    return;
+  }
+  if (!SESSION || !SESSION.uid) {
+    _guideResult = { ok: false, message: 'ログイン情報を確認できません。いったんログインし直してください。' };
+    renderGuide();
+    return;
+  }
+
+  const draft = _guideDraft;
+  _guideSubmitting = true;
+  showLoading('送信中...');
+  try {
+    let data;
+    if (draft.kind === 'request') {
+      data = await apiGet('postRequest', {
+        uid: SESSION.uid, name: SESSION.name, body: draft.data.body
+      });
+    } else if (draft.kind === 'bug') {
+      data = await apiGet('postBugReport', {
+        uid: SESSION.uid, name: SESSION.name, body: draft.data.body
+      });
+    } else if (draft.kind === 'distribution') {
+      data = await apiGet('postDistributionReport', {
+        uid: SESSION.uid, name: SESSION.name,
+        reportDate: draft.data.reportDate,
+        reportTime: draft.data.reportTime || '',
+        items: draft.data.items,
+        notes: draft.data.notes || '',
+      });
+    } else {
+      throw new Error('送信対象が見つかりません');
+    }
+    if (!data || !data.ok) throw new Error((data && data.error) || '送信に失敗しました');
+    _guideDraft = null;
+    _guideFormValues = {};
+    _guideResult = {
+      ok: true,
+      message: draft.kind === 'request' ? '要望・質問を送信しました。' :
+        draft.kind === 'bug' ? '不具合報告を送信しました。' : '配布報告を送信しました。'
+    };
+  } catch (e) {
+    _guideResult = { ok: false, message: '送信できませんでした。\n' + (e.message || 'もう一度お試しください。') };
+  } finally {
+    _guideSubmitting = false;
+    await hideLoading();
+    renderGuide();
   }
 }
 

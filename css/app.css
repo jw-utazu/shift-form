@@ -1449,6 +1449,17 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   transition: transform .15s, background .15s;
 }
 .guide-launcher.is-hidden { display: none; }
+.guide-launcher.is-collapsed {
+  right: 0;
+  min-width: 34px;
+  width: 34px;
+  min-height: 52px;
+  padding: 7px 4px;
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+}
+.guide-launcher.is-collapsed .guide-launcher-tx { display: none; }
+.guide-launcher.dragging { transition: none; }
 .guide-launcher:active { transform: scale(.97); background: #166534; }
 .guide-launcher-ic {
   display: flex;

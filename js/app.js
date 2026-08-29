@@ -224,6 +224,7 @@ let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopsta
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
 let _currentNotices = [];          // 現在表示可能なお知らせ一覧（ベルアイコンのバッジ・モーダル用）
 let _guideTrail = [];              // かんたん案内で選択した質問の履歴
+let _guideAnswer = null;            // かんたん案内内で返す回答
 
 // ===== PWA =====
 const _isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -549,7 +550,10 @@ function syncTabUi(name, stateDepth) {
   document.body.classList.toggle('has-tabbar', show);
 
   const guideLauncher = document.getElementById('guide-launcher');
-  if (guideLauncher) guideLauncher.classList.toggle('is-hidden', !show);
+  if (guideLauncher) {
+    initGuideLauncher();
+    guideLauncher.classList.toggle('is-hidden', !show);
+  }
 
   Object.keys(TAB_ROOT_SCREEN).forEach(t => {
     const btn = document.getElementById('tab-' + t);
@@ -729,7 +733,11 @@ window.addEventListener('popstate', function(e) {
     }
     else if (which === 'cancelInfo') document.getElementById('cancel-info-overlay').classList.remove('show');
     else if (which === 'pwaInstall') document.getElementById('pwa-install-overlay').classList.remove('show');
-    else if (which === 'guide') document.getElementById('guide-overlay').classList.remove('show');
+    else if (which === 'guide') {
+      document.getElementById('guide-overlay').classList.remove('show');
+      _guideTrail = [];
+      _guideAnswer = null;
+    }
     else if (which === 'profile') {
       document.getElementById('profile-popup').classList.remove('show');
       document.getElementById('profile-overlay').classList.remove('show');
@@ -4197,34 +4205,175 @@ async function submitDistributionReport() {
 }
 
 // ===== 困ったときのかんたん案内 =====
-// まずは選択式で目的を絞り、最後に既存の画面へ移動する。
+// まずは選択式で目的を絞り、説明や要約は案内内で返す。
+// 画面を開く場合も、最後に明示的なボタンを押したときだけ移動する。
 // 自由入力やAI APIは使わず、案内の内容を毎回同じにする。
+const GUIDE_LAUNCHER_STORAGE_KEY = 'shift-form-guide-launcher-collapsed';
+
+function initGuideLauncher() {
+  const button = document.getElementById('guide-launcher');
+  if (!button || button.dataset.guideBound === '1') return;
+  button.dataset.guideBound = '1';
+
+  const applyCollapsed = (collapsed, save = true) => {
+    button.classList.toggle('is-collapsed', collapsed);
+    button.setAttribute('aria-label', collapsed
+      ? 'かんたん案内を開く（折りたたみ中）'
+      : '困ったときのかんたん案内');
+    if (save) {
+      try { localStorage.setItem(GUIDE_LAUNCHER_STORAGE_KEY, collapsed ? '1' : '0'); } catch (_) {}
+    }
+  };
+
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(GUIDE_LAUNCHER_STORAGE_KEY) === '1'; } catch (_) {}
+  applyCollapsed(collapsed, false);
+
+  let startPoint = null;
+  let skipClickUntil = 0;
+  button.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    startPoint = { x: e.clientX, y: e.clientY };
+    try { button.setPointerCapture(e.pointerId); } catch (_) {}
+    button.classList.add('dragging');
+  });
+  button.addEventListener('pointerup', e => {
+    if (!startPoint) return;
+    const dx = e.clientX - startPoint.x;
+    const dy = e.clientY - startPoint.y;
+    startPoint = null;
+    button.classList.remove('dragging');
+    if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy)) return;
+    applyCollapsed(dx > 0);
+    // touch端末で発生する直後のclickでは案内を二重に開かない
+    skipClickUntil = Date.now() + 500;
+  });
+  button.addEventListener('pointercancel', () => {
+    startPoint = null;
+    button.classList.remove('dragging');
+  });
+  button.addEventListener('click', e => {
+    if (Date.now() < skipClickUntil) {
+      e.preventDefault();
+      return;
+    }
+    if (button.classList.contains('is-collapsed')) applyCollapsed(false);
+    openGuide();
+  });
+}
+
+function _guideHasPublishedShift() {
+  return !!(SHIFT_DATA && SHIFT_DATA.published);
+}
+
+function _guideGetStartChoices() {
+  return [
+    _formTabEnabled
+      ? { label: '希望を提出・確認したい', next: 'form' }
+      : { label: '希望の受付状況を確認したい', next: 'formUnavailable' },
+    _guideHasPublishedShift()
+      ? { label: 'シフト表・自分の担当を確認したい', next: 'shift' }
+      : { label: 'シフト表の公開状況を確認したい', next: 'shiftUnavailable' },
+    { label: '配布報告を送りたい', next: 'distribution' },
+    { label: '要望・質問を送りたい', next: 'request' },
+    { label: '不具合を報告したい', next: 'bug' },
+    { label: '設定や通知を確認したい', next: 'settings' },
+    { label: '操作マニュアルを見たい', next: 'manual' },
+    { label: 'この画面の説明を見たい', action: 'openHelp' },
+  ];
+}
+
+function _guideMyShiftSummary() {
+  if (!SESSION || !SESSION.name) return 'ログイン情報を確認できないため、自分の担当を表示できません。';
+  if (!_guideHasPublishedShift()) return '現在、公開中のシフトはありません。';
+  if (!Array.isArray(SHIFT_DATA.dates) || SHIFT_DATA.dates.length === 0) {
+    return 'シフト表は公開されていますが、確認できる日程情報がありません。';
+  }
+
+  const assigned = SHIFT_DATA.dates.filter(d => isMyCellInDate(d));
+  const period = SHIFT_DATA.year && SHIFT_DATA.month
+    ? SHIFT_DATA.year + '年' + SHIFT_DATA.month + '月'
+    : '公開中';
+  if (assigned.length === 0) {
+    return period + 'のシフト表を確認しましたが、あなたの担当はありません。';
+  }
+
+  const name = SESSION.name;
+  const lines = assigned.slice(0, 20).map(d => {
+    const roles = [];
+    if ((d.responsible || []).includes(name)) roles.push('責任者');
+    if (d.cart && (d.cart.bring || []).some(c => c && c.name === name)) roles.push('カート持ち込み');
+    if (d.cart && (d.cart.take || []).some(c => c && c.name === name)) roles.push('カート持ち帰り');
+    const inSlot = (d.slots || []).some(slot =>
+      Object.values(slot.places || {}).some(people =>
+        (people || []).some(person => person && person.name === name)));
+    if (inSlot) roles.push('奉仕');
+    return d.date + '（' + (d.weekday || '') + '） ' + (d.time || '時間帯未定') +
+      (d.cancelled ? '（中止）' : '') +
+      (roles.length ? '\n役割：' + roles.join('・') : '');
+  });
+  const extra = assigned.length > 20 ? '\n\nほか' + (assigned.length - 20) + '件あります。' : '';
+  return 'あなたの担当は次のとおりです（' + period + '）。\n\n' + lines.join('\n\n') + extra;
+}
+
 const GUIDE_NODES = {
   start: {
     message: '何をしたいですか？',
-    choices: [
-      { label: '希望を提出・確認したい', next: 'form' },
-      { label: 'シフト表・自分の担当を見たい', action: 'openShift' },
-      { label: '配布報告を送りたい', next: 'distribution' },
-      { label: '要望・質問を送りたい', next: 'request' },
-      { label: '不具合を報告したい', next: 'bug' },
-      { label: '設定や通知を確認したい', action: 'openMore' },
-      { label: '操作マニュアルを見たい', action: 'openManual' },
-      { label: 'この画面の説明を見たい', action: 'openHelp' },
-    ]
+    choices: []
   },
   form: {
     message: '希望についてですね。どちらですか？',
     choices: [
-      { label: '希望提出画面を開く', action: 'openForm' },
-      { label: '提出した希望を確認したい', action: 'openForm' },
+      { label: '希望提出・確認画面について説明を聞く', next: 'formOpen' },
       { label: '提出後の希望を変更したい', next: 'formChange' },
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  formOpen: {
+    message: '希望提出・確認画面を開くと、現在選べる日程と時間帯を確認できます。画面を開きますか？',
+    choices: [
+      { label: '希望提出・確認画面を開く', action: 'openForm' },
+      { label: '前の質問に戻る', action: 'back' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
   formChange: {
     message: '提出後の希望の変更は、このアプリのフォームからは受け付けていません。区域係へ直接ご連絡ください。',
     choices: [
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  shift: {
+    message: 'シフトについてですね。どちらにしますか？',
+    choices: [
+      { label: '自分の担当をこの場で確認する', action: 'showMyShifts' },
+      { label: '詳しいシフト表を開く', action: 'openShift' },
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  formUnavailable: {
+    message: '現在は希望の受付期間外のため、希望提出・確認画面を開けません。受付が始まると、ここから画面を開けるようになります。',
+    choices: [
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  shiftUnavailable: {
+    message: '現在はシフトがまだ公開されていないため、担当を確認できません。シフト公開後にもう一度お試しください。',
+    choices: [
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  settings: {
+    message: '設定や通知を確認できます。設定画面を開きますか？',
+    choices: [
+      { label: '設定画面を開く', action: 'openMore' },
+      { label: '最初に戻る', action: 'reset' },
+    ]
+  },
+  manual: {
+    message: '操作マニュアルを開いて、画面を見ながら使い方を確認できます。',
+    choices: [
+      { label: '操作マニュアルを開く', action: 'openManual' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
@@ -4271,7 +4420,16 @@ function renderGuide() {
     _guideAddBubble(messages, 'assistant', node.message);
   });
 
-  if (_guideResult) {
+  if (_guideAnswer) {
+    _guideAddBubble(messages, 'assistant', _guideAnswer.message);
+    if (_guideAnswer.action) {
+      const actionLabel = _guideAnswer.action === 'openShift'
+        ? '詳しいシフト表を開く' : '画面を開く';
+      _guideAddChoice(choices, actionLabel, { action: _guideAnswer.action });
+    }
+    _guideAddChoice(choices, '別の操作をする', { action: 'reset' });
+    _guideAddChoice(choices, '閉じる', { action: 'close' });
+  } else if (_guideResult) {
     _guideAddBubble(messages, 'assistant', _guideResult.message);
     if (_guideResult.ok) {
       _guideAddChoice(choices, '閉じる', { action: 'close' });
@@ -4289,13 +4447,14 @@ function renderGuide() {
   } else if (node.form) {
     _guideRenderForm(choices, node.form);
   } else {
-    (node.choices || []).forEach(choice => _guideAddChoice(choices, choice.label, choice));
+    const nodeChoices = node === GUIDE_NODES.start ? _guideGetStartChoices() : (node.choices || []);
+    nodeChoices.forEach(choice => _guideAddChoice(choices, choice.label, choice));
   }
 
   const back = document.getElementById('guide-back-btn');
   const reset = document.getElementById('guide-reset-btn');
-  if (back) back.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult;
-  if (reset) reset.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult;
+  if (back) back.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
+  if (reset) reset.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
 
   const body = document.querySelector('.guide-modal-body');
   if (body) setTimeout(() => { body.scrollTop = body.scrollHeight; }, 0);
@@ -4432,6 +4591,11 @@ function guideChoose(choice) {
 }
 
 function guideBack() {
+  if (_guideAnswer) {
+    _guideAnswer = null;
+    renderGuide();
+    return;
+  }
   if (_guideResult) {
     _guideResult = null;
     renderGuide();
@@ -4453,6 +4617,7 @@ function guideReset() {
   _guideFormError = '';
   _guideDraft = null;
   _guideResult = null;
+  _guideAnswer = null;
   renderGuide();
 }
 
@@ -4468,6 +4633,7 @@ function closeGuide() {
   const overlay = document.getElementById('guide-overlay');
   if (overlay) overlay.classList.remove('show');
   _guideTrail = [];
+  _guideAnswer = null;
   if (_modalInHistory === 'guide') {
     _modalInHistory = null;
     _suppressNextPopstate = true;
@@ -4483,8 +4649,8 @@ function closeGuideOutside(e) {
 
 function _guideRunAction(actionName) {
   const actions = {
-    openForm:   () => switchTab('form'),
-    openShift:  () => switchTab('shift'),
+    openForm:   () => _formTabEnabled ? switchTab('form') : guideChoose({ label: '希望提出・確認画面を開く', next: 'formUnavailable' }),
+    openShift:  () => _guideHasPublishedShift() ? switchTab('shift') : guideChoose({ label: '詳しいシフト表を開く', next: 'shiftUnavailable' }),
     openMore:   () => switchTab('more'),
     openRequest: () => showScreen('request'),
     openBug:      () => showScreen('bug'),
@@ -4508,6 +4674,14 @@ function _guideRunAction(actionName) {
   }
   if (actionName === 'close') {
     closeGuide();
+    return;
+  }
+  if (actionName === 'showMyShifts') {
+    _guideAnswer = {
+      message: _guideMyShiftSummary(),
+      action: _guideHasPublishedShift() ? 'openShift' : null,
+    };
+    renderGuide();
     return;
   }
   const action = actions[actionName];

@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=47">
+<link rel="stylesheet" href="css/app.css?v=48">
 </head>
 <body>
 
@@ -734,7 +734,8 @@
     </div>
     <div class="guide-modal-footer">
       <div id="guide-composer-wrap" class="guide-composer-wrap">
-        <button type="button" id="guide-composer" class="guide-composer" onclick="guideToggleStartChoices()" aria-haspopup="listbox" aria-controls="guide-choice-list" aria-expanded="false">
+        <div id="guide-start-choice-list" class="guide-start-choice-list" role="listbox"></div>
+        <button type="button" id="guide-composer" class="guide-composer" onclick="guideToggleStartChoices()" aria-haspopup="listbox" aria-controls="guide-start-choice-list" aria-expanded="false">
           <span class="guide-composer-copy">
             <span class="guide-composer-label">返信を選ぶ</span>
             <span class="guide-composer-placeholder">選択肢から回答してください</span>
@@ -820,6 +821,6 @@
 <script src="js/icons.js?v=1"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/picker.js?v=2"></script>
-<script src="js/app.js?v=76"></script>
+<script src="js/app.js?v=77"></script>
 </body>
 </html>

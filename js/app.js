@@ -4461,6 +4461,16 @@ function _guideAddBubble(parent, type, message, extraClass) {
     el.appendChild(copy);
     row.appendChild(el);
     row.appendChild(avatar);
+    const pic = !_isPreviewMode && SESSION ? (SESSION.avatar || SESSION.picture || '') : '';
+    if (pic) {
+      const img = document.createElement('img');
+      img.src = pic;
+      img.alt = SESSION.name || '自分';
+      img.onerror = () => { avatar.innerHTML = ic('user'); };
+      avatar.appendChild(img);
+    } else {
+      avatar.innerHTML = ic('user');
+    }
   }
   parent.appendChild(row);
 }
@@ -4716,6 +4726,8 @@ function renderGuide() {
 
   messages.innerHTML = '';
   choices.innerHTML = '';
+  const startChoices = document.getElementById('guide-start-choice-list');
+  if (startChoices) startChoices.innerHTML = '';
 
   let node = GUIDE_NODES.start;
   _guideTrail.forEach(choice => {
@@ -4737,12 +4749,18 @@ function renderGuide() {
   }
   _guideSyncStartComposer(isInitialGuide);
   const isStart = node === GUIDE_NODES.start && isInitialGuide;
-  choices.classList.toggle('guide-start-options', isStart);
-  if (_guideTrail.length === 0) {
-    _guideAddBubble(messages, 'assistant', 'こんにちは。ここから一緒に進めます。', 'guide-greeting');
+  if (startChoices) {
+    startChoices.classList.toggle('show', isStart && _guideStartChoicesOpen);
+    if (isStart && _guideStartChoicesOpen) {
+      _guideGetStartChoices().forEach(choice => _guideAddChoice(startChoices, choice.label, choice));
+    }
   }
-  if (_guideTrail.length > 0) _guideAddBubble(messages, 'user', _guideTrail[_guideTrail.length - 1].label);
-  _guideAddBubble(messages, 'assistant', node.message);
+  _guideAddBubble(messages, 'assistant', GUIDE_NODES.start.message);
+  _guideTrail.forEach(choice => {
+    _guideAddBubble(messages, 'user', choice.label);
+    const nextNode = GUIDE_NODES[choice.next] || GUIDE_NODES.start;
+    _guideAddBubble(messages, 'assistant', nextNode.message);
+  });
 
   if (_guideAnswer) {
     _guideAddBubble(messages, 'assistant', _guideAnswer.message, 'guide-answer');
@@ -4772,7 +4790,7 @@ function renderGuide() {
     _guideRenderForm(choices, node.form);
   } else {
     if (!isStart || _guideStartChoicesOpen) {
-      const nodeChoices = isStart ? _guideGetStartChoices() : (node.choices || []);
+      const nodeChoices = node.choices || [];
       nodeChoices.forEach(choice => _guideAddChoice(choices, choice.label, choice));
     }
   }

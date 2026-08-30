@@ -4428,6 +4428,7 @@ let _guideResult = null;
 let _guideSubmitting = false;
 let _guideWishState = null;
 let _guideStartChoicesOpen = false;
+let _guideActionPrompt = '';
 
 function _guideAddBubble(parent, type, message, extraClass) {
   const row = document.createElement('div');
@@ -4763,6 +4764,9 @@ function renderGuide() {
   });
 
   if (_guideAnswer) {
+    if (_guideAnswer.prompt) {
+      _guideAddBubble(messages, 'user', _guideAnswer.prompt);
+    }
     _guideAddBubble(messages, 'assistant', _guideAnswer.message, 'guide-answer');
     if (_guideAnswer.action) {
       const actionLabel = _guideAnswer.action === 'openShift'
@@ -4947,6 +4951,9 @@ function guideChoose(choice) {
   if (!choice) return;
   if (_guideTrail.length === 0) _guideStartChoicesOpen = false;
   if (choice.action) {
+    if (choice.action === 'showMyShifts' || choice.action === 'showCurrentWish') {
+      _guideActionPrompt = choice.label || '';
+    }
     _guideRunAction(choice.action);
     return;
   }
@@ -4990,6 +4997,7 @@ function guideReset() {
   _guideDraft = null;
   _guideResult = null;
   _guideAnswer = null;
+  _guideActionPrompt = '';
   _guideWishState = null;
   renderGuide();
 }
@@ -5053,12 +5061,19 @@ function _guideRunAction(actionName) {
     _guideAnswer = {
       message: _guideMyShiftSummary(),
       action: _guideHasPublishedShift() ? 'openShift' : null,
+      prompt: _guideActionPrompt,
     };
+    _guideActionPrompt = '';
     renderGuide();
     return;
   }
   if (actionName === 'showCurrentWish') {
-    _guideAnswer = { message: _guideCurrentWishSummary(), action: null };
+    _guideAnswer = {
+      message: _guideCurrentWishSummary(),
+      action: null,
+      prompt: _guideActionPrompt,
+    };
+    _guideActionPrompt = '';
     renderGuide();
     return;
   }

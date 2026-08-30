@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=46">
+<link rel="stylesheet" href="css/app.css?v=47">
 </head>
 <body>
 
@@ -720,7 +720,7 @@
         <div class="guide-modal-title" id="guide-modal-title">
           <span class="guide-title-ic">?</span> 操作ナビ
         </div>
-        <div class="guide-modal-subtitle">やりたいことを選んで進めます</div>
+        <div class="guide-modal-subtitle">選択した内容に合わせて案内します</div>
       </div>
       <button type="button" class="help-modal-close" onclick="closeGuide()" aria-label="案内を閉じる">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -733,6 +733,15 @@
       <div id="guide-choice-list" class="guide-choice-list"></div>
     </div>
     <div class="guide-modal-footer">
+      <div id="guide-composer-wrap" class="guide-composer-wrap">
+        <button type="button" id="guide-composer" class="guide-composer" onclick="guideToggleStartChoices()" aria-haspopup="listbox" aria-controls="guide-choice-list" aria-expanded="false">
+          <span class="guide-composer-copy">
+            <span class="guide-composer-label">返信を選ぶ</span>
+            <span class="guide-composer-placeholder">選択肢から回答してください</span>
+          </span>
+          <span id="guide-composer-arrow" class="guide-composer-arrow" aria-hidden="true">⌄</span>
+        </button>
+      </div>
       <button type="button" id="guide-back-btn" class="guide-control" onclick="guideBack()">‹ 前の質問</button>
       <button type="button" id="guide-reset-btn" class="guide-control" onclick="guideReset()">最初から</button>
     </div>
@@ -811,6 +820,6 @@
 <script src="js/icons.js?v=1"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/picker.js?v=2"></script>
-<script src="js/app.js?v=75"></script>
+<script src="js/app.js?v=76"></script>
 </body>
 </html>

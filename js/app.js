@@ -4343,7 +4343,7 @@ function _guideMyShiftSummary() {
 
 const GUIDE_NODES = {
   start: {
-    message: '何をしたいですか？',
+    message: '今日はどうしましたか？\n下の入力欄から選んでください。',
     choices: []
   },
   form: {
@@ -4427,23 +4427,55 @@ let _guideDraft = null;
 let _guideResult = null;
 let _guideSubmitting = false;
 let _guideWishState = null;
+let _guideStartChoicesOpen = false;
 
 function _guideAddBubble(parent, type, message, extraClass) {
+  const row = document.createElement('div');
+  row.className = 'guide-message-row ' + type;
   const el = document.createElement('div');
   el.className = 'guide-bubble ' + type + (extraClass ? ' ' + extraClass : '');
   if (type === 'assistant') {
     const avatar = document.createElement('span');
     avatar.className = 'guide-bubble-avatar';
     avatar.textContent = '?';
+    const copy = document.createElement('div');
+    copy.className = 'guide-bubble-copy';
+    const name = document.createElement('span');
+    name.className = 'guide-bubble-name';
+    name.textContent = '操作ナビ';
+    const text = document.createElement('span');
+    text.className = 'guide-bubble-text';
+    text.textContent = message;
+    copy.appendChild(name);
+    copy.appendChild(text);
+    el.appendChild(copy);
+    row.appendChild(avatar);
+    row.appendChild(el);
+  } else {
     const copy = document.createElement('span');
     copy.className = 'guide-bubble-copy';
     copy.textContent = message;
-    el.appendChild(avatar);
+    const avatar = document.createElement('span');
+    avatar.className = 'guide-bubble-avatar';
+    avatar.textContent = '人';
     el.appendChild(copy);
-  } else {
-    el.textContent = message;
+    row.appendChild(el);
+    row.appendChild(avatar);
   }
-  parent.appendChild(el);
+  parent.appendChild(row);
+}
+
+function _guideSyncStartComposer(isInitialGuide) {
+  const wrap = document.getElementById('guide-composer-wrap');
+  const button = document.getElementById('guide-composer');
+  const arrow = document.getElementById('guide-composer-arrow');
+  if (wrap) wrap.classList.toggle('show', isInitialGuide);
+  if (button) {
+    const isOpen = isInitialGuide && _guideStartChoicesOpen;
+    button.classList.toggle('is-open', isOpen);
+    button.setAttribute('aria-expanded', String(isOpen));
+  }
+  if (arrow) arrow.textContent = _guideStartChoicesOpen && isInitialGuide ? '⌃' : '⌄';
 }
 
 function _guideCloneWishState() {
@@ -4690,8 +4722,12 @@ function renderGuide() {
     node = GUIDE_NODES[choice.next] || GUIDE_NODES.start;
   });
 
+  const isInitialGuide = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
   const step = document.getElementById('guide-step-label');
-  if (step) step.textContent = _guideTrail.length === 0 ? 'STEP 1　目的を選択' : 'STEP ' + (_guideTrail.length + 1);
+  if (step) {
+    step.textContent = isInitialGuide ? '' : 'STEP ' + (_guideTrail.length + 1);
+    step.classList.toggle('show', !isInitialGuide);
+  }
   const context = document.getElementById('guide-context');
   if (context) {
     context.textContent = _guideTrail.length
@@ -4699,6 +4735,9 @@ function renderGuide() {
       : '';
     context.classList.toggle('show', _guideTrail.length > 0);
   }
+  _guideSyncStartComposer(isInitialGuide);
+  const isStart = node === GUIDE_NODES.start && isInitialGuide;
+  choices.classList.toggle('guide-start-options', isStart);
   if (_guideTrail.length === 0) {
     _guideAddBubble(messages, 'assistant', 'こんにちは。ここから一緒に進めます。', 'guide-greeting');
   }
@@ -4732,8 +4771,10 @@ function renderGuide() {
   } else if (node.form) {
     _guideRenderForm(choices, node.form);
   } else {
-    const nodeChoices = node === GUIDE_NODES.start ? _guideGetStartChoices() : (node.choices || []);
-    nodeChoices.forEach(choice => _guideAddChoice(choices, choice.label, choice));
+    if (!isStart || _guideStartChoicesOpen) {
+      const nodeChoices = isStart ? _guideGetStartChoices() : (node.choices || []);
+      nodeChoices.forEach(choice => _guideAddChoice(choices, choice.label, choice));
+    }
   }
 
   const back = document.getElementById('guide-back-btn');
@@ -4742,7 +4783,6 @@ function renderGuide() {
   if (reset) reset.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
 
   const body = document.querySelector('.guide-modal-body');
-  const isInitialGuide = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
   if (body) setTimeout(() => { body.scrollTop = isInitialGuide ? 0 : body.scrollHeight; }, 0);
 }
 
@@ -4887,12 +4927,19 @@ function guideConfirmForm(kind) {
 
 function guideChoose(choice) {
   if (!choice) return;
+  if (_guideTrail.length === 0) _guideStartChoicesOpen = false;
   if (choice.action) {
     _guideRunAction(choice.action);
     return;
   }
   if (!choice.next || !GUIDE_NODES[choice.next]) return;
   _guideTrail.push(choice);
+  renderGuide();
+}
+
+function guideToggleStartChoices() {
+  if (_guideTrail.length > 0 || _guideDraft || _guideResult || _guideAnswer) return;
+  _guideStartChoicesOpen = !_guideStartChoicesOpen;
   renderGuide();
 }
 
@@ -4919,6 +4966,7 @@ function guideBack() {
 
 function guideReset() {
   _guideTrail = [];
+  _guideStartChoicesOpen = false;
   _guideFormValues = {};
   _guideFormError = '';
   _guideDraft = null;

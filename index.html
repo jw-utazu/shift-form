@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=50">
+<link rel="stylesheet" href="css/app.css?v=51">
 </head>
 <body>
 
@@ -91,16 +91,16 @@
 <div id="screen-main">
   <div class="hdr">
     <div class="hdr-left">
-      <button class="help-btn" onclick="openHelp('main')">?</button>
-      <button class="help-btn notice-btn" onclick="openNoticesModal()" title="お知らせ">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg><span class="notice-badge" id="notice-badge" style="display:none;"></span>
+      <button class="help-btn" type="button" onclick="openHelp('main')" aria-label="ヘルプを開く">?</button>
+      <button class="help-btn notice-btn" type="button" onclick="openNoticesModal()" title="お知らせ" aria-label="お知らせを開く" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg><span class="notice-badge" id="notice-badge" style="display:none;"></span>
       </button>
     </div>
     <h1 id="main-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" id="hdr-avatar" onclick="toggleProfilePopup()">
-        <span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span>
-      </div>
+      <button class="hdr-avatar" id="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()">
+        <span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span>
+      </button>
     </div>
   </div>
   <!-- PWモード切替タブ（限定PWメンバーのみ表示） -->
@@ -193,8 +193,8 @@
 </div>
 
 <!-- プロフィールポップアップ -->
-<div id="profile-overlay" onclick="closeProfilePopup()"></div>
-<div id="profile-popup">
+<div id="profile-overlay" aria-hidden="true" onclick="closeProfilePopup()"></div>
+<div id="profile-popup" role="dialog" aria-modal="true" aria-label="アカウントメニュー">
   <div class="pp-header">
     <div class="pp-avatar" id="pp-avatar">
       <svg style="font-size:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -212,14 +212,14 @@
 <!-- ===== フォーム画面 ===== -->
 <div id="screen-form">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('form')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" type="button" onclick="openHelp('form')" aria-label="ヘルプを開く">?</button></div>
     <h1 id="form-title">宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" id="form-back-btn">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" id="form-back-btn" type="button">‹ 戻る</button></div>
 
     <!-- 代理送信 -->
     <div class="proxy-sel" id="proxy-area" style="display:none;">
@@ -235,11 +235,11 @@
           <div style="font-size:16px;font-weight:700;color:#92400e;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg> 先月と同じにする</div>
           <div style="font-size:13px;color:#78350f;margin-top:3px;">ONにすると先月の回答を自動で反映します</div>
         </div>
-        <div class="toggle-wrap" onclick="toggleLastMonth()">
+        <button class="toggle-wrap" id="last-month-toggle" type="button" aria-label="先月の回答を反映" aria-pressed="false" onclick="toggleLastMonth()">
           <div class="toggle-track" id="toggle-track">
             <div class="toggle-thumb"></div>
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -259,14 +259,14 @@
 <!-- ===== シフト表画面 ===== -->
 <div id="screen-shift">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('shift')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" type="button" onclick="openHelp('shift')" aria-label="ヘルプを開く">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" id="shift-back-btn">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" id="shift-back-btn" type="button">‹ 戻る</button></div>
 
     <!-- 日付一覧 -->
     <div id="shift-date-list">
@@ -288,7 +288,7 @@
     <div class="hdr-left"></div>
     <h1>報告・資料</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
@@ -352,7 +352,7 @@
     <div class="hdr-left"></div>
     <h1>設定</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
@@ -481,14 +481,14 @@
 <!-- ===== 要望画面 ===== -->
 <div id="screen-request">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('request')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" type="button" onclick="openHelp('request')" aria-label="ヘルプを開く">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" type="button" onclick="history.back()">‹ 戻る</button></div>
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></svg> 要望・ご意見</div>
       <textarea class="req-textarea" id="req-textarea" placeholder="ご自由にご記入ください"></textarea>
@@ -502,14 +502,14 @@
 <!-- ===== バグ報告画面 ===== -->
 <div id="screen-bug">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('bug')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" type="button" onclick="openHelp('bug')" aria-label="ヘルプを開く">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" type="button" onclick="history.back()">‹ 戻る</button></div>
     <div class="card">
       <div class="card-title" style="color:#b91c1c;border-color:#fecaca;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-9" /><path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z" /><path d="M14.12 3.88 16 2" /><path d="M21 21a4 4 0 0 0-3.81-4" /><path d="M21 5a4 4 0 0 1-3.55 3.97" /><path d="M22 13h-4" /><path d="M3 21a4 4 0 0 1 3.81-4" /><path d="M3 5a4 4 0 0 0 3.55 3.97" /><path d="M6 13H2" /><path d="m8 2 1.88 1.88" /><path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" /></svg> バグ報告</div>
       <p style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.7;">アプリの不具合・エラーについて詳しくお知らせください。<br>担当者に通知され、確認・対応します。</p>
@@ -523,14 +523,14 @@
 <!-- ===== 配布報告画面 ===== -->
 <div id="screen-distrib-report">
   <div class="hdr">
-    <div class="hdr-left"><button class="help-btn" onclick="openHelp('distrib-report')">?</button></div>
+    <div class="hdr-left"><button class="help-btn" type="button" onclick="openHelp('distrib-report')" aria-label="ヘルプを開く">?</button></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" type="button" onclick="history.back()">‹ 戻る</button></div>
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" /></svg> 配布報告</div>
       <div style="margin-bottom:12px;">
@@ -561,11 +561,11 @@
     <div class="hdr-left"></div>
     <h1>宇多津会衆PWアプリ</h1>
     <div class="hdr-right">
-      <div class="hdr-avatar" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></div>
+      <button class="hdr-avatar" type="button" aria-label="アカウントメニューを開く" aria-haspopup="dialog" aria-expanded="false" onclick="toggleProfilePopup()"><span class="hdr-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span></button>
     </div>
   </div>
   <div class="container">
-    <div class="back-bar"><span class="back-bar-btn" onclick="history.back()">‹ 戻る</span></div>
+    <div class="back-bar"><button class="back-bar-btn" type="button" onclick="history.back()">‹ 戻る</button></div>
     <div class="card">
       <div class="card-title" style="color:#92400e;border-color:#fde68a;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg> 道路使用許可書PDF管理</div>
       <div style="margin-bottom:12px;">
@@ -720,9 +720,9 @@
     <div class="guide-modal-hdr">
       <div>
         <div class="guide-modal-title" id="guide-modal-title">
-          <span class="guide-title-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="4" /><path d="M12 3v4" /><path d="M8 12h.01" /><path d="M16 12h.01" /><path d="M8 16h8" /></svg></span> 操作ナビ
+           <span class="guide-title-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="4" /><path d="M12 3v4" /><path d="M8 12h.01" /><path d="M16 12h.01" /><path d="M8 16h8" /></svg></span> 操作ナビ
         </div>
-        <div class="guide-modal-subtitle">ご用件を選ぶだけでご案内します</div>
+         <div class="guide-modal-subtitle">ご用件を選ぶだけでご案内します</div>
       </div>
       <button type="button" class="help-modal-close" onclick="closeGuide()" aria-label="案内を閉じる">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -823,6 +823,6 @@
 <script src="js/icons.js?v=2"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/picker.js?v=2"></script>
-<script src="js/app.js?v=79"></script>
+<script src="js/app.js?v=80"></script>
 </body>
 </html>

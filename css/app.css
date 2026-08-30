@@ -1,5 +1,5 @@
 :root {
-  --green:       #16a34a;
+  --green:       #15803d;
   --green-light: #d1fae5;
   --green-mid:   #bbf7d0;
   --green-dark:  #14532d;
@@ -8,7 +8,7 @@
   --border:      #a7f3d0;
   --text:        #1e293b;
   --sub:         #374151;
-  --danger:      #ef4444;
+  --danger:      #dc2626;
   --danger-dark: #dc2626;
   --amber:       #fde68a;
   --amber-dark:  #f59e0b;
@@ -60,7 +60,7 @@ body::-webkit-scrollbar { display: none; }
 
 /* バー右アイコン */
 .hdr-avatar {
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid rgba(255,255,255,0.7);
@@ -69,6 +69,8 @@ body::-webkit-scrollbar { display: none; }
   background: rgba(255,255,255,0.2);
   transition: border-color .15s;
   flex-shrink: 0;
+  padding: 0;
+  font-family: inherit;
 }
 .hdr-avatar:active { border-color: #fff; }
 .hdr-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -450,7 +452,7 @@ body::-webkit-scrollbar { display: none; }
 .cal-month-label { font-size: 14px; font-weight: 700; color: var(--green); }
 .cal-nav-btn {
   background: var(--green-light); border: none; border-radius: 6px;
-  padding: 4px 10px; font-size: 14px; cursor: pointer; color: var(--green-dark);
+  min-width: 44px; min-height: 44px; padding: 4px 10px; font-size: 14px; cursor: pointer; color: var(--green-dark);
   font-weight: 700;
 }
 .cal-nav-btn:active { background: var(--green-mid); }
@@ -845,6 +847,7 @@ body::-webkit-scrollbar { display: none; }
   gap: 2px;
   margin: 0 2px;
   padding: 7px 2px 6px;
+  min-height: 44px;
   border-radius: 10px;
   background: none;
   border: none;
@@ -855,7 +858,7 @@ body::-webkit-scrollbar { display: none; }
   transition: color .12s, background .12s;
 }
 .tab-ic { font-size: 20px; line-height: 1; }
-.tab-n  { font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; }
+.tab-n  { font-size: 12px; font-weight: 700; letter-spacing: -.02em; }
 /* アクティブは色だけでなく面（背景）でも示す。押せる／押せないの区別は
    非アクティブの色を濃いグレーに上げ、期間外(disabled)だけ薄く残すことで作る */
 .tabbtn.active { color: var(--green-dark); background: var(--green-light); }
@@ -872,6 +875,7 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: 44px;
   padding: 8px 16px 8px 12px;
   cursor: pointer;
   color: var(--green);
@@ -880,6 +884,9 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   border-radius: 8px;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  border: 0;
+  background: none;
+  font-family: inherit;
 }
 .back-bar-btn:active {
   background: rgba(22,163,74,0.1);
@@ -1063,7 +1070,7 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   background: #fffbeb;
   border: 2px solid var(--amber);
 }
-.toggle-wrap  { cursor: pointer; flex-shrink: 0; }
+.toggle-wrap  { min-width: 64px; min-height: 44px; display:flex; align-items:center; justify-content:flex-end; padding:7px 4px; border:0; background:none; cursor:pointer; flex-shrink:0; font-family:inherit; }
 .toggle-track {
   width: 56px;
   height: 30px;
@@ -1302,7 +1309,7 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 
 /* ヘルプボタン（ヘッダー内） */
 .help-btn {
-  width: 32px; height: 32px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   background: rgba(255,255,255,0.25);
   border: 2px solid rgba(255,255,255,0.7);
@@ -2471,3 +2478,17 @@ textarea.guide-field-input {
 .debug-simulate-btn{width:100%;padding:7px 10px;border:1px solid #93c5fd;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-family:inherit;cursor:pointer;}
 .debug-simulate-btn:active{background:#dbeafe;}
 .cal-day.shift-day-unified.selected{background:#f0fdf4;}
+
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

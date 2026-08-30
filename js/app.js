@@ -1324,10 +1324,12 @@ function toggleProfilePopup() {
   if (isOpen) {
     popup.classList.remove('show');
     overlay.classList.remove('show');
+    document.querySelectorAll('.hdr-avatar').forEach(el => el.setAttribute('aria-expanded', 'false'));
   } else {
     updateAvatarUI();
     popup.classList.add('show');
     overlay.classList.add('show');
+    document.querySelectorAll('.hdr-avatar').forEach(el => el.setAttribute('aria-expanded', 'true'));
     history.pushState({ screen: _currentScreenName, modal: 'profile' }, '');
     _modalInHistory = 'profile';
   }
@@ -1335,6 +1337,7 @@ function toggleProfilePopup() {
 function closeProfilePopup() {
   document.getElementById('profile-popup').classList.remove('show');
   document.getElementById('profile-overlay').classList.remove('show');
+  document.querySelectorAll('.hdr-avatar').forEach(el => el.setAttribute('aria-expanded', 'false'));
   if (_modalInHistory === 'profile') {
     _modalInHistory = null;
     _suppressNextPopstate = true;
@@ -2962,7 +2965,7 @@ function initFormScreen() {
   currentFormUid  = SESSION.uid;
   isCartUser      = SESSION.isCart;
   lastMonthOn     = false;
-  document.getElementById('toggle-track').classList.remove('on');
+  syncLastMonthToggle();
   document.title = '宇多津会衆PWアプリ';
 
   // 代理送信
@@ -3022,7 +3025,7 @@ function onProxyChange() {
     currentFormName = SESSION.name;
   }
   lastMonthOn = false;
-  document.getElementById('toggle-track').classList.remove('on');
+  syncLastMonthToggle();
   initFormState(currentFormUid);
   renderSlots(currentFormUid);
   const hasLast = LAST_MONTH[currentFormUid] &&
@@ -3247,9 +3250,16 @@ function toggleCart(el) {
   if (ch.classList.contains('on')) { ch.classList.remove('on'); if (formState.cartNgMap[gk]) formState.cartNgMap[gk].delete(time); }
   else { ch.classList.add('on'); if (!formState.cartNgMap[gk]) formState.cartNgMap[gk] = new Set(); formState.cartNgMap[gk].add(time); }
 }
+function syncLastMonthToggle() {
+  const track = document.getElementById('toggle-track');
+  const toggle = document.getElementById('last-month-toggle');
+  if (track) track.classList.toggle('on', lastMonthOn);
+  if (toggle) toggle.setAttribute('aria-pressed', lastMonthOn ? 'true' : 'false');
+}
 function toggleLastMonth() {
   lastMonthOn = !lastMonthOn;
   const track = document.getElementById('toggle-track');
+  syncLastMonthToggle();
   if (lastMonthOn) {
     track.classList.add('on');
     if (LAST_MONTH[currentFormUid]) {

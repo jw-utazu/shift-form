@@ -9,7 +9,7 @@
   --sub:    #5f6b76;
   --border: #d8dee4;
   --bg:     #eef2f6;
-  --err:    #c5221f;
+  --err:    #b91c1c;
   --radius: 14px;
 }
 
@@ -83,7 +83,7 @@ body {
 }
 .app-btn:hover { border-color: var(--main); background: #f5f9ff; }
 .app-ic { font-size: 24px; flex-shrink: 0; }
-.app-ic-form { color: #16a34a; }
+.app-ic-form { color: #15803d; }
 .app-ic-admin { color: #2563eb; }
 .app-ic-create { color: #7c3aed; }
 .app-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -122,6 +122,7 @@ body {
   width: 100%;
   margin-top: 18px;
   padding: 13px;
+  min-height: 44px;
   background: var(--main);
   color: #fff;
   border: none;
@@ -138,6 +139,7 @@ body {
   width: 100%;
   margin-top: 18px;
   padding: 8px;
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--sub);
@@ -147,6 +149,20 @@ body {
   cursor: pointer;
 }
 .link:hover { color: var(--main); }
+
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible {
+  outline: 3px solid var(--main);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 .rec-msg { font-size: 13px; line-height: 1.6; margin-top: 12px; text-align: left; color: var(--sub); }
 .rec-msg.err { color: var(--err); }

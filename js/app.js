@@ -4468,7 +4468,6 @@ function _guideAddBubble(parent, type, message, extraClass) {
     copy.textContent = message;
     const avatar = document.createElement('span');
     avatar.className = 'guide-bubble-avatar';
-    avatar.textContent = '人';
     el.appendChild(copy);
     row.appendChild(el);
     row.appendChild(avatar);

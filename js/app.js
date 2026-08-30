@@ -4699,6 +4699,9 @@ function renderGuide() {
       : '';
     context.classList.toggle('show', _guideTrail.length > 0);
   }
+  if (_guideTrail.length === 0) {
+    _guideAddBubble(messages, 'assistant', 'こんにちは。ここから一緒に進めます。', 'guide-greeting');
+  }
   if (_guideTrail.length > 0) _guideAddBubble(messages, 'user', _guideTrail[_guideTrail.length - 1].label);
   _guideAddBubble(messages, 'assistant', node.message);
 
@@ -4739,7 +4742,8 @@ function renderGuide() {
   if (reset) reset.disabled = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
 
   const body = document.querySelector('.guide-modal-body');
-  if (body) setTimeout(() => { body.scrollTop = body.scrollHeight; }, 0);
+  const isInitialGuide = _guideTrail.length === 0 && !_guideDraft && !_guideResult && !_guideAnswer;
+  if (body) setTimeout(() => { body.scrollTop = isInitialGuide ? 0 : body.scrollHeight; }, 0);
 }
 
 function _guideAddChoice(parent, labelText, choice) {

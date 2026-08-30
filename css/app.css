@@ -1579,6 +1579,13 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   border-color: #bbf7d0;
   background: #ecfdf5;
 }
+.guide-bubble.assistant.guide-greeting {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  padding: 2px 4px;
+}
 .guide-bubble-avatar {
   display: inline-flex;
   align-items: center;

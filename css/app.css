@@ -60,7 +60,7 @@ body::-webkit-scrollbar { display: none; }
 
 /* バー右アイコン */
 .hdr-avatar {
-  width: 44px; height: 44px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid rgba(255,255,255,0.7);
@@ -1309,7 +1309,7 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 
 /* ヘルプボタン（ヘッダー内） */
 .help-btn {
-  width: 44px; height: 44px;
+  width: 32px; height: 32px;
   border-radius: 50%;
   background: rgba(255,255,255,0.25);
   border: 2px solid rgba(255,255,255,0.7);
@@ -2056,9 +2056,21 @@ textarea.guide-field-input {
   box-shadow: 0 3px 8px rgba(5, 74, 45, .2);
 }
 .guide-title-ic svg { width: 21px; height: 21px; vertical-align: 0; }
-.guide-modal-hdr .help-modal-close { color: rgba(255,255,255,.86); }
+.guide-modal-hdr .help-modal-close {
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border: 2px solid #14532d;
+  color: #14532d;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .22);
+}
+.guide-modal-hdr .help-modal-close svg { width: 20px; height: 20px; }
 .guide-modal-hdr .help-modal-close:hover,
-.guide-modal-hdr .help-modal-close:active { background: rgba(255,255,255,.16); color: #fff; }
+.guide-modal-hdr .help-modal-close:active {
+  background: #dcfce7;
+  border-color: #14532d;
+  color: #14532d;
+}
 .guide-modal-body {
   flex: 1;
   padding: 20px 16px 24px;

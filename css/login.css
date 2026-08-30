@@ -122,7 +122,6 @@ body {
   width: 100%;
   margin-top: 18px;
   padding: 13px;
-  min-height: 44px;
   background: var(--main);
   color: #fff;
   border: none;
@@ -139,7 +138,6 @@ body {
   width: 100%;
   margin-top: 18px;
   padding: 8px;
-  min-height: 44px;
   background: none;
   border: none;
   color: var(--sub);

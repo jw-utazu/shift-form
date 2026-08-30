@@ -452,7 +452,7 @@ body::-webkit-scrollbar { display: none; }
 .cal-month-label { font-size: 14px; font-weight: 700; color: var(--green); }
 .cal-nav-btn {
   background: var(--green-light); border: none; border-radius: 6px;
-  min-width: 44px; min-height: 44px; padding: 4px 10px; font-size: 14px; cursor: pointer; color: var(--green-dark);
+  padding: 4px 10px; font-size: 14px; cursor: pointer; color: var(--green-dark);
   font-weight: 700;
 }
 .cal-nav-btn:active { background: var(--green-mid); }
@@ -847,7 +847,6 @@ body::-webkit-scrollbar { display: none; }
   gap: 2px;
   margin: 0 2px;
   padding: 7px 2px 6px;
-  min-height: 44px;
   border-radius: 10px;
   background: none;
   border: none;
@@ -858,7 +857,7 @@ body::-webkit-scrollbar { display: none; }
   transition: color .12s, background .12s;
 }
 .tab-ic { font-size: 20px; line-height: 1; }
-.tab-n  { font-size: 12px; font-weight: 700; letter-spacing: -.02em; }
+.tab-n  { font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; }
 /* アクティブは色だけでなく面（背景）でも示す。押せる／押せないの区別は
    非アクティブの色を濃いグレーに上げ、期間外(disabled)だけ薄く残すことで作る */
 .tabbtn.active { color: var(--green-dark); background: var(--green-light); }
@@ -875,7 +874,6 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
   padding: 8px 16px 8px 12px;
   cursor: pointer;
   color: var(--green);
@@ -1070,7 +1068,7 @@ body.has-tabbar { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   background: #fffbeb;
   border: 2px solid var(--amber);
 }
-.toggle-wrap  { min-width: 64px; min-height: 44px; display:flex; align-items:center; justify-content:flex-end; padding:7px 4px; border:0; background:none; cursor:pointer; flex-shrink:0; font-family:inherit; }
+.toggle-wrap  { display:flex; align-items:center; justify-content:flex-end; padding:0; border:0; background:none; cursor:pointer; flex-shrink:0; font-family:inherit; }
 .toggle-track {
   width: 56px;
   height: 30px;

@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=48">
+<link rel="stylesheet" href="css/app.css?v=49">
 </head>
 <body>
 
@@ -64,8 +64,10 @@
 <!-- ===== 困ったときのかんたん案内 ===== -->
 <button type="button" id="guide-launcher" class="guide-launcher is-hidden"
         aria-label="困ったときのかんたん案内">
-  <span class="guide-launcher-ic">?</span>
-  <span class="guide-launcher-tx">困ったとき</span>
+  <span class="guide-launcher-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="4" /><path d="M12 3v4" /><path d="M8 12h.01" /><path d="M16 12h.01" /><path d="M8 16h8" /></svg>
+  </span>
+  <span class="guide-launcher-tx"><strong>操作ナビ</strong><small>いつでも質問できます</small></span>
 </button>
 
 <!-- ===== 初回登録画面 ===== -->
@@ -718,9 +720,9 @@
     <div class="guide-modal-hdr">
       <div>
         <div class="guide-modal-title" id="guide-modal-title">
-          <span class="guide-title-ic">?</span> 操作ナビ
+          <span class="guide-title-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="4" /><path d="M12 3v4" /><path d="M8 12h.01" /><path d="M16 12h.01" /><path d="M8 16h8" /></svg></span> 操作ナビ
         </div>
-        <div class="guide-modal-subtitle">選択した内容に合わせて案内します</div>
+        <div class="guide-modal-subtitle">ご用件を選ぶだけでご案内します</div>
       </div>
       <button type="button" class="help-modal-close" onclick="closeGuide()" aria-label="案内を閉じる">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -818,9 +820,9 @@
   </button>
 </nav>
 
-<script src="js/icons.js?v=1"></script>
+<script src="js/icons.js?v=2"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/picker.js?v=2"></script>
-<script src="js/app.js?v=77"></script>
+<script src="js/app.js?v=78"></script>
 </body>
 </html>

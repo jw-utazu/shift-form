@@ -4437,7 +4437,7 @@ function _guideAddBubble(parent, type, message, extraClass) {
   if (type === 'assistant') {
     const avatar = document.createElement('span');
     avatar.className = 'guide-bubble-avatar';
-    avatar.textContent = '?';
+    avatar.innerHTML = ic('bot');
     const copy = document.createElement('div');
     copy.className = 'guide-bubble-copy';
     const name = document.createElement('span');

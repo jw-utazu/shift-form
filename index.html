@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="宇多津会衆PWアプリ">
 <title>宇多津会衆PWアプリ</title>
-<link rel="stylesheet" href="css/app.css?v=44">
+<link rel="stylesheet" href="css/app.css?v=45">
 </head>
 <body>
 
@@ -716,14 +716,19 @@
 <div id="guide-overlay" onclick="closeGuideOutside(event)">
   <div id="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
     <div class="guide-modal-hdr">
-      <div class="guide-modal-title" id="guide-modal-title">
-        <span class="guide-title-ic">?</span> かんたん案内
+      <div>
+        <div class="guide-modal-title" id="guide-modal-title">
+          <span class="guide-title-ic">?</span> 操作ナビ
+        </div>
+        <div class="guide-modal-subtitle">やりたいことを選んで進めます</div>
       </div>
       <button type="button" class="help-modal-close" onclick="closeGuide()" aria-label="案内を閉じる">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
       </button>
     </div>
     <div class="guide-modal-body">
+      <div id="guide-step-label" class="guide-step-label"></div>
+      <div id="guide-context" class="guide-context" aria-live="polite"></div>
       <div id="guide-messages" class="guide-messages" aria-live="polite"></div>
       <div id="guide-choice-list" class="guide-choice-list"></div>
     </div>
@@ -806,6 +811,6 @@
 <script src="js/icons.js?v=1"></script>
 <script src="js/session.js?v=6"></script>
 <script src="js/picker.js?v=2"></script>
-<script src="js/app.js?v=73"></script>
+<script src="js/app.js?v=74"></script>
 </body>
 </html>

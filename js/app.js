@@ -4294,17 +4294,17 @@ function _guideHasPublishedShift() {
 function _guideGetStartChoices() {
   return [
     _formTabEnabled
-      ? { label: '希望を提出・確認したい', next: 'form' }
-      : { label: '希望の受付状況を確認したい', next: 'formUnavailable' },
+      ? { label: '希望を提出・確認したい', description: '参加できる時間帯を選んで送信します', icon: 'square-pen', next: 'form' }
+      : { label: '希望の受付状況を確認したい', description: '現在は受付期間外です', icon: 'calendar', next: 'formUnavailable' },
     _guideHasPublishedShift()
-      ? { label: 'シフト表・自分の担当を確認したい', next: 'shift' }
-      : { label: 'シフト表の公開状況を確認したい', next: 'shiftUnavailable' },
-    { label: '配布報告を送りたい', next: 'distribution' },
-    { label: '要望・質問を送りたい', next: 'request' },
-    { label: '不具合を報告したい', next: 'bug' },
-    { label: '設定や通知を確認したい', next: 'settings' },
-    { label: '操作マニュアルを見たい', next: 'manual' },
-    { label: 'この画面の説明を見たい', action: 'openHelp' },
+      ? { label: 'シフト表・自分の担当を確認したい', description: '担当日と時間帯をこの場で確認できます', icon: 'calendar', next: 'shift' }
+      : { label: 'シフト表の公開状況を確認したい', description: '公開前のため担当はまだ確認できません', icon: 'calendar', next: 'shiftUnavailable' },
+    { label: '配布報告を送りたい', description: '配布した内容を入力して送信します', icon: 'send', next: 'distribution' },
+    { label: '要望・質問を送りたい', description: '区域係へメッセージを送ります', icon: 'message-circle', next: 'request' },
+    { label: '不具合を報告したい', description: '困った画面や操作を伝えます', icon: 'triangle-alert', next: 'bug' },
+    { label: '設定や通知を確認したい', description: '通知やアカウントの設定を確認します', icon: 'settings', next: 'settings' },
+    { label: '操作マニュアルを見たい', description: '画面ごとの使い方を確認します', icon: 'book-open', next: 'manual' },
+    { label: 'この画面の説明を見たい', description: '今見ている画面の説明を表示します', icon: 'circle-help', action: 'openHelp' },
   ];
 }
 
@@ -4349,15 +4349,20 @@ const GUIDE_NODES = {
   form: {
     message: '希望についてですね。どちらですか？',
     choices: [
-      { label: '希望提出・確認画面について説明を聞く', next: 'formOpen' },
-      { label: '提出後の希望を変更したい', next: 'formChange' },
+      { label: '希望を提出する', description: '参加できる日時を選んで送信します', icon: 'square-pen', next: 'wishPick' },
+      { label: '提出済みの希望を確認する', description: '現在登録されている内容を表示します', icon: 'clipboard', next: 'wishCurrent' },
+      { label: '提出後の希望を変更したい', description: '変更方法を確認します', icon: 'message-circle', next: 'formChange' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
-  formOpen: {
-    message: '希望提出・確認画面を開くと、現在選べる日程と時間帯を確認できます。画面を開きますか？',
+  wishPick: {
+    message: '参加できる日時を選んでください。選択した時間帯ごとに注記も入力できます。',
+    form: { kind: 'wish', title: '参加できる時間帯' }
+  },
+  wishCurrent: {
+    message: '提出済みの希望をこの場で確認しますか？',
     choices: [
-      { label: '希望提出・確認画面を開く', action: 'openForm' },
+      { label: '現在の希望を表示する', description: '登録済みの日時と注記を表示します', icon: 'clipboard', action: 'showCurrentWish' },
       { label: '前の質問に戻る', action: 'back' },
       { label: '最初に戻る', action: 'reset' },
     ]
@@ -4371,8 +4376,8 @@ const GUIDE_NODES = {
   shift: {
     message: 'シフトについてですね。どちらにしますか？',
     choices: [
-      { label: '自分の担当をこの場で確認する', action: 'showMyShifts' },
-      { label: '詳しいシフト表を開く', action: 'openShift' },
+      { label: '自分の担当をこの場で確認する', description: '日付・時間帯・役割をまとめて表示します', icon: 'calendar', action: 'showMyShifts' },
+      { label: '詳しいシフト表を開く', description: '日付を選んで詳細を確認します', icon: 'calendar', action: 'openShift' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
@@ -4391,14 +4396,14 @@ const GUIDE_NODES = {
   settings: {
     message: '設定や通知を確認できます。設定画面を開きますか？',
     choices: [
-      { label: '設定画面を開く', action: 'openMore' },
+      { label: '設定画面を開く', description: '通知やアカウント設定を確認します', icon: 'settings', action: 'openMore' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
   manual: {
     message: '操作マニュアルを開いて、画面を見ながら使い方を確認できます。',
     choices: [
-      { label: '操作マニュアルを開く', action: 'openManual' },
+      { label: '操作マニュアルを開く', description: '画面ごとの使い方を確認します', icon: 'book-open', action: 'openManual' },
       { label: '最初に戻る', action: 'reset' },
     ]
   },
@@ -4421,12 +4426,255 @@ let _guideFormError = '';
 let _guideDraft = null;
 let _guideResult = null;
 let _guideSubmitting = false;
+let _guideWishState = null;
 
-function _guideAddBubble(parent, type, message) {
+function _guideAddBubble(parent, type, message, extraClass) {
   const el = document.createElement('div');
-  el.className = 'guide-bubble ' + type;
-  el.textContent = message;
+  el.className = 'guide-bubble ' + type + (extraClass ? ' ' + extraClass : '');
+  if (type === 'assistant') {
+    const avatar = document.createElement('span');
+    avatar.className = 'guide-bubble-avatar';
+    avatar.textContent = '?';
+    const copy = document.createElement('span');
+    copy.className = 'guide-bubble-copy';
+    copy.textContent = message;
+    el.appendChild(avatar);
+    el.appendChild(copy);
+  } else {
+    el.textContent = message;
+  }
   parent.appendChild(el);
+}
+
+function _guideCloneWishState() {
+  const state = { checkedMap: {}, cartNgMap: {}, noteMap: {}, noAvailability: false };
+  const saved = SESSION && THIS_MONTH ? THIS_MONTH[SESSION.uid] : null;
+  if (!saved) return state;
+  Object.entries(saved.checkedMap || {}).forEach(([key, values]) => {
+    state.checkedMap[key] = new Set(Array.isArray(values) ? values : []);
+  });
+  Object.entries(saved.cartNgMap || {}).forEach(([key, values]) => {
+    state.cartNgMap[key] = new Set(Array.isArray(values) ? values : []);
+  });
+  Object.entries(saved.noteMap || {}).forEach(([key, value]) => {
+    state.noteMap[key] = value || '';
+  });
+  return state;
+}
+
+function _guideEnsureWishState() {
+  if (!_guideWishState) _guideWishState = _guideCloneWishState();
+  return _guideWishState;
+}
+
+function _guideWishSelectedCount(state) {
+  return Object.values(state.checkedMap).reduce((sum, values) => sum + values.size, 0);
+}
+
+function guideToggleWishTime(button) {
+  const state = _guideEnsureWishState();
+  const group = button.dataset.group;
+  const time = button.dataset.time;
+  if (!state.checkedMap[group]) state.checkedMap[group] = new Set();
+  if (state.checkedMap[group].has(time)) {
+    state.checkedMap[group].delete(time);
+    if (state.cartNgMap[group]) state.cartNgMap[group].delete(time);
+    delete state.noteMap[group + ' ' + time];
+  } else {
+    state.checkedMap[group].add(time);
+    state.noAvailability = false;
+  }
+  renderGuide();
+}
+
+function guideToggleWishCart(button) {
+  const state = _guideEnsureWishState();
+  const group = button.dataset.group;
+  const time = button.dataset.time;
+  if (!state.cartNgMap[group]) state.cartNgMap[group] = new Set();
+  const on = state.cartNgMap[group].has(time);
+  if (on) state.cartNgMap[group].delete(time);
+  else state.cartNgMap[group].add(time);
+  button.classList.toggle('on', !on);
+  button.textContent = !on ? 'カート担当不可：ON' : 'カート担当不可';
+}
+
+function guideWishNoteInput(input) {
+  const state = _guideEnsureWishState();
+  state.noteMap[input.dataset.group + ' ' + input.dataset.time] = input.value;
+}
+
+function _guideRenderWishForm(parent) {
+  const state = _guideEnsureWishState();
+  const wrap = document.createElement('div');
+  wrap.className = 'guide-wish-form';
+  const note = document.createElement('div');
+  note.className = 'guide-wish-note';
+  note.textContent = '複数選択できます。選択した時間帯ごとに注記を追加できます。';
+  wrap.appendChild(note);
+
+  if (!Array.isArray(SLOTS) || SLOTS.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'guide-form-note';
+    empty.textContent = '現在選べる時間帯を取得できません。通常の希望画面で確認してください。';
+    wrap.appendChild(empty);
+    _guideAddChoice(wrap, '希望提出画面を開く', {
+      description: '画面を開いて最新の候補を確認します', icon: 'calendar', action: 'openForm'
+    });
+    parent.appendChild(wrap);
+    return;
+  }
+
+  groupSlots(SLOTS).forEach(group => {
+    const groupWrap = document.createElement('section');
+    groupWrap.className = 'guide-wish-group';
+    const date = document.createElement('div');
+    date.className = 'guide-wish-date';
+    date.textContent = group.week + ' ' + group.dateLabel;
+    groupWrap.appendChild(date);
+    const times = document.createElement('div');
+    times.className = 'guide-wish-times';
+    group.times.forEach(time => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'guide-wish-time' +
+        (state.checkedMap[group.week + ' ' + group.dateLabel] &&
+         state.checkedMap[group.week + ' ' + group.dateLabel].has(time) ? ' on' : '');
+      button.dataset.group = group.week + ' ' + group.dateLabel;
+      button.dataset.time = time;
+      button.textContent = time;
+      button.onclick = () => guideToggleWishTime(button);
+      times.appendChild(button);
+    });
+    groupWrap.appendChild(times);
+
+    const selected = state.checkedMap[group.week + ' ' + group.dateLabel] || new Set();
+    const details = document.createElement('div');
+    details.className = 'guide-wish-details';
+    group.times.filter(time => selected.has(time)).forEach(time => {
+      const detail = document.createElement('label');
+      detail.className = 'guide-wish-detail';
+      const detailLabel = document.createElement('span');
+      detailLabel.className = 'guide-wish-detail-label';
+      detailLabel.textContent = time + ' の注記（任意）';
+      detail.appendChild(detailLabel);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'guide-wish-input';
+      input.maxLength = 50;
+      input.placeholder = '例：少し遅れて参加、など';
+      input.dataset.group = group.week + ' ' + group.dateLabel;
+      input.dataset.time = time;
+      input.value = state.noteMap[input.dataset.group + ' ' + time] || '';
+      input.oninput = () => guideWishNoteInput(input);
+      detail.appendChild(input);
+      if (isCartUser) {
+        const cart = document.createElement('button');
+        cart.type = 'button';
+        cart.className = 'guide-wish-cart' +
+          (state.cartNgMap[input.dataset.group] && state.cartNgMap[input.dataset.group].has(time) ? ' on' : '');
+        cart.dataset.group = input.dataset.group;
+        cart.dataset.time = time;
+        cart.textContent = cart.classList.contains('on') ? 'カート担当不可：ON' : 'カート担当不可';
+        cart.onclick = () => guideToggleWishCart(cart);
+        detail.appendChild(cart);
+      }
+      details.appendChild(detail);
+    });
+    if (details.children.length > 0) groupWrap.appendChild(details);
+    wrap.appendChild(groupWrap);
+  });
+
+  const count = document.createElement('div');
+  count.className = 'guide-wish-count';
+  count.textContent = _guideWishSelectedCount(state) + '件選択中';
+  wrap.appendChild(count);
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'guide-form-submit';
+  submit.textContent = '選択内容を確認する';
+  submit.disabled = _guideSubmitting;
+  submit.onclick = () => guideConfirmForm('wish');
+  wrap.appendChild(submit);
+
+  const none = document.createElement('button');
+  none.type = 'button';
+  none.className = 'guide-wish-none' + (state.noAvailability ? ' on' : '');
+  none.textContent = '今回は参加できる日時なしで提出する';
+  none.onclick = () => {
+    state.noAvailability = true;
+    state.checkedMap = {};
+    state.cartNgMap = {};
+    state.noteMap = {};
+    renderGuide();
+  };
+  wrap.appendChild(none);
+  parent.appendChild(wrap);
+}
+
+function _guideReadWishForm() {
+  const state = _guideEnsureWishState();
+  const count = _guideWishSelectedCount(state);
+  if (count === 0 && !state.noAvailability) return { error: '時間帯を1つ以上選択してください。' };
+  const checkedMap = {}, cartNgMap = {};
+  Object.entries(state.checkedMap).forEach(([key, values]) => {
+    if (values.size > 0) checkedMap[key] = [...values];
+  });
+  Object.entries(state.cartNgMap).forEach(([key, values]) => {
+    if (values.size > 0) cartNgMap[key] = [...values];
+  });
+  return { data: { checkedMap, cartNgMap, noteMap: Object.assign({}, state.noteMap), noAvailability: state.noAvailability } };
+}
+
+function _guideWishLines(data) {
+  if (!data || data.noAvailability) return ['参加できる日時なし'];
+  const lines = [];
+  (SLOTS || []).forEach(slot => {
+    const group = slot.week + ' ' + slot.dateLabel;
+    const checked = data.checkedMap && data.checkedMap[group] || [];
+    if (!checked.includes(slot.time)) return;
+    const key = group + ' ' + slot.time;
+    if (lines.some(line => line.key === key)) return;
+    const extras = [];
+    if (data.noteMap && data.noteMap[key]) extras.push('注記：' + data.noteMap[key]);
+    if (data.cartNgMap && (data.cartNgMap[group] || []).includes(slot.time)) extras.push('カート担当不可');
+    lines.push({ key, text: group + ' ' + slot.time + (extras.length ? '\n' + extras.join('／') : '') });
+  });
+  return lines.length ? lines.map(line => line.text) : ['参加できる日時なし'];
+}
+
+function _guideCurrentWishSummary() {
+  if (!SESSION || !SESSION.uid) return 'ログイン情報を確認できないため、提出済みの希望を表示できません。';
+  const data = THIS_MONTH && THIS_MONTH[SESSION.uid];
+  if (!data || !data.timestamp) return 'まだ希望は提出されていません。先に「希望を提出する」から入力してください。';
+  return '現在登録されている希望です。\n\n' + _guideWishLines({
+    checkedMap: data.checkedMap || {},
+    cartNgMap: data.cartNgMap || {},
+    noteMap: data.noteMap || {},
+  }).join('\n\n') + '\n\n最終送信：' + data.timestamp;
+}
+
+function _guideWishConflictMessage(data) {
+  const selectedDates = new Set();
+  Object.entries(data.checkedMap || {}).forEach(([key, times]) => {
+    if (!times || times.length === 0) return;
+    const match = key.match(/(\d+\/\d+)/);
+    if (match) selectedDates.add(match[1]);
+  });
+  const conflicts = (((APP_DATA || {}).crossPwConflicts || {})[SESSION.uid] || [])
+    .filter(c => c && selectedDates.has(String(c.date || '')));
+  if (conflicts.length === 0) return '';
+  const byDate = {};
+  conflicts.forEach(c => {
+    const date = String(c.date || '');
+    const name = String(c.pwName || c.pwType || '別のPW');
+    if (!byDate[date]) byDate[date] = [];
+    if (!byDate[date].includes(name)) byDate[date].push(name);
+  });
+  const lines = Object.keys(byDate).map(date => '・' + date + '（' + byDate[date].join('・') + '）');
+  return '次の日程は別のPWにも申込があります。\n' + lines.join('\n') +
+    '\n\n両方に申し込んでもかまいませんが、シフトに入れるのはどちらか一方になります。\nこのまま送信しますか？';
 }
 
 function renderGuide() {
@@ -4438,15 +4686,24 @@ function renderGuide() {
   choices.innerHTML = '';
 
   let node = GUIDE_NODES.start;
-  _guideAddBubble(messages, 'assistant', node.message);
   _guideTrail.forEach(choice => {
-    _guideAddBubble(messages, 'user', choice.label);
     node = GUIDE_NODES[choice.next] || GUIDE_NODES.start;
-    _guideAddBubble(messages, 'assistant', node.message);
   });
 
+  const step = document.getElementById('guide-step-label');
+  if (step) step.textContent = _guideTrail.length === 0 ? 'STEP 1　目的を選択' : 'STEP ' + (_guideTrail.length + 1);
+  const context = document.getElementById('guide-context');
+  if (context) {
+    context.textContent = _guideTrail.length
+      ? '選択中：' + _guideTrail.map(choice => choice.label).join('  ›  ')
+      : '';
+    context.classList.toggle('show', _guideTrail.length > 0);
+  }
+  if (_guideTrail.length > 0) _guideAddBubble(messages, 'user', _guideTrail[_guideTrail.length - 1].label);
+  _guideAddBubble(messages, 'assistant', node.message);
+
   if (_guideAnswer) {
-    _guideAddBubble(messages, 'assistant', _guideAnswer.message);
+    _guideAddBubble(messages, 'assistant', _guideAnswer.message, 'guide-answer');
     if (_guideAnswer.action) {
       const actionLabel = _guideAnswer.action === 'openShift'
         ? '詳しいシフト表を開く' : '画面を開く';
@@ -4465,7 +4722,7 @@ function renderGuide() {
       _guideAddChoice(choices, '最初に戻る', { action: 'reset' });
     }
   } else if (_guideDraft) {
-    _guideAddBubble(messages, 'assistant', '次の内容で送信しますか？\n\n' + _guideDraft.summary);
+    _guideAddBubble(messages, 'assistant', '次の内容で送信しますか？\n\n' + _guideDraft.summary, 'guide-answer');
     _guideAddChoice(choices, 'この内容で送信する', { action: 'submitDraft' });
     _guideAddChoice(choices, '入力内容を修正する', { action: 'editDraft' });
     _guideAddChoice(choices, '最初に戻る', { action: 'reset' });
@@ -4492,17 +4749,35 @@ function _guideAddChoice(parent, labelText, choice) {
   button.disabled = _guideSubmitting;
   button.onclick = () => guideChoose(choice);
 
+  const icon = document.createElement('span');
+  icon.className = 'guide-choice-ic';
+  icon.innerHTML = ic(choice.icon || 'circle-help');
+  const main = document.createElement('span');
+  main.className = 'guide-choice-main';
   const label = document.createElement('span');
+  label.className = 'guide-choice-label';
   label.textContent = labelText;
+  main.appendChild(label);
+  if (choice.description) {
+    const description = document.createElement('span');
+    description.className = 'guide-choice-description';
+    description.textContent = choice.description;
+    main.appendChild(description);
+  }
   const arrow = document.createElement('span');
   arrow.className = 'guide-choice-arr';
   arrow.textContent = '›';
-  button.appendChild(label);
+  button.appendChild(icon);
+  button.appendChild(main);
   button.appendChild(arrow);
   parent.appendChild(button);
 }
 
 function _guideRenderForm(parent, form) {
+  if (form.kind === 'wish') {
+    _guideRenderWishForm(parent);
+    return;
+  }
   if (form.kind === 'distribution' && !_guideFormValues.reportDate) {
     const today = getSimulatedToday();
     _guideFormValues.reportDate = today.getFullYear() + '-' +
@@ -4567,6 +4842,7 @@ function _guideRenderForm(parent, form) {
 }
 
 function _guideReadForm(kind) {
+  if (kind === 'wish') return _guideReadWishForm();
   const data = Object.assign({}, _guideFormValues);
   if (kind === 'distribution') {
     if (!data.reportDate) return { error: '日付を選択してください。' };
@@ -4582,6 +4858,7 @@ function _guideReadForm(kind) {
 }
 
 function _guideDraftSummary(kind, data) {
+  if (kind === 'wish') return _guideWishLines(data).join('\n\n');
   if (kind === 'distribution') {
     return '日付：' + data.reportDate +
       '\n時刻：' + (data.reportTime || '未入力') +
@@ -4643,6 +4920,7 @@ function guideReset() {
   _guideDraft = null;
   _guideResult = null;
   _guideAnswer = null;
+  _guideWishState = null;
   renderGuide();
 }
 
@@ -4709,6 +4987,11 @@ function _guideRunAction(actionName) {
     renderGuide();
     return;
   }
+  if (actionName === 'showCurrentWish') {
+    _guideAnswer = { message: _guideCurrentWishSummary(), action: null };
+    renderGuide();
+    return;
+  }
   const action = actions[actionName];
   if (!action) return;
   if (closeGuide()) _afterPopstate = action;
@@ -4729,6 +5012,10 @@ async function guideSubmitDraft() {
   }
 
   const draft = _guideDraft;
+  if (draft.kind === 'wish') {
+    const conflictMessage = _guideWishConflictMessage(draft.data);
+    if (conflictMessage && !confirm(conflictMessage)) return;
+  }
   _guideSubmitting = true;
   showLoading('送信中...');
   try {
@@ -4749,15 +5036,38 @@ async function guideSubmitDraft() {
         items: draft.data.items,
         notes: draft.data.notes || '',
       });
+    } else if (draft.kind === 'wish') {
+      data = await apiGet('submitShift', {
+        uid: SESSION.uid,
+        name: SESSION.name,
+        checkedMap: draft.data.checkedMap || {},
+        cartNgMap: draft.data.cartNgMap || {},
+        noteMap: draft.data.noteMap || {},
+        proxyFromUid: '',
+      });
     } else {
       throw new Error('送信対象が見つかりません');
     }
     if (!data || !data.ok) throw new Error((data && data.error) || '送信に失敗しました');
     _guideDraft = null;
     _guideFormValues = {};
+    if (draft.kind === 'wish') {
+      const now = new Date();
+      const ts = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' +
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      THIS_MONTH[SESSION.uid] = {
+        checkedMap: draft.data.checkedMap || {},
+        cartNgMap: draft.data.cartNgMap || {},
+        noteMap: draft.data.noteMap || {},
+        timestamp: ts,
+      };
+      wishListViewUid = SESSION.uid;
+      delete _tabSnapshots.form;
+    }
     _guideResult = {
       ok: true,
-      message: draft.kind === 'request' ? '要望・質問を送信しました。' :
+      message: draft.kind === 'wish' ? 'シフト希望を送信しました。' :
+        draft.kind === 'request' ? '要望・質問を送信しました。' :
         draft.kind === 'bug' ? '不具合報告を送信しました。' : '配布報告を送信しました。'
     };
   } catch (e) {

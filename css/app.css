@@ -2449,6 +2449,10 @@ textarea.guide-field-input {
 .pk-note { font-size:11px; color:#9ca3af; padding:5px 6px 1px; border-top:1px solid #e5e7eb; margin-top:4px; }
 /* PW モード切り替えタブ（奉仕者アプリ） */
 .pw-type-bar-form{display:none;gap:0;padding:6px 12px;background:#f8f8f8;border-bottom:1px solid #e5e7eb;}
+.pw-type-bar-form:not(.is-hidden){display:flex;}
+.pw-type-bar-form.is-hidden{display:none!important;}
+.pw-type-bar-form.normal-hidden .pw-type-tab-form.limited{border-left:1.5px solid #d1d5db;border-radius:7px;}
+.pw-type-tab-form.is-hidden{display:none!important;}
 .pw-type-tab-form{flex:1;padding:7px 0;border:1.5px solid #d1d5db;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#6b7280;text-align:center;transition:all .15s;}
 .pw-type-tab-form:first-child{border-radius:7px 0 0 7px;}
 .pw-type-tab-form:last-child{border-radius:0 7px 7px 0;border-left:none;}

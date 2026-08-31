@@ -186,6 +186,7 @@ let currentPwType = 'normal'; // 'normal' | 'limited'
 let limitedPwType = 'limited'; // 実際の限定PWタイプID（isLimitedMemberで確定）
 let isLimitedMember = false;   // 限定PWメンバーかどうか
 let limitedPwName = '限定PW'; // 限定PWの表示名
+let limitedPwShowsNormal = true; // 限定PWごとの通常PWタブ表示設定
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
 let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
@@ -1766,6 +1767,7 @@ function logout() {
   { const panel = document.getElementById('debugDatePanel'); if (panel) panel.style.display = 'none'; }
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
+  limitedPwShowsNormal = true;
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
   _testLimitedTypes = [];
   { const picker = document.getElementById('test-limited-type-picker'); if (picker) { picker.classList.remove('show'); picker.innerHTML = ''; } }
@@ -1827,6 +1829,7 @@ async function initApp(preload) {
     isLimitedMember = limRes.ok && limRes.isLimited;
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
     if (isLimitedMember && limRes.name) limitedPwName = limRes.name;
+    limitedPwShowsNormal = !isLimitedMember || limRes.showNormalPw !== false;
 
     // テストアカウント：限定PWメンバーでなくても全タイプを閲覧できるようにする
     if (SESSION && SESSION.email === TEST_EMAIL) {
@@ -1836,12 +1839,15 @@ async function initApp(preload) {
 
     // 限定PWタブの表示制御
     const pwBar = document.getElementById('pw-type-bar-form');
-    if (pwBar) pwBar.style.display = isLimitedMember ? 'flex' : 'none';
+    if (pwBar) pwBar.classList.toggle('is-hidden', !isLimitedMember);
     const tabLimited = document.getElementById('pw-tab-form-limited');
     if (tabLimited && isLimitedMember) tabLimited.textContent = limitedPwName;
 
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) await _loadLimitedPwData(limitedPwType);
+    if (isLimitedMember && !limitedPwShowsNormal) {
+      currentPwType = 'limited';
+    }
 
     // 通常／限定PWのどちらでも同じ形を参照できるよう、詳細APIの共通mapを
     // その表示中データへ載せる。旧データ構造（thisMonthData等）は比較に使わない。
@@ -1866,6 +1872,8 @@ async function initApp(preload) {
       if (!SHIFT_DATES_MAP[key].includes(s.time)) SHIFT_DATES_MAP[key].push(s.time);
     });
 
+    if (currentPwType === 'limited') _applyLimitedPwData();
+    _setPwTypeUi(currentPwType);
     try {
       buildMainScreen();
     } catch (buildErr) {
@@ -6020,6 +6028,8 @@ async function loadTestLimitedTypePicker() {
     const tabLimited = document.getElementById('pw-tab-form-limited');
     if (tabLimited) tabLimited.textContent = limitedPwName;
   }
+  const selected = _testLimitedTypes.find(t => t.id === limitedPwType);
+  limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
   picker.innerHTML = _testLimitedTypes.map(t =>
     '<button type="button" class="test-limited-chip' + (t.id === limitedPwType ? ' active' : '') +
     '" data-type="' + esc(t.id) + '" onclick="selectTestLimitedType(\'' + esc(t.id) + '\',\'' + esc(t.name) + '\')">' +
@@ -6037,6 +6047,8 @@ async function selectTestLimitedType(newType, newName) {
     await _loadLimitedPwData(newType);
     limitedPwType = newType;
     limitedPwName = _testLimitedTabLabel(newName);
+    const selected = _testLimitedTypes.find(t => t.id === newType);
+    limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
     currentPwType = 'limited';
     _applyLimitedPwData();
     _knownTimestamp = null;
@@ -6054,6 +6066,7 @@ async function selectTestLimitedType(newType, newName) {
 }
 
 async function switchFormPwType(type) {
+  if (type === 'normal' && isLimitedMember && !limitedPwShowsNormal) return;
   if (currentPwType === type) return;
   const prev = _capturePwViewState();
   showLoading(type === 'limited' ? '限定PWデータを読み込み中...' : '通常PWデータを読み込み中...');
@@ -6104,7 +6117,7 @@ async function switchFormPwType(type) {
 
 function _capturePwViewState() {
   return {
-    currentPwType, limitedPwType, limitedPwName,
+    currentPwType, limitedPwType, limitedPwName, limitedPwShowsNormal,
     APP_DATA, SHIFT_DATA, THIS_MONTH, SLOTS, LAST_MONTH, YEAR, MONTH,
     SHIFT_DATES, SHIFT_DATES_MAP, LIMITED_APP_DATA, LIMITED_SHIFT_DATA, LIMITED_DETAIL,
     knownTimestamp: _knownTimestamp,
@@ -6113,6 +6126,7 @@ function _capturePwViewState() {
 
 function _restorePwViewState(s) {
   currentPwType = s.currentPwType; limitedPwType = s.limitedPwType; limitedPwName = s.limitedPwName;
+  limitedPwShowsNormal = s.limitedPwShowsNormal;
   APP_DATA = s.APP_DATA; SHIFT_DATA = s.SHIFT_DATA; THIS_MONTH = s.THIS_MONTH;
   SLOTS = s.SLOTS; LAST_MONTH = s.LAST_MONTH; YEAR = s.YEAR; MONTH = s.MONTH;
   SHIFT_DATES = s.SHIFT_DATES; SHIFT_DATES_MAP = s.SHIFT_DATES_MAP;
@@ -6121,10 +6135,14 @@ function _restorePwViewState(s) {
 }
 
 function _setPwTypeUi(type) {
-  document.getElementById('pw-tab-form-normal').className =
-    'pw-type-tab-form' + (type === 'normal' ? ' active' : '');
+  const hideNormal = isLimitedMember && !limitedPwShowsNormal;
+  const tabNormal = document.getElementById('pw-tab-form-normal');
+  if (tabNormal) tabNormal.className =
+    'pw-type-tab-form' + (type === 'normal' ? ' active' : '') + (hideNormal ? ' is-hidden' : '');
   document.getElementById('pw-tab-form-limited').className =
     'pw-type-tab-form limited' + (type === 'limited' ? ' active' : '');
+  const pwBar = document.getElementById('pw-type-bar-form');
+  if (pwBar) pwBar.classList.toggle('normal-hidden', hideNormal);
   const tabLimited = document.getElementById('pw-tab-form-limited');
   if (tabLimited) tabLimited.textContent = limitedPwName;
   document.querySelectorAll('#test-limited-type-picker .test-limited-chip').forEach(el => {

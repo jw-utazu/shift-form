@@ -187,6 +187,7 @@ let limitedPwType = 'limited'; // 実際の限定PWタイプID（isLimitedMember
 let isLimitedMember = false;   // 限定PWメンバーかどうか
 let limitedPwName = '限定PW'; // 限定PWの表示名
 let limitedPwShowsNormal = true; // 限定PWごとの通常PWタブ表示設定
+let limitedPwShowsNormalSchedule = true; // 限定PW画面での通常PW日程表示設定
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
 let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
@@ -1792,6 +1793,7 @@ function logout() {
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
   limitedPwShowsNormal = true;
+  limitedPwShowsNormalSchedule = true;
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
   _testLimitedTypes = [];
   { const picker = document.getElementById('test-limited-type-picker'); if (picker) { picker.classList.remove('show'); picker.innerHTML = ''; } }
@@ -1854,6 +1856,7 @@ async function initApp(preload) {
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
     if (isLimitedMember && limRes.name) limitedPwName = limRes.name;
     limitedPwShowsNormal = !isLimitedMember || limRes.showNormalPw !== false;
+    limitedPwShowsNormalSchedule = !isLimitedMember || limRes.showNormalSchedule !== false;
 
     // テストアカウント：限定PWメンバーでなくても全タイプを閲覧できるようにする
     if (SESSION && SESSION.email === TEST_EMAIL) {
@@ -2403,7 +2406,8 @@ function buildCalendar() {
   // 統合カレンダー（isLimitedMember）・単独カレンダーの両方でこのデータを使う
   const normalShiftDaysInMonth = new Set();
   const normalShiftTimesMap = {}; // 'm_d' -> [time,...]
-  const normalShiftDates = isLimitedPw2 ? NORMAL_SHIFT_DATES : SHIFT_DATES;
+  const showNormalSchedule = !isLimitedPw2 || !isLimitedMember || limitedPwShowsNormalSchedule;
+  const normalShiftDates = showNormalSchedule ? (isLimitedPw2 ? NORMAL_SHIFT_DATES : SHIFT_DATES) : [];
   const normalShiftDatesMap = isLimitedPw2 ? NORMAL_SHIFT_DATES_MAP : SHIFT_DATES_MAP;
   const normalShiftData = isLimitedPw2 ? NORMAL_SHIFT_DATA : SHIFT_DATA;
   normalShiftDates.forEach(dateStr => {
@@ -2413,7 +2417,7 @@ function buildCalendar() {
     normalShiftDaysInMonth.add(key);
     normalShiftTimesMap[key] = (normalShiftDatesMap[key] || []).slice();
   });
-  if (normalShiftDaysInMonth.size === 0) {
+  if (showNormalSchedule && normalShiftDaysInMonth.size === 0) {
     (normalShiftData && normalShiftData.dates || []).forEach(d => {
       const p = d.date.split('/');
       if (p.length !== 2) return;
@@ -6040,6 +6044,10 @@ function _updateTestLimitedPickerVisibility() {
   const isTest = SESSION && SESSION.email === TEST_EMAIL;
   picker.classList.toggle('show', isTest && _testLimitedTypes.length > 1 && currentPwType === 'limited');
 }
+function _setPwSwitchBusy(busy) {
+  document.querySelectorAll('#pw-type-bar-form .pw-type-tab-form, #test-limited-type-picker .test-limited-chip')
+    .forEach(el => { el.disabled = !!busy; });
+}
 // 候補が複数あるときはタブ名は「限定PW」固定、1つだけならその限定PWの名前にする
 function _testLimitedTabLabel(name) {
   return _testLimitedTypes.length > 1 ? '限定PW' : (name || '限定PW');
@@ -6064,6 +6072,7 @@ async function loadTestLimitedTypePicker() {
   }
   const selected = _testLimitedTypes.find(t => t.id === limitedPwType);
   limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
+  limitedPwShowsNormalSchedule = selected ? selected.showNormalSchedule !== false : true;
   picker.innerHTML = _testLimitedTypes.map(t =>
     '<button type="button" class="test-limited-chip' + (t.id === limitedPwType ? ' active' : '') +
     '" data-type="' + esc(t.id) + '" onclick="selectTestLimitedType(\'' + esc(t.id) + '\',\'' + esc(t.name) + '\')">' +
@@ -6076,6 +6085,7 @@ async function loadTestLimitedTypePicker() {
 async function selectTestLimitedType(newType, newName) {
   if (limitedPwType === newType && currentPwType === 'limited') return;
   const prev = _capturePwViewState();
+  _setPwSwitchBusy(true);
   showLoading('限定PWデータを読み込み中...');
   try {
     await _loadLimitedPwData(newType);
@@ -6083,19 +6093,20 @@ async function selectTestLimitedType(newType, newName) {
     limitedPwName = _testLimitedTabLabel(newName);
     const selected = _testLimitedTypes.find(t => t.id === newType);
     limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
+    limitedPwShowsNormalSchedule = selected ? selected.showNormalSchedule !== false : true;
     currentPwType = 'limited';
     _applyLimitedPwData();
     _knownTimestamp = null;
     _setPwTypeUi('limited');
     _tabSnapshots = {};
     buildMainScreen();
-    await hideLoading();
   } catch(e) {
     _restorePwViewState(prev);
     _setPwTypeUi(prev.currentPwType);
     try { buildMainScreen(); } catch (_) {}
-    await hideLoading();
     alert('データ読み込みエラー: ' + e.message);
+  } finally {
+    try { await hideLoading(); } finally { _setPwSwitchBusy(false); }
   }
 }
 
@@ -6103,6 +6114,7 @@ async function switchFormPwType(type) {
   if (type === 'normal' && isLimitedMember && !limitedPwShowsNormal) return;
   if (currentPwType === type) return;
   const prev = _capturePwViewState();
+  _setPwSwitchBusy(true);
   showLoading(type === 'limited' ? '限定PWデータを読み込み中...' : '通常PWデータを読み込み中...');
   try {
     if (type === 'limited') {
@@ -6140,19 +6152,19 @@ async function switchFormPwType(type) {
     _setPwTypeUi(type);
     _tabSnapshots = {};
     buildMainScreen();
-    await hideLoading();
   } catch(e) {
     _restorePwViewState(prev);
     _setPwTypeUi(prev.currentPwType);
     try { buildMainScreen(); } catch (_) {}
-    await hideLoading();
     alert('データ読み込みエラー: ' + e.message);
+  } finally {
+    try { await hideLoading(); } finally { _setPwSwitchBusy(false); }
   }
 }
 
 function _capturePwViewState() {
   return {
-    currentPwType, limitedPwType, limitedPwName, limitedPwShowsNormal,
+    currentPwType, limitedPwType, limitedPwName, limitedPwShowsNormal, limitedPwShowsNormalSchedule,
     APP_DATA, SHIFT_DATA, THIS_MONTH, SLOTS, LAST_MONTH, YEAR, MONTH,
     SHIFT_DATES, SHIFT_DATES_MAP, LIMITED_APP_DATA, LIMITED_SHIFT_DATA, LIMITED_DETAIL,
     knownTimestamp: _knownTimestamp,
@@ -6162,6 +6174,7 @@ function _capturePwViewState() {
 function _restorePwViewState(s) {
   currentPwType = s.currentPwType; limitedPwType = s.limitedPwType; limitedPwName = s.limitedPwName;
   limitedPwShowsNormal = s.limitedPwShowsNormal;
+  limitedPwShowsNormalSchedule = s.limitedPwShowsNormalSchedule !== false;
   APP_DATA = s.APP_DATA; SHIFT_DATA = s.SHIFT_DATA; THIS_MONTH = s.THIS_MONTH;
   SLOTS = s.SLOTS; LAST_MONTH = s.LAST_MONTH; YEAR = s.YEAR; MONTH = s.MONTH;
   SHIFT_DATES = s.SHIFT_DATES; SHIFT_DATES_MAP = s.SHIFT_DATES_MAP;

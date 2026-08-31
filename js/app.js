@@ -197,8 +197,31 @@ let APP_DATA     = null; // APIから取得したデータ
 let SHIFT_DATA   = null; // シフト表データ
 let SHIFT_DATES  = [];   // 実施日一覧（カレンダーB10以降、'm/d'形式）
 let SHIFT_DATES_MAP = {}; // 実施日→時間帯リスト { 'm_d': ['10:00〜12:00', ...] }
+// 限定PW表示中も統合カレンダーの通常PW側を正しく描くため、通常PWの
+// 実施日データは現在表示中のPWとは別に保持する。
+let NORMAL_SHIFT_DATA = null;
+let NORMAL_SHIFT_DATES = [];
+let NORMAL_SHIFT_DATES_MAP = {};
 let SLOTS        = [], LAST_MONTH = {}, THIS_MONTH = {};
 let YEAR = 0, MONTH = 0;   // 申込を受け付けている月（シフト表の月とはずれることがある）
+
+function cacheNormalShiftData(formData, shiftData) {
+  NORMAL_SHIFT_DATA = shiftData || null;
+  NORMAL_SHIFT_DATES = (formData && formData.shiftDates || []).slice();
+  NORMAL_SHIFT_DATES_MAP = {};
+  (formData && formData.shiftSlots || []).forEach(s => {
+    const key = s.m + '_' + s.d;
+    if (!NORMAL_SHIFT_DATES_MAP[key]) NORMAL_SHIFT_DATES_MAP[key] = [];
+    if (!NORMAL_SHIFT_DATES_MAP[key].includes(s.time)) NORMAL_SHIFT_DATES_MAP[key].push(s.time);
+  });
+}
+
+// APIは奉仕者向けには公開済みフェーズだけを返す。公開フラグの無い旧形式は
+// 公開前の内容を誤って見せないよう、安全側に非表示とする。
+function getVisibleLimitedPhases() {
+  const phases = APP_DATA && Array.isArray(APP_DATA.phases) ? APP_DATA.phases : [];
+  return phases.filter(p => p && p.published === true);
+}
 
 // SHIFT_DATA は「シフトが公開されている月」のもので、申込中の月（YEAR/MONTH）とは
 // 別の月のことがある（今月のシフトが動いている最中に来月の申込が始まる）。
@@ -1764,6 +1787,7 @@ function logout() {
   document.getElementById('shift-update-banner').style.display = 'none';
   clearSession();
   SESSION = null; APP_DATA = null; SHIFT_DATA = null; SHIFT_DATES = []; SHIFT_DATES_MAP = {};
+  NORMAL_SHIFT_DATA = null; NORMAL_SHIFT_DATES = []; NORMAL_SHIFT_DATES_MAP = {};
   { const panel = document.getElementById('debugDatePanel'); if (panel) panel.style.display = 'none'; }
   SLOTS = []; LAST_MONTH = {}; THIS_MONTH = {};
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
@@ -1854,6 +1878,7 @@ async function initApp(preload) {
     // 通常／限定PWのどちらでも同じ形を参照できるよう、詳細APIの共通mapを
     // その表示中データへ載せる。旧データ構造（thisMonthData等）は比較に使わない。
     formData.crossPwConflicts = detail.crossPwConflicts || formData.crossPwConflicts || {};
+    cacheNormalShiftData(formData, shiftData);
     APP_DATA    = formData;
     SHIFT_DATA  = shiftData;
     // getFormDetail側のthisMonthDataはslots付きで正しく生成されているのでそちらを優先
@@ -1931,7 +1956,7 @@ function buildMainScreen() {
   const today   = getSimulatedToday(); today.setHours(0,0,0,0);
   // 限定PWはフェーズ情報からstatus上書き
   if (currentPwType !== 'normal' && APP_DATA && APP_DATA.phases) {
-    const _phases = APP_DATA.phases;
+    const _phases = getVisibleLimitedPhases();
     const _ai = APP_DATA.activePhaseIndex;
     if (typeof _ai === 'number' && _ai >= 0) {
       status = '受付中';
@@ -2188,7 +2213,7 @@ function calNavMonth(delta) {
     future.setMonth(future.getMonth() + 6);
     let futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
     let lastSlotVal = minVal;
-    ((APP_DATA && APP_DATA.phases) || []).forEach(p => {
+    getVisibleLimitedPhases().forEach(p => {
       (p.slots || []).forEach(s => {
         const v = s.y * 100 + s.m;
         if (v > lastSlotVal) lastSlotVal = v;
@@ -2239,7 +2264,7 @@ function buildCalendar() {
     future.setMonth(future.getMonth() + 6);
     const futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
     let lastSlotVal = minVal2;
-    ((APP_DATA && APP_DATA.phases) || []).forEach(p => {
+    getVisibleLimitedPhases().forEach(p => {
       (p.slots || []).forEach(s => {
         const v = s.y * 100 + s.m;
         if (v > lastSlotVal) lastSlotVal = v;
@@ -2300,8 +2325,9 @@ function buildCalendar() {
   const offset   = dow === 0 ? 6 : dow - 1;
   const lastDate = new Date(dispY, dispM, 0).getDate();
 
-  // フェーズ日付セット（限定PW：全フェーズ収集、通常PW：従来ロジック）
+  // 限定PWでは公開済みフェーズの日付だけを収集する
   const isLimitedPw2 = currentPwType !== 'normal';
+  const limitedPhases = isLimitedPw2 ? getVisibleLimitedPhases() : [];
   const applyTimes    = new Set(); // timestamp
   const deadlineTimes = new Set();
   const openTimes     = new Set();
@@ -2309,7 +2335,7 @@ function buildCalendar() {
   let applyStart = null, applyEnd = null; // 申込期間バー用
 
   if (isLimitedPw2 && APP_DATA && APP_DATA.phases) {
-    const _phases2 = APP_DATA.phases;
+    const _phases2 = limitedPhases;
     const _ai2 = APP_DATA.activePhaseIndex;
     _phases2.forEach(p => {
       if (p.apply)    applyTimes.add(new Date(p.apply.y, p.apply.m - 1, p.apply.d).getTime());
@@ -2358,7 +2384,7 @@ function buildCalendar() {
   if (isLimitedPw2 && APP_DATA && APP_DATA.phases) {
     shiftDaysLtd    = new Set();
     shiftDaysMapLtd = {};
-    APP_DATA.phases.forEach(p => {
+    limitedPhases.forEach(p => {
       (p.slots || []).forEach(s => {
         const k = `${s.y}_${s.m}_${s.d}`;
         shiftDaysLtd.add(k);
@@ -2368,22 +2394,27 @@ function buildCalendar() {
     });
   }
 
-  // 通常PW 実施日（表示月分）と時間帯マップ。SHIFT_DATES/SHIFT_DATES_MAP は
+  // 通常PW 実施日（表示月分）と時間帯マップ。限定PW表示中は、現在表示中の
+  // 限定PWデータではなく、初期取得して保持している通常PWデータを使う。
+  // SHIFT_DATES/SHIFT_DATES_MAP は
   // 「申込を受け付けている月」のスロット（dataMini由来）だが、シフトが動いている月は
   // それとは別の月のことがある（今月のシフトが動いている最中に来月の申込が始まる）ため、
-  // 表示月の実施日が無いときはシフト表（SHIFT_DATA）からフォールバックする。
+  // 表示月の実施日が無いときは通常PWのシフト表からフォールバックする。
   // 統合カレンダー（isLimitedMember）・単独カレンダーの両方でこのデータを使う
   const normalShiftDaysInMonth = new Set();
   const normalShiftTimesMap = {}; // 'm_d' -> [time,...]
-  SHIFT_DATES.forEach(dateStr => {
+  const normalShiftDates = isLimitedPw2 ? NORMAL_SHIFT_DATES : SHIFT_DATES;
+  const normalShiftDatesMap = isLimitedPw2 ? NORMAL_SHIFT_DATES_MAP : SHIFT_DATES_MAP;
+  const normalShiftData = isLimitedPw2 ? NORMAL_SHIFT_DATA : SHIFT_DATA;
+  normalShiftDates.forEach(dateStr => {
     const p = dateStr.split('/');
     if (p.length !== 2 || parseInt(p[0]) !== dispM) return;
     const key = parseInt(p[0]) + '_' + parseInt(p[1]);
     normalShiftDaysInMonth.add(key);
-    normalShiftTimesMap[key] = (SHIFT_DATES_MAP[key] || []).slice();
+    normalShiftTimesMap[key] = (normalShiftDatesMap[key] || []).slice();
   });
   if (normalShiftDaysInMonth.size === 0) {
-    (SHIFT_DATA && SHIFT_DATA.dates || []).forEach(d => {
+    (normalShiftData && normalShiftData.dates || []).forEach(d => {
       const p = d.date.split('/');
       if (p.length !== 2) return;
       const m = parseInt(p[0]), day = parseInt(p[1]);
@@ -6086,6 +6117,7 @@ async function switchFormPwType(type) {
         apiGet('getShiftTable', { type: 'normal' })
       ]);
       formData.crossPwConflicts = detail.crossPwConflicts || formData.crossPwConflicts || {};
+      cacheNormalShiftData(formData, shiftData);
       APP_DATA   = formData;
       SHIFT_DATA = shiftData;
       THIS_MONTH  = (detail.thisMonthData && Object.keys(detail.thisMonthData).length > 0)

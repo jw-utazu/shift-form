@@ -1841,7 +1841,9 @@ async function initApp(preload) {
     const pwBar = document.getElementById('pw-type-bar-form');
     if (pwBar) pwBar.classList.toggle('is-hidden', !isLimitedMember);
     const tabLimited = document.getElementById('pw-tab-form-limited');
-    if (tabLimited && isLimitedMember) tabLimited.textContent = limitedPwName;
+    if (tabLimited && isLimitedMember) {
+      tabLimited.textContent = SESSION && SESSION.email === TEST_EMAIL ? limitedPwName : '予定表';
+    }
 
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) await _loadLimitedPwData(limitedPwType);
@@ -1914,7 +1916,8 @@ async function initApp(preload) {
 function buildMainScreen() {
   // バー年月表示
   const baseLabel = (YEAR && MONTH) ? YEAR + '年' + MONTH + '月PW' : '宇多津会衆PWアプリ';
-  const yearMonthLabel = (currentPwType !== 'normal') ? limitedPwName : baseLabel;
+  const showLimitedPwName = SESSION && SESSION.email === TEST_EMAIL;
+  const yearMonthLabel = (currentPwType !== 'normal' && showLimitedPwName) ? limitedPwName : baseLabel;
   document.getElementById('main-title').textContent = yearMonthLabel;
   document.getElementById('form-title') && (document.getElementById('form-title').textContent = yearMonthLabel);
   document.title = '宇多津会衆PWアプリ';
@@ -6144,7 +6147,9 @@ function _setPwTypeUi(type) {
   const pwBar = document.getElementById('pw-type-bar-form');
   if (pwBar) pwBar.classList.toggle('normal-hidden', hideNormal);
   const tabLimited = document.getElementById('pw-tab-form-limited');
-  if (tabLimited) tabLimited.textContent = limitedPwName;
+  if (tabLimited) {
+    tabLimited.textContent = SESSION && SESSION.email === TEST_EMAIL ? limitedPwName : '予定表';
+  }
   document.querySelectorAll('#test-limited-type-picker .test-limited-chip').forEach(el => {
     el.classList.toggle('active', el.dataset.type === limitedPwType);
   });

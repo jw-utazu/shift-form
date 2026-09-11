@@ -54,7 +54,8 @@ const TEST_EMAIL = 'jw.utazu.test@gmail.com';
 // サーバーが認証済みセッションに付けた撮影／テスト用マーカーを優先する。
 // demoMask で email が置き換わっても、撮影用UIの判定を失わないため。
 function isTestCaptureSession() {
-  return !!(SESSION && (SESSION.isCapture || SESSION.isTestAccount || SESSION.email === TEST_EMAIL));
+  if (SESSION && (SESSION.isCapture || SESSION.isTestAccount || SESSION.email === TEST_EMAIL)) return true;
+  try { return sessionStorage.getItem('__pwgws_capture_mode') === '1'; } catch (_) { return false; }
 }
 
 // テストアカウントでログイン中かつ疑似日付が設定されている場合のみ値を返す

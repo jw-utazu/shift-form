@@ -199,6 +199,8 @@ let isLimitedMember = false;   // 限定PWメンバーかどうか
 let limitedPwName = '限定PW'; // 限定PWの表示名
 let limitedPwShowsNormal = true; // 限定PWごとの通常PWタブ表示設定
 let limitedPwShowsNormalSchedule = true; // 限定PW画面での通常PW日程表示設定
+let limitedPwStartDate = null; // 限定PWのカレンダー表示開始月（YYYY-MM-01）
+let limitedPwEndDate = null;   // 限定PWのカレンダー表示終了月（YYYY-MM-01）
 let LIMITED_APP_DATA  = null; // 限定PW の APP_DATA
 let LIMITED_SHIFT_DATA = null; // 限定PW の SHIFT_DATA
 let LIMITED_DETAIL    = null; // 限定PW の getFormDetail
@@ -1812,6 +1814,8 @@ function logout() {
   currentPwType = 'normal'; limitedPwType = 'limited'; isLimitedMember = false; limitedPwName = '限定PW';
   limitedPwShowsNormal = true;
   limitedPwShowsNormalSchedule = true;
+  limitedPwStartDate = null;
+  limitedPwEndDate = null;
   LIMITED_APP_DATA = null; LIMITED_SHIFT_DATA = null; LIMITED_DETAIL = null;
   _testLimitedTypes = [];
   { const picker = document.getElementById('test-limited-type-picker'); if (picker) { picker.classList.remove('show'); picker.innerHTML = ''; } }
@@ -1873,6 +1877,8 @@ async function initApp(preload) {
     isLimitedMember = limRes.ok && limRes.isLimited;
     if (isLimitedMember && limRes.type) limitedPwType = limRes.type;
     if (isLimitedMember && limRes.name) limitedPwName = limRes.name;
+    limitedPwStartDate = isLimitedMember ? (limRes.startDate || null) : null;
+    limitedPwEndDate = isLimitedMember ? (limRes.endDate || null) : null;
     limitedPwShowsNormal = !isLimitedMember || limRes.showNormalPw !== false;
     limitedPwShowsNormalSchedule = !isLimitedMember || limRes.showNormalSchedule !== false;
 
@@ -2074,10 +2080,15 @@ function buildMainScreen() {
   const receptionCard = document.getElementById('reception-status-card');
   if (receptionCard) receptionCard.style.display = (isOpenPassed && !_isPreviewMode) ? 'none' : '';
 
-  // カレンダー描画（今日が含まれる月を初期表示）
+  // カレンダー描画（限定PWは利用期間の開始月を初期表示の下限にする）
   const todayForCal = getSimulatedToday();
-  calDisplayYear  = todayForCal.getFullYear();
-  calDisplayMonth = todayForCal.getMonth() + 1;
+  const todayValForCal = todayForCal.getFullYear() * 100 + (todayForCal.getMonth() + 1);
+  const limitedBounds = currentPwType !== 'normal' ? getLimitedCalendarBounds(todayForCal) : null;
+  const initialCalVal = limitedBounds
+    ? Math.min(Math.max(todayValForCal, limitedBounds.minVal), limitedBounds.maxVal)
+    : todayValForCal;
+  calDisplayYear  = Math.floor(initialCalVal / 100);
+  calDisplayMonth = initialCalVal % 100;
   buildCalendar();
 
   // ── 次のシフト ──
@@ -2216,6 +2227,35 @@ function openNotifSettings() {
 let calDisplayYear  = 0;
 let calDisplayMonth = 0;
 
+function limitedMonthValue(value) {
+  const match = String(value || '').trim().match(/^(\d{4})-(\d{2})/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  return month >= 1 && month <= 12 ? year * 100 + month : null;
+}
+
+function getLimitedCalendarBounds(today) {
+  const currentVal = today.getFullYear() * 100 + (today.getMonth() + 1);
+  const startVal = limitedMonthValue(limitedPwStartDate);
+  const minVal = Math.max(currentVal, startVal || currentVal);
+  const endVal = limitedMonthValue(limitedPwEndDate);
+  if (endVal !== null) return { minVal, maxVal: endVal };
+
+  // 終了月が未設定の既存限定PWは、従来の6か月＋最終実施月を維持する。
+  const future = new Date(today);
+  future.setMonth(future.getMonth() + 6);
+  const futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
+  let lastSlotVal = minVal;
+  getVisibleLimitedPhases().forEach(p => {
+    (p.slots || []).forEach(s => {
+      const v = s.y * 100 + s.m;
+      if (v > lastSlotVal) lastSlotVal = v;
+    });
+  });
+  return { minVal, maxVal: Math.max(futureVal, lastSlotVal, minVal) };
+}
+
 function calNavMonth(delta) {
   let newY = calDisplayYear;
   let newM = calDisplayMonth + delta;
@@ -2225,22 +2265,12 @@ function calNavMonth(delta) {
   const realToday = getSimulatedToday();
   const realY = realToday.getFullYear();
   const realM = realToday.getMonth() + 1;
-  const minVal = realY * 100 + realM;
+  const limitedBounds = currentPwType !== 'normal' ? getLimitedCalendarBounds(realToday) : null;
+  const minVal = limitedBounds ? limitedBounds.minVal : realY * 100 + realM;
 
   let maxVal;
   if (currentPwType !== 'normal') {
-    // 限定PW: 今日から6ヶ月 or 最終スロット月
-    const future = new Date(realToday);
-    future.setMonth(future.getMonth() + 6);
-    let futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
-    let lastSlotVal = minVal;
-    getVisibleLimitedPhases().forEach(p => {
-      (p.slots || []).forEach(s => {
-        const v = s.y * 100 + s.m;
-        if (v > lastSlotVal) lastSlotVal = v;
-      });
-    });
-    maxVal = Math.max(futureVal, lastSlotVal);
+    maxVal = limitedBounds.maxVal;
   } else {
     // 通常PW: 今日の月〜シフト当月
     const shiftY = YEAR  || realY;
@@ -2271,27 +2301,18 @@ function buildCalendar() {
   // 今日（ハイライト用。疑似日付が設定されていればそれを使う）
   const today = getSimulatedToday(); today.setHours(0,0,0,0);
 
-  // ナビボタンの活性制御（今日の月〜シフト当月）
+  // ナビボタンの活性制御（通常PWは今日の月〜シフト当月、限定PWは利用期間）
   const shiftY = YEAR  || getSimulatedToday().getFullYear();
   const shiftM = MONTH || getSimulatedToday().getMonth() + 1;
   const realToday2 = getSimulatedToday();
   const realY2 = realToday2.getFullYear();
   const realM2 = realToday2.getMonth() + 1;
-  const minVal2 = realY2 * 100 + realM2;
   const isLimitedPw = currentPwType !== 'normal';
+  const limitedBounds2 = isLimitedPw ? getLimitedCalendarBounds(realToday2) : null;
+  const minVal2 = limitedBounds2 ? limitedBounds2.minVal : realY2 * 100 + realM2;
   let maxVal2;
   if (isLimitedPw) {
-    const future = new Date(realToday2);
-    future.setMonth(future.getMonth() + 6);
-    const futureVal = future.getFullYear() * 100 + (future.getMonth() + 1);
-    let lastSlotVal = minVal2;
-    getVisibleLimitedPhases().forEach(p => {
-      (p.slots || []).forEach(s => {
-        const v = s.y * 100 + s.m;
-        if (v > lastSlotVal) lastSlotVal = v;
-      });
-    });
-    maxVal2 = Math.max(futureVal, lastSlotVal);
+    maxVal2 = limitedBounds2.maxVal;
   } else {
     maxVal2 = Math.max(shiftY * 100 + shiftM, minVal2);
   }
@@ -2311,7 +2332,8 @@ function buildCalendar() {
   const dotsEl = document.getElementById('cal-dots');
   if (dotsEl) {
     dotsEl.innerHTML = '';
-    let dy = realY2, dm = realM2;
+    const dotStartVal = minVal2;
+    let dy = Math.floor(dotStartVal / 100), dm = dotStartVal % 100;
     while (dy * 100 + dm <= maxVal2) {
       const dotY = dy, dotM = dm;
       const dot = document.createElement('span');
@@ -6094,6 +6116,8 @@ async function loadTestLimitedTypePicker() {
     if (tabLimited) tabLimited.textContent = limitedPwName;
   }
   const selected = _testLimitedTypes.find(t => t.id === limitedPwType);
+  limitedPwStartDate = selected ? (selected.startDate || null) : null;
+  limitedPwEndDate = selected ? (selected.endDate || null) : null;
   limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
   limitedPwShowsNormalSchedule = selected ? selected.showNormalSchedule !== false : true;
   picker.innerHTML = _testLimitedTypes.map(t =>
@@ -6115,6 +6139,8 @@ async function selectTestLimitedType(newType, newName) {
     limitedPwType = newType;
     limitedPwName = _testLimitedTabLabel(newName);
     const selected = _testLimitedTypes.find(t => t.id === newType);
+    limitedPwStartDate = selected ? (selected.startDate || null) : null;
+    limitedPwEndDate = selected ? (selected.endDate || null) : null;
     limitedPwShowsNormal = selected ? selected.showNormalPw !== false : true;
     limitedPwShowsNormalSchedule = selected ? selected.showNormalSchedule !== false : true;
     currentPwType = 'limited';
@@ -6188,6 +6214,7 @@ async function switchFormPwType(type) {
 function _capturePwViewState() {
   return {
     currentPwType, limitedPwType, limitedPwName, limitedPwShowsNormal, limitedPwShowsNormalSchedule,
+    limitedPwStartDate, limitedPwEndDate,
     APP_DATA, SHIFT_DATA, THIS_MONTH, SLOTS, LAST_MONTH, YEAR, MONTH,
     SHIFT_DATES, SHIFT_DATES_MAP, LIMITED_APP_DATA, LIMITED_SHIFT_DATA, LIMITED_DETAIL,
     knownTimestamp: _knownTimestamp,
@@ -6198,6 +6225,8 @@ function _restorePwViewState(s) {
   currentPwType = s.currentPwType; limitedPwType = s.limitedPwType; limitedPwName = s.limitedPwName;
   limitedPwShowsNormal = s.limitedPwShowsNormal;
   limitedPwShowsNormalSchedule = s.limitedPwShowsNormalSchedule !== false;
+  limitedPwStartDate = s.limitedPwStartDate || null;
+  limitedPwEndDate = s.limitedPwEndDate || null;
   APP_DATA = s.APP_DATA; SHIFT_DATA = s.SHIFT_DATA; THIS_MONTH = s.THIS_MONTH;
   SLOTS = s.SLOTS; LAST_MONTH = s.LAST_MONTH; YEAR = s.YEAR; MONTH = s.MONTH;
   SHIFT_DATES = s.SHIFT_DATES; SHIFT_DATES_MAP = s.SHIFT_DATES_MAP;

@@ -51,9 +51,15 @@ window.addEventListener('pwgws:session-changing', () => {
 // ============================================================
 const TEST_EMAIL = 'jw.utazu.test@gmail.com';
 
+// サーバーが認証済みセッションに付けた撮影／テスト用マーカーを優先する。
+// demoMask で email が置き換わっても、撮影用UIの判定を失わないため。
+function isTestCaptureSession() {
+  return !!(SESSION && (SESSION.isCapture || SESSION.isTestAccount || SESSION.email === TEST_EMAIL));
+}
+
 // テストアカウントでログイン中かつ疑似日付が設定されている場合のみ値を返す
 function getDebugFakeNow() {
-  if (!SESSION || SESSION.email !== TEST_EMAIL) return '';
+  if (!isTestCaptureSession()) return '';
   return localStorage.getItem('debugFakeNow') || '';
 }
 
@@ -84,7 +90,7 @@ function _debugDateLabel(value) {
 function initDebugDatePanel() {
   const panel = document.getElementById('debugDatePanel');
   if (!panel) return;
-  if (!SESSION || SESSION.email !== TEST_EMAIL) { panel.style.display = 'none'; return; }
+  if (!isTestCaptureSession()) { panel.style.display = 'none'; return; }
   panel.style.display = 'flex';
   const toggleBtn = document.getElementById('debugDateToggleBtn');
   const toggleLabel = document.getElementById('debugDateToggleLabel');
@@ -925,6 +931,7 @@ async function tryRecoverySession() {
       uid: res.uid, name: res.name, email: res.email || '', token: pwgwsGetSessionToken(),
       isAdmin: res.isAdmin, isResponsible: res.isResponsible,
       isCart: res.isCart, isAccountant: res.isAccountant || false,
+      isTestAccount: !!res.isTestAccount, isCapture: !!res.isCapture,
       positionName: res.positionName || '', extraCaps: res.extraCaps || [],
       proxyTargets: res.proxyTargets || [], picture: '', isRecoverySession: true
     };
@@ -970,17 +977,23 @@ async function doRegister() {
   try {
     const data = await apiGet('register', { memberId: memberId });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
-    const picture = sel.dataset.picture || '';
+    const displayEmail = data.email || email;
+    const accountEmail = email || displayEmail;
+    const isCapture = !!data.isCapture;
+    const picture = isCapture ? '' : (sel.dataset.picture || '');
     SESSION = {
-      uid: data.uid, name: data.name, email: data.email || email, token: pwgwsGetSessionToken(),
+      uid: data.uid, name: data.name, email: displayEmail, token: pwgwsGetSessionToken(),
       isAdmin: data.isAdmin, isResponsible: data.isResponsible,
       isCart: data.isCart, isAccountant: data.isAccountant || false,
+      isTestAccount: !!data.isTestAccount, isCapture,
       positionName: data.positionName || '', extraCaps: data.extraCaps || [],
       proxyTargets: data.proxyTargets || [],
       picture: picture, avatar: '', avatarIsCustom: false, avatarIsPrivate: false, avatarHasGoogle: false
     };
-    saveSession({ email: data.email || email, token: pwgwsGetSessionToken(), picture: picture });
-    pwgwsSaveSession(data.email || email, data.name, picture);
+    saveSession({ email: displayEmail, token: pwgwsGetSessionToken(), picture: picture });
+    // demoMask で表示用メールが置き換わっても、共有セッションの検索キーは
+    // Google認証直後に保存した正規メールを維持する。
+    pwgwsSaveSession(accountEmail, data.name, picture);
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
     // Googleのアイコンをこのタイミングでサーバーに保存する
     if (picture) {
@@ -1859,7 +1872,7 @@ async function initApp(preload) {
     limitedPwShowsNormalSchedule = !isLimitedMember || limRes.showNormalSchedule !== false;
 
     // テストアカウント：限定PWメンバーでなくても全タイプを閲覧できるようにする
-    if (SESSION && SESSION.email === TEST_EMAIL) {
+    if (isTestCaptureSession()) {
       isLimitedMember = true;
       await loadTestLimitedTypePicker();
     }
@@ -5547,15 +5560,20 @@ function esc(s) {
       }
       if (data.needsRegister) {
         hideBootSplash();
-        buildRegisterScreen(data.members || [], data.email || saved.email, saved.token, '', saved.picture || '');
+        buildRegisterScreen(
+          data.members || [], saved.email || data.email, saved.token, '',
+          data.isCapture ? '' : (saved.picture || ''),
+        );
         return;
       }
       SESSION = {
         uid: data.uid, name: data.name, email: data.email || saved.email, token: saved.token,
         isAdmin: data.isAdmin, isResponsible: data.isResponsible,
         isCart: data.isCart, isAccountant: data.isAccountant || false, proxyTargets: data.proxyTargets || [],
+        isTestAccount: !!data.isTestAccount, isCapture: !!data.isCapture,
         positionName: data.positionName || '', extraCaps: data.extraCaps || [],
-        picture: saved.picture || '', avatar: data.avatar || '',
+        picture: data.isCapture ? '' : (saved.picture || ''),
+        avatar: data.isCapture ? '' : (data.avatar || ''),
         avatarIsCustom: !!data.avatarIsCustom, avatarIsPrivate: !!data.avatarIsPrivate,
         avatarHasGoogle: !!data.avatarHasGoogle
       };
@@ -6041,7 +6059,7 @@ let _testLimitedTypes = [];
 function _updateTestLimitedPickerVisibility() {
   const picker = document.getElementById('test-limited-type-picker');
   if (!picker) return;
-  const isTest = SESSION && SESSION.email === TEST_EMAIL;
+  const isTest = isTestCaptureSession();
   picker.classList.toggle('show', isTest && _testLimitedTypes.length > 1 && currentPwType === 'limited');
 }
 function _setPwSwitchBusy(busy) {

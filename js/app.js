@@ -53,9 +53,13 @@ const TEST_EMAIL = 'jw.utazu.test@gmail.com';
 
 // サーバーが認証済みセッションに付けた撮影／テスト用マーカーを優先する。
 // demoMask で email が置き換わっても、撮影用UIの判定を失わないため。
-function isTestCaptureSession() {
-  if (SESSION && (SESSION.isCapture || SESSION.isTestAccount || SESSION.email === TEST_EMAIL)) return true;
+function isCaptureSession() {
+  if (SESSION && SESSION.isCapture) return true;
   try { return sessionStorage.getItem('__pwgws_capture_mode') === '1'; } catch (_) { return false; }
+}
+function isTestCaptureSession() {
+  if (isCaptureSession() || (SESSION && (SESSION.isTestAccount || SESSION.email === TEST_EMAIL))) return true;
+  return false;
 }
 
 // テストアカウントでログイン中かつ疑似日付が設定されている場合のみ値を返す
@@ -1888,7 +1892,7 @@ async function initApp(preload) {
 
     // 限定PWメンバーの場合は統合カレンダー用に限定PW側データも取得
     if (isLimitedMember) await _loadLimitedPwData(limitedPwType);
-    if (isLimitedMember && !limitedPwShowsNormal) {
+    if (isLimitedMember && !limitedPwShowsNormal && !isCaptureSession()) {
       currentPwType = 'limited';
     }
 

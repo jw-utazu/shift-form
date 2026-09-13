@@ -325,6 +325,7 @@ async function installPWADirect() {
 // （showLoading/hideLoading）を使う
 let _firstBootDone = false;
 let _ldSpinnerTimer = null;
+let _bootSplashHideTimer = null;
 // 起動処理が1.5秒を超えて終わらないときだけスピナーを出す保険。通常は一瞬で終わるので出ない想定
 function startBootSpinnerTimer() {
   clearTimeout(_ldSpinnerTimer);
@@ -340,15 +341,24 @@ function stopBootSpinnerTimer() {
 }
 function showBootSplash() {
   const el = document.getElementById('loading');
-  if (el && !el.classList.contains('show')) el.classList.add('show');
+  clearTimeout(_bootSplashHideTimer);
+  _bootSplashHideTimer = null;
+  if (el) {
+    el.classList.remove('fade-out');
+    el.classList.add('show');
+  }
   startBootSpinnerTimer();
 }
 function hideBootSplash() {
   stopBootSpinnerTimer();
   const el = document.getElementById('loading');
   if (!el) return;
+  clearTimeout(_bootSplashHideTimer);
   el.classList.add('fade-out');
-  setTimeout(() => { el.classList.remove('show', 'fade-out'); }, 350);
+  _bootSplashHideTimer = setTimeout(() => {
+    _bootSplashHideTimer = null;
+    el.classList.remove('show', 'fade-out');
+  }, 350);
 }
 
 // ===== ローディング =====
@@ -980,7 +990,9 @@ async function doRegister() {
   if (!memberId) { alert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
-  showLoading('登録中...');
+  // initApp() の初回起動経路は通常のローディングではなく、起動スプラッシュを閉じる。
+  // ここで通常オーバーレイを出すと、登録後も残って画面が固まったように見える。
+  showBootSplash();
   try {
     const data = await apiGet('register', { memberId: memberId });
     if (!data.ok) throw new Error(data.error || '登録に失敗しました');
@@ -1003,12 +1015,11 @@ async function doRegister() {
     pwgwsSaveSession(accountEmail, data.name, picture);
     // ここで初めて uid が確定するため、ログイン時に保存できなかった
     // Googleのアイコンをこのタイミングでサーバーに保存する
-    if (picture) {
-      try { await apiGet('saveGoogleAvatar', { pictureUrl: picture }); } catch (_) {}
-    }
+    // 画像取得は外部通信なので、登録後の画面表示を待たせない。
+    if (picture) apiGet('saveGoogleAvatar', { pictureUrl: picture }).catch(() => {});
     await initApp();
   } catch (e) {
-    await hideLoading();
+    hideBootSplash();
     const msg = document.getElementById('register-msg');
     msg.className = 'msg error';
     msg.innerHTML = ic('triangle-alert', {color:'#B45309'}) + ' ' + esc(e.message);

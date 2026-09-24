@@ -30,7 +30,7 @@ if (typeof pwgwsGetSession !== 'function') {
   window.pwgwsRemoveAccount         = function () { return false; };
   window.pwgwsGoToAddAccount        = function () { window.pwgwsGoToLogin(); };
   window.pwgwsOpenAccountMenu       = function () {
-    alert('アカウント機能を読み込めませんでした。ページを再読み込みしてください。');
+    uiAlert('アカウント機能を読み込めませんでした。ページを再読み込みしてください。');
   };
 }
 
@@ -138,6 +138,61 @@ function initDebugDatePanel() {
 
 // ===== API通信 =====
 // 名称は既存呼び出しとの互換のため残すが、URLにparamsを載せずPOSTへ統一する。
+// サーバーのエラーは application_closed のような識別子で返る。以前はそのまま
+// 「エラー: application_closed」「通信エラー」と出ていて、何が起きたのか・どうすればよいのかが
+// 伝わらなかった。奉仕者の画面に出うるものは個別の文言に、それ以外は種類ごとの文言に置き換える。
+// 識別子は err.code に残し、問い合わせのときに区域係が確認できるよう汎用文言には括弧で添える
+const API_ERROR_MESSAGES = {
+  application_closed: '申込の受付期間ではありません。画面を再読み込みして、受付状況を確認してください。',
+  no_published_calendar: 'いま申込を受け付けている月がありません。',
+  calendar_not_found: '対象の月のカレンダーが見つかりません。画面を再読み込みしてください。',
+  account_not_allowed: 'このアカウントは利用が許可されていません。区域係にお問い合わせください。',
+  member_inactive: 'このアカウントは現在利用できません。区域係にお問い合わせください。',
+  authentication_required: 'ログインが必要です。もう一度ログインしてください。',
+  invalid_session: 'ログインの有効期限が切れました。もう一度ログインしてください。',
+  session_expired: 'ログインの有効期限が切れました。もう一度ログインしてください。',
+  session_revoked: 'ログインが取り消されました。もう一度ログインしてください。',
+  forbidden: 'この操作を行う権限がありません。',
+  submission_not_allowed: 'このアカウントでは希望を提出できません。',
+  proxy_not_allowed: 'この人の代理で提出する権限がありません。',
+  limited_proxy_not_allowed: 'この人の代理で提出する権限がありません。',
+  limited_access_denied: 'このPWの対象者ではありません。',
+  target_member_not_found: '提出先の奉仕者が見つかりません。画面を再読み込みしてください。',
+  proxy_member_not_found: '代理で提出する相手が見つかりません。画面を再読み込みしてください。',
+  target_not_limited_member: 'この人はこのPWの対象者ではありません。',
+  invalid_wish_slot: '選んだ日時の中に、すでに無くなった枠があります。画面を再読み込みして選び直してください。',
+  invalid_wish_payload: '送信内容を確認できませんでした。画面を再読み込みしてやり直してください。',
+  wish_comment_too_long: 'コメントが長すぎます。1000文字以内にしてください。',
+  shift_slot_not_found: 'この時間帯の枠が見つかりません。画面を再読み込みしてください。',
+  invalid_cancel_reason: '中止理由が長すぎるか、使えない文字が含まれています。',
+  invalid_memo: 'メモが長すぎるか、使えない文字が含まれています。',
+  too_many_workers: 'この時間帯に入れられる人数を超えています。',
+  file_too_large: 'ファイルが大きすぎます。',
+  invalid_pdf_mime: 'PDFファイルを選んでください。',
+  invalid_image_mime: '画像ファイルを選んでください。',
+  notifications_not_available: 'この端末では通知を利用できません。',
+  push_not_available: 'この端末では通知を利用できません。',
+  action_retired: 'この機能は終了しました。画面を再読み込みしてください。',
+  unknown_action: 'アプリが古い可能性があります。画面を再読み込みしてください。',
+};
+
+function friendlyApiError(code) {
+  const c = String(code || '');
+  if (API_ERROR_MESSAGES[c]) return API_ERROR_MESSAGES[c];
+  // 識別子でない（すでに日本語の）メッセージはそのまま出す
+  if (!/^[a-z][a-z0-9_]*$/.test(c)) return c || '通信エラーが発生しました。';
+  if (/_lookup_failed$/.test(c)) return 'データを読み込めませんでした。時間をおいて再度お試しください。（' + c + '）';
+  if (/_failed$/.test(c)) return '保存できませんでした。時間をおいて再度お試しください。（' + c + '）';
+  if (/^invalid_|_required$/.test(c)) return '入力内容を確認できませんでした。画面を再読み込みしてやり直してください。（' + c + '）';
+  return 'エラーが発生しました。（' + c + '）';
+}
+
+function apiError(code) {
+  const err = new Error(friendlyApiError(code));
+  err.code = String(code || '');
+  return err;
+}
+
 function apiRequest(action, params, timeoutMs) {
   if (_sessionChangeReloading) {
     const err = new Error('アカウント切替中です');
@@ -168,9 +223,10 @@ function apiRequest(action, params, timeoutMs) {
         err.authError = true;
         throw err;
       }
-      if (r.status === 403) throw new Error((data && data.error) || 'この操作を行う権限がありません');
-      if (!r.ok) throw new Error((data && data.error) || ('通信エラー (' + r.status + ')'));
-      if (data && data.error && !data.ok) throw new Error(data.error);
+      if (r.status === 403) throw apiError((data && data.error) || 'forbidden');
+      if (!r.ok) throw (data && data.error) ? apiError(data.error)
+        : new Error('サーバーでエラーが発生しました。時間をおいて再度お試しください。（' + r.status + '）');
+      if (data && data.error && !data.ok) throw apiError(data.error);
       return data;
     })
     .catch(err => {
@@ -181,7 +237,9 @@ function apiRequest(action, params, timeoutMs) {
         staleError.authError = true;
         throw staleError;
       }
-      if (err.name === 'AbortError') throw new Error('通信タイムアウト');
+      if (err.name === 'AbortError') throw new Error('サーバーから応答がありませんでした。電波の良い場所で、もう一度お試しください。');
+      // fetch 自体の失敗（圏外・機内モードなど）はブラウザ固有の英文（Failed to fetch 等）になるため置き換える
+      if (err instanceof TypeError) throw new Error('通信できませんでした。インターネットにつながっているか確認して、もう一度お試しください。');
       throw err;
     })
     .finally(() => _activeApiControllers.delete(controller));
@@ -260,6 +318,7 @@ let _cartNumbers = null;     // 奉仕者編集モード用：登録済みカー
 let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識別子
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
+let _bottomConfirmOpen = false;    // __bottom__ で「アプリを閉じますか？」を表示中か
 let _currentNotices = [];          // 現在表示可能なお知らせ一覧（ベルアイコンのバッジ・モーダル用）
 let _guideTrail = [];              // かんたん案内で選択した質問の履歴
 let _guideAnswer = null;            // かんたん案内内で返す回答
@@ -813,17 +872,24 @@ window.addEventListener('popstate', function(e) {
   // main 下の番兵エントリ → 「アプリを閉じますか？」確認ダイアログ
   if (screen === '__bottom__') {
     if (SESSION) {
-      const leave = confirm('アプリを閉じますか？');
-      if (leave) {
-        const closed = (function() { try { window.close(); return true; } catch(ex) { return false; } })();
-        if (!closed) {
+      // ダイアログ表示中にさらに戻る/進むが来ても、ここでは番兵の位置に留まるだけにする。
+      // （標準の confirm() と違いアプリ内ダイアログはイベントを止めないため再入しうる）
+      if (_bottomConfirmOpen) return;
+      _bottomConfirmOpen = true;
+      uiConfirm({
+        type: 'info', title: 'アプリを閉じる',
+        message: 'アプリを閉じますか？', confirmText: '閉じる',
+      }).then(leave => {
+        _bottomConfirmOpen = false;
+        // window.close() はブラウザが拒否すると何も起きない（例外も出ない）ため、
+        // 閉じられたときだけ以降が実行されない。閉じられなければ番兵の上の main へ戻す
+        if (leave) { try { window.close(); } catch (ex) {} }
+        // ダイアログ表示中に「進む」等で既に番兵を離れていれば位置はそのままにする
+        if (history.state && history.state.screen === '__bottom__') {
           _suppressNextPopstate = true;
           history.go(1);
         }
-      } else {
-        _suppressNextPopstate = true;
-        history.go(1);
-      }
+      });
     } else {
       _suppressNextPopstate = true;
       history.go(1);
@@ -886,7 +952,7 @@ async function _showFormScreen() {
     initFormScreen();
   } catch (e) {
     hideLoading();
-    alert('フォームデータの読み込みに失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: 'フォームデータの読み込みに失敗しました', message: e.message });
   }
 }
 
@@ -905,7 +971,7 @@ async function _showShiftScreen() {
     initShiftScreen();
   } catch (e) {
     hideLoading();
-    alert('シフト表の読み込みに失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: 'シフト表の読み込みに失敗しました', message: e.message });
   }
 }
 
@@ -955,7 +1021,7 @@ async function tryRecoverySession() {
     await initApp();
     // 期限が近づいたらメールアドレス変更を促す
     if (res.daysLeft <= 7) {
-      setTimeout(() => alert(
+      setTimeout(() => uiAlert(
         'この一時ログインはあと ' + res.daysLeft + '日で終了します。\n' +
         '区域係に連絡して、新しいメールアドレスへの変更をお願いしてください。'
       ), 800);
@@ -987,7 +1053,7 @@ async function doRegister() {
   const sel   = document.getElementById('sel-register-name');
   const memberId = sel.value;
   const email = sel.dataset.email;
-  if (!memberId) { alert('名前を選択してください。'); return; }
+  if (!memberId) { uiAlert('名前を選択してください。'); return; }
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
   // initApp() の初回起動経路は通常のローディングではなく、起動スプラッシュを閉じる。
@@ -1043,7 +1109,7 @@ const AVATAR_MAX_ZOOM  = 4;
 let _avCrop = null;
 
 function pickAvatarFile() {
-  if (_isPreviewMode) { alert('閲覧中はアイコンを変更できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧中はアイコンを変更できません。'); return; }
   document.getElementById('avatar-file-input').click();
 }
 
@@ -1074,7 +1140,7 @@ async function onAvatarFileSelected(e) {
   const file = e.target.files && e.target.files[0];
   e.target.value = ''; // 同じ写真をもう一度選んでも反応するように毎回リセットする
   if (!file) return;
-  if (!file.type.startsWith('image/')) { alert('画像ファイルを選んでください。'); return; }
+  if (!file.type.startsWith('image/')) { uiAlert('画像ファイルを選んでください。'); return; }
 
   showLoading('画像を読み込み中...');
   try {
@@ -1084,7 +1150,7 @@ async function onAvatarFileSelected(e) {
     _openAvatarCrop(loaded);
   } catch (err) {
     await hideLoading();
-    alert('画像を読み込めませんでした: ' + err.message);
+    uiAlert({ type: 'error', title: '画像を読み込めませんでした', message: err.message });
   }
 }
 
@@ -1229,7 +1295,7 @@ async function confirmAvatarCrop() {
     await hideLoading();
   } catch (err) {
     await hideLoading();
-    alert('アイコンの設定に失敗しました: ' + err.message);
+    uiAlert({ type: 'error', title: 'アイコンの設定に失敗しました', message: err.message });
   }
 }
 
@@ -1248,7 +1314,7 @@ async function onAvatarPrivacyToggle() {
     SESSION.avatarIsPrivate = next;
   } catch (err) {
     el.checked = !next; // 保存できていないのに切り替わったまま見えるのを防ぐ
-    alert('設定の保存に失敗しました: ' + err.message);
+    uiAlert({ type: 'error', title: '設定の保存に失敗しました', message: err.message });
   } finally {
     el.disabled = false;
   }
@@ -1261,9 +1327,13 @@ async function onAvatarPrivacyToggle() {
 // ユーザーはこの画面の操作を可逆だと思い込みやすい。文面で必ず破棄だと伝える
 async function resetAvatar() {
   const hasGoogle = !!SESSION.avatarHasGoogle;
-  if (!confirm(hasGoogle
+  if (!await uiConfirm({
+    type: 'danger', title: hasGoogle ? 'Googleのアイコンに戻す' : 'アイコンを削除',
+    message: hasGoogle
       ? '設定したアイコンを削除して、Googleアカウントのアイコンに戻しますか？\n削除したアイコンは元に戻せません（戻すには設定し直してください）。'
-      : '設定したアイコンを削除しますか？\n削除したアイコンは元に戻せません（戻すには設定し直してください）。\nGoogleのアイコンは次回ログイン時に設定されます。')) return;
+      : '設定したアイコンを削除しますか？\n削除したアイコンは元に戻せません（戻すには設定し直してください）。\nGoogleのアイコンは次回ログイン時に設定されます。',
+    confirmText: hasGoogle ? '戻す' : '削除する',
+  })) return;
   showLoading('アイコンを戻しています...');
   try {
     // 保存済みのGoogleのアイコンがあれば、サーバー側でそれに入れ替えて返してくれる
@@ -1276,7 +1346,7 @@ async function resetAvatar() {
     await hideLoading();
   } catch (err) {
     await hideLoading();
-    alert('アイコンを戻せませんでした: ' + err.message);
+    uiAlert({ type: 'error', title: 'アイコンを戻せませんでした', message: err.message });
   }
 }
 
@@ -1535,7 +1605,7 @@ async function rebindExistingPushSubscription() {
     setPushIntentUid('');
     const toggle = document.getElementById('push-enable-toggle');
     if (toggle) toggle.checked = false;
-    alert('アカウント切替後の通知設定を更新できなかったため、この端末の通知を無効にしました。\n設定画面からもう一度有効にしてください。');
+    uiAlert('アカウント切替後の通知設定を更新できなかったため、この端末の通知を無効にしました。\n設定画面からもう一度有効にしてください。');
     return false;
   }
 }
@@ -1552,12 +1622,12 @@ async function onPushEnableToggle() {
 async function enablePushNotifications() {
   const toggle = document.getElementById('push-enable-toggle');
   if (!pushSupported()) {
-    alert('この端末・ブラウザは通知に対応していません');
+    uiAlert('この端末・ブラウザは通知に対応していません');
     if (toggle) toggle.checked = false;
     return;
   }
   if (!SESSION || !SESSION.uid) {
-    alert('ログインしてから設定してください');
+    uiAlert('ログインしてから設定してください');
     if (toggle) toggle.checked = false;
     return;
   }
@@ -1571,7 +1641,7 @@ async function enablePushNotifications() {
       new Promise(resolve => setTimeout(resolve, 10000)),
     ]);
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') { alert('通知が許可されませんでした'); if (toggle) toggle.checked = false; return; }
+    if (permission !== 'granted') { uiAlert('通知が許可されませんでした'); if (toggle) toggle.checked = false; return; }
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -1582,7 +1652,7 @@ async function enablePushNotifications() {
     await savePushSubscriptionToServer(sub);
     await refreshPushPrefSection();
   } catch (e) {
-    alert('通知の設定に失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: '通知の設定に失敗しました', message: e.message });
     if (toggle) toggle.checked = false;
   }
 }
@@ -1663,7 +1733,7 @@ async function onPushPrefChange() {
       params.notifyAdminStatus = document.getElementById('pref-admin-status').checked;
     }
     await apiGet('savePushPreferences', params);
-  } catch (e) { alert('設定の保存に失敗しました: ' + e.message); }
+  } catch (e) { uiAlert({ type: 'error', title: '設定の保存に失敗しました', message: e.message }); }
 }
 
 // ===== メンバープレビュー（オーナー専用） =====
@@ -1752,7 +1822,7 @@ async function startPreview(uid, name, email) {
     await initApp();
   } catch (e) {
     hideLoading();
-    alert('プレビューの開始に失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: 'プレビューの開始に失敗しました', message: e.message });
   }
 }
 
@@ -1944,7 +2014,7 @@ async function initApp(preload) {
     } catch (buildErr) {
       console.error('buildMainScreen error:', buildErr);
       if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { await hideLoading(); }
-      alert('画面の構築に失敗しました: ' + buildErr.message);
+      uiAlert({ type: 'error', title: '画面の構築に失敗しました', message: buildErr.message });
       return;
     }
     if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { await hideLoading(); }
@@ -1971,7 +2041,7 @@ async function initApp(preload) {
   } catch (e) {
     if (isBoot) { hideBootSplash(); _firstBootDone = true; } else { hideLoading(); }
     console.error('initApp error:', e);
-    alert('データの読み込みに失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: 'データの読み込みに失敗しました', message: e.message });
   }
 }
 
@@ -3385,13 +3455,16 @@ function toggleLastMonth() {
 }
 
 async function submitForm() {
-  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
-  if (SESSION && SESSION.isAdmin && !SESSION.uid) { alert('オーナーアカウントでは送信できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧モード中は送信できません。'); return; }
+  if (SESSION && SESSION.isAdmin && !SESSION.uid) { uiAlert('オーナーアカウントでは送信できません。'); return; }
 
   const selectedCount = Object.values(formState.checkedMap)
     .reduce((sum, times) => sum + times.size, 0);
-  if (selectedCount === 0 &&
-      !confirm('参加可能な日時を1件も選択していません。\n「参加可能な日時なし」として提出しますか？')) return;
+  if (selectedCount === 0 && !await uiConfirm({
+    type: 'warn', title: '日時が選ばれていません',
+    message: '参加可能な日時を1件も選択していません。\n「参加可能な日時なし」として提出しますか？',
+    confirmText: '日時なしで提出',
+  })) return;
 
   // APIが通常／限定PW共通形で返す別PW申込だけを参照する。
   // crossPwConflicts: { [uid]: [{ date:'M/D', pwType, pwName }] }
@@ -3422,7 +3495,7 @@ async function submitForm() {
     const conflictLines = Object.keys(byDate).map(date => '・' + date + '（' + byDate[date].join('・') + '）');
     const msg = '次の日程は別のPWにも申込があります。\n' + conflictLines.join('\n') +
       '\n\n両方に申し込んでもかまいませんが、シフトに入れるのはどちらか一方になります。\nこのまま送信しますか？';
-    if (!confirm(msg)) return;
+    if (!await uiConfirm({ type: 'warn', title: '別のPWにも申込があります', message: msg, confirmText: '送信する' })) return;
   }
 
   const btn = document.getElementById('btn-submit');
@@ -3866,50 +3939,57 @@ async function _refreshShiftAndRedraw() {
     await hideLoading();
   } catch (e) {
     await hideLoading();
-    alert('シフト表の更新に失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: 'シフト表の更新に失敗しました', message: e.message });
   }
 }
 
 // 中止入力
 let cancelTimer = null;
-function openCancelInput() {
-  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
+async function openCancelInput() {
+  if (_isPreviewMode) { uiAlert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
-  const reason = prompt('中止理由を入力してください（空白でも可）:', '');
+  const reason = await uiPrompt({
+    type: 'danger', title: 'この時間帯を中止する',
+    message: date + ' ' + time + ' を中止にします。\n中止理由を入力してください（空白でも可）。',
+    placeholder: '例：雨天のため', confirmText: '中止にする', maxLength: 2000,
+  });
   if (reason === null) return; // キャンセル
   showLoading('中止情報を登録中...');
   apiGet('cancelShift', { date, time, reason, uid: SESSION.uid }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
-    else { hideLoading(); alert('エラー: ' + data.error); }
-  }).catch(() => { hideLoading(); alert('通信エラー'); });
+    else { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: friendlyApiError(data.error) }); }
+  }).catch(e => { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: e.message }); });
 }
 
-function openCancelUndo() {
-  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
+async function openCancelUndo() {
+  if (_isPreviewMode) { uiAlert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
-  if (!confirm('この時間帯の中止を取り消しますか？')) return;
+  if (!await uiConfirm({ type: 'warn', title: '中止の取り消し', message: 'この時間帯の中止を取り消しますか？', confirmText: '取り消す' })) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   showLoading('中止を取り消し中...');
   apiGet('undoCancelShift', { date, time, uid: SESSION.uid }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
-    else { hideLoading(); alert('エラー: ' + data.error); }
-  }).catch(() => { hideLoading(); alert('通信エラー'); });
+    else { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: friendlyApiError(data.error) }); }
+  }).catch(e => { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: e.message }); });
 }
 
 // メモ編集
-function openMemoEdit() {
-  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
+async function openMemoEdit() {
+  if (_isPreviewMode) { uiAlert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const date = shiftViewingDate.date, time = shiftViewingDate.time;
   const current = (shiftViewingDate && shiftViewingDate.memo) || '';
-  const memo = prompt('責任者メモを入力してください:', current);
+  const memo = await uiPrompt({
+    type: 'info', title: '責任者メモ', message: date + ' ' + time + ' のメモを入力してください。',
+    value: current, confirmText: '保存する', maxLength: 5000,
+  });
   if (memo === null) return;
   showLoading('メモを保存中...');
   apiGet('saveMemo', { date, time, memo }).then(async data => {
     if (data.ok) { await _refreshShiftAndRedraw(); }
-    else { hideLoading(); alert('エラー: ' + data.error); }
-  }).catch(() => { hideLoading(); alert('通信エラー'); });
+    else { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: friendlyApiError(data.error) }); }
+  }).catch(e => { hideLoading(); uiAlert({ type: 'error', title: 'うまくいきませんでした', message: e.message }); });
 }
 
 // ===== 奉仕者編集モード =====
@@ -4024,8 +4104,8 @@ async function enterStaffEditMode() {
 // 編集中の未保存の変更（名前欄・プルダウン・カート番号など）を編集開始時点の
 // 状態に戻す。shiftViewingDate は編集モード中も一切書き換えていないため、
 // 編集モードのまま buildShiftDetail を再実行するだけでフォームが元の値に戻る
-function resetStaffEdits() {
-  if (!confirm('編集内容を破棄して編集前の状態に戻しますか？')) return;
+async function resetStaffEdits() {
+  if (!await uiConfirm({ type: 'danger', title: '編集内容の破棄', message: '編集内容を破棄して編集前の状態に戻しますか？', confirmText: '破棄して戻す' })) return;
   buildShiftDetail(shiftViewingDate);
 }
 
@@ -4178,17 +4258,20 @@ function onStaffEditChanged() {
 }
 
 async function saveStaffEdits() {
-  if (_isPreviewMode) { alert('閲覧モード中は操作できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧モード中は操作できません。'); return; }
   if (!shiftViewingDate) return;
   const d = shiftViewingDate;
   const payload = collectStaffEditPayload(d);
   // 場所列が取れない（スロットが無い）状態で保存すると usedPlaces が空で送られ、
   // 保存済みの場所設定ごと消える。何も編集できていないので保存しない
-  if (!payload) { alert('この時間帯には編集できる枠がありません。'); return; }
+  if (!payload) { uiAlert('この時間帯には編集できる枠がありません。'); return; }
 
   const issues = validateStaffEditLive(payload);
   if (issues.length > 0) {
-    const ok = confirm('配置に問題がある可能性があります。\n\n' + issues.join('\n') + '\n\nこのまま保存しますか？');
+    const ok = await uiConfirm({
+      type: 'warn', title: '配置に問題がある可能性があります',
+      message: issues.join('\n') + '\n\nこのまま保存しますか？', confirmText: 'このまま保存',
+    });
     if (!ok) return;
   }
 
@@ -4216,18 +4299,18 @@ async function saveStaffEdits() {
     await _refreshShiftAndRedraw();
   } catch (e) {
     await hideLoading();
-    alert('保存に失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: '保存に失敗しました', message: e.message });
     if (btn) btn.disabled = false;
   }
 }
 
 // ===== 要望送信 =====
 async function submitRequest() {
-  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧モード中は送信できません。'); return; }
   const ta  = document.getElementById('req-textarea');
   const btn = document.getElementById('btn-req-submit');
   const msg = document.getElementById('req-msg');
-  if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
+  if (!ta.value.trim()) { uiAlert('内容を入力してください。'); return; }
   btn.disabled = true;
   showLoading('要望を送信中...');
   try {
@@ -4250,11 +4333,11 @@ async function submitRequest() {
 
 // ===== バグ報告送信 =====
 async function submitBugReport() {
-  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧モード中は送信できません。'); return; }
   const ta  = document.getElementById('bug-textarea');
   const btn = document.getElementById('btn-bug-submit');
   const msg = document.getElementById('bug-msg');
-  if (!ta.value.trim()) { alert('内容を入力してください。'); return; }
+  if (!ta.value.trim()) { uiAlert('内容を入力してください。'); return; }
   btn.disabled = true;
   showLoading('バグ報告を送信中...');
   try {
@@ -4284,15 +4367,15 @@ function _showDistribReportScreen() {
 }
 
 async function submitDistributionReport() {
-  if (_isPreviewMode) { alert('閲覧モード中は送信できません。'); return; }
+  if (_isPreviewMode) { uiAlert('閲覧モード中は送信できません。'); return; }
   const dateInput  = document.getElementById('distrib-date');
   const timeInput  = document.getElementById('distrib-time');
   const itemsInput = document.getElementById('distrib-items');
   const notesInput = document.getElementById('distrib-notes');
   const btn = document.getElementById('btn-distrib-submit');
   const msg = document.getElementById('distrib-msg');
-  if (!dateInput.value) { alert('日付を入力してください。'); return; }
-  if (!itemsInput.value.trim()) { alert('配布物を入力してください。'); return; }
+  if (!dateInput.value) { uiAlert('日付を入力してください。'); return; }
+  if (!itemsInput.value.trim()) { uiAlert('配布物を入力してください。'); return; }
   btn.disabled = true;
   showLoading('配布報告を送信中...');
   try {
@@ -5209,7 +5292,7 @@ async function guideSubmitDraft() {
   const draft = _guideDraft;
   if (draft.kind === 'wish') {
     const conflictMessage = _guideWishConflictMessage(draft.data);
-    if (conflictMessage && !confirm(conflictMessage)) return;
+    if (conflictMessage && !await uiConfirm({ type: 'warn', title: '別のPWにも申込があります', message: conflictMessage, confirmText: '送信する' })) return;
   }
   _guideSubmitting = true;
   showLoading('送信中...');
@@ -5941,7 +6024,7 @@ async function onRoadPermitFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
   if (file.type !== 'application/pdf') {
-    alert('PDFファイルを選択してください');
+    uiAlert('PDFファイルを選択してください');
     event.target.value = '';
     return;
   }
@@ -5976,7 +6059,7 @@ async function onRoadPermitFileSelected(event) {
 }
 
 async function deleteRoadPdf(fileId, fileName) {
-  if (!confirm('「' + fileName + '」を削除しますか？')) return;
+  if (!await uiConfirm({ type: 'danger', title: 'ファイルの削除', message: '「' + fileName + '」を削除しますか？', confirmText: '削除する' })) return;
   showLoading('削除中...');
   try {
     const res = await apiGet('deleteRoadPdf', { fileId: fileId });
@@ -5985,7 +6068,7 @@ async function deleteRoadPdf(fileId, fileName) {
     await _initRoadPermitScreen();
   } catch(e) {
     await hideLoading();
-    alert('削除に失敗しました: ' + e.message);
+    uiAlert({ type: 'error', title: '削除に失敗しました', message: e.message });
   }
 }
 
@@ -6168,7 +6251,7 @@ async function selectTestLimitedType(newType, newName) {
     _restorePwViewState(prev);
     _setPwTypeUi(prev.currentPwType);
     try { buildMainScreen(); } catch (_) {}
-    alert('データ読み込みエラー: ' + e.message);
+    uiAlert({ type: 'error', title: 'データを読み込めませんでした', message: e.message });
   } finally {
     try { await hideLoading(); } finally { _setPwSwitchBusy(false); }
   }
@@ -6220,7 +6303,7 @@ async function switchFormPwType(type) {
     _restorePwViewState(prev);
     _setPwTypeUi(prev.currentPwType);
     try { buildMainScreen(); } catch (_) {}
-    alert('データ読み込みエラー: ' + e.message);
+    uiAlert({ type: 'error', title: 'データを読み込めませんでした', message: e.message });
   } finally {
     try { await hideLoading(); } finally { _setPwSwitchBusy(false); }
   }

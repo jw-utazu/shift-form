@@ -338,8 +338,11 @@ async function submitRecoveryOtp() {
       if (googleIdentityChanged) setTimeout(() => location.reload(), 0);
       return;
     }
-    alert('ログインしました。\n\nこのログインは ' + res.days + '日間 有効です。\n' +
-          '期限が切れる前に、区域係に連絡してメールアドレスの変更を済ませてください。');
+    await uiAlert({
+      type: 'success', title: 'ログインしました',
+      message: 'このログインは ' + res.days + '日間 有効です。\n' +
+               '期限が切れる前に、区域係に連絡してメールアドレスの変更を済ませてください。',
+    });
     routeByPermission(res, res.name);
   } catch (e) {
     setRecMsg('rec-otp-msg', '通信エラーが発生しました。', true);

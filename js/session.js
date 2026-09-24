@@ -386,12 +386,16 @@ function pwgwsOpenAccountMenu(anchorEl, opts) {
   const onKey = e => { if (e.key === 'Escape') { pwgwsCloseAccountMenu(); document.removeEventListener('keydown', onKey); } };
   document.addEventListener('keydown', onKey);
 
-  menu.addEventListener('click', e => {
+  menu.addEventListener('click', async e => {
     const rm = e.target.closest('.pwgws-acc-rm');
     if (rm) {
       e.stopPropagation();
       const email = rm.dataset.remove;
-      if (!confirm(email + ' をこの端末のアカウント一覧から削除します。\nよろしいですか？')) return;
+      if (!await uiConfirm({
+        type: 'danger', title: 'アカウントの削除',
+        message: email + ' をこの端末のアカウント一覧から削除します。\nよろしいですか？',
+        confirmText: '削除する',
+      })) return;
       pwgwsRemoveAccount(email);
       pwgwsCloseAccountMenu();
       pwgwsOpenAccountMenu(anchorEl, opts);

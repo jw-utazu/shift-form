@@ -3835,6 +3835,10 @@ async function _refreshShiftAndRedraw() {
   try {
     const shiftData = await apiGet('getShiftTable');
     SHIFT_DATA = shiftData;
+    // 自分の中止・メモ・配置の保存でもシフトの更新時刻は動く。取り直した直後の状態を
+    // 基準にし直さないと、次の確認で自分の変更を「シフトが更新されました」と知らせてしまう
+    _knownTimestamp = null;
+    checkShiftUpdate();
     buildShiftDateList();
     if (shiftViewingDate) {
       const updated = (SHIFT_DATA.dates || []).find(

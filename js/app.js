@@ -319,6 +319,7 @@ let _modalInHistory = null;       // 戻るボタンで閉じるモーダル識�
 let _suppressNextPopstate = false; // モーダルを直接閉じた際のpopstate抑制フラグ
 let _mainHistorySetup = false;     // main 下に __bottom__ エントリを1度だけ挿入したか
 let _bottomConfirmOpen = false;    // __bottom__ で「アプリを閉じますか？」を表示中か
+let _exitingApp = false;           // 「閉じる」選択後、履歴の最下段まで戻って離脱中か
 let _currentNotices = [];          // 現在表示可能なお知らせ一覧（ベルアイコンのバッジ・モーダル用）
 let _guideTrail = [];              // かんたん案内で選択した質問の履歴
 let _guideAnswer = null;            // かんたん案内内で返す回答
@@ -799,6 +800,12 @@ function _showRememberedTab(tab) {
 
 // 戻るボタン（ブラウザ・スマホ）が押されたとき
 window.addEventListener('popstate', function(e) {
+  // 「閉じる」選択後は番兵より下まで戻り切るとOS/ブラウザ側がアプリを閉じる。
+  // 途中の履歴エントリに着くたび popstate が来るので、離脱できるまで戻り続ける
+  if (_exitingApp) {
+    history.back();
+    return;
+  }
   if (_historyNormalizeResolve) {
     const resolve = _historyNormalizeResolve;
     _historyNormalizeResolve = null;
@@ -869,31 +876,41 @@ window.addEventListener('popstate', function(e) {
     return;
   }
 
+  // 起動中に積んだ仮エントリ。起動スプラッシュ/初回登録画面の表示はそのままにし、
+  // 履歴の状態だけ表示中の画面へ合わせ直す（initApp 完了時に main へ置き換わる）
+  if (screen === '__boot__') {
+    history.replaceState({
+      screen: _currentScreenName, tab: _currentTab, depth: _tabDepth,
+    }, '');
+    return;
+  }
+
   // main 下の番兵エントリ → 「アプリを閉じますか？」確認ダイアログ
   if (screen === '__bottom__') {
-    if (SESSION) {
-      // ダイアログ表示中にさらに戻る/進むが来ても、ここでは番兵の位置に留まるだけにする。
-      // （標準の confirm() と違いアプリ内ダイアログはイベントを止めないため再入しうる）
-      if (_bottomConfirmOpen) return;
-      _bottomConfirmOpen = true;
-      uiConfirm({
-        type: 'info', title: 'アプリを閉じる',
-        message: 'アプリを閉じますか？', confirmText: '閉じる',
-      }).then(leave => {
-        _bottomConfirmOpen = false;
-        // window.close() はブラウザが拒否すると何も起きない（例外も出ない）ため、
-        // 閉じられたときだけ以降が実行されない。閉じられなければ番兵の上の main へ戻す
-        if (leave) { try { window.close(); } catch (ex) {} }
+    // ダイアログ表示中にさらに戻る/進むが来ても、ここでは番兵の位置に留まるだけにする。
+    // （標準の confirm() と違いアプリ内ダイアログはイベントを止めないため再入しうる）
+    if (_bottomConfirmOpen) return;
+    _bottomConfirmOpen = true;
+    uiConfirm({
+      type: 'info', title: 'アプリを閉じる',
+      message: 'アプリを閉じますか？', confirmText: '閉じる',
+    }).then(leave => {
+      _bottomConfirmOpen = false;
+      if (leave) {
+        // window.close() はインストール済みPWAなど一部の環境でしか効かず、
+        // 拒否されても例外を投げず何も起きない。効かない環境では番兵より下まで
+        // 履歴を戻り切ればOS/ブラウザ側がアプリを閉じるので、そちらで離脱する
+        try { window.close(); } catch (ex) {}
         // ダイアログ表示中に「進む」等で既に番兵を離れていれば位置はそのままにする
         if (history.state && history.state.screen === '__bottom__') {
-          _suppressNextPopstate = true;
-          history.go(1);
+          _exitingApp = true;
+          history.back();
         }
-      });
-    } else {
-      _suppressNextPopstate = true;
-      history.go(1);
-    }
+      } else if (history.state && history.state.screen === '__bottom__') {
+        _suppressNextPopstate = true;
+        history.go(1);
+      }
+    });
     return;
   }
 
@@ -2021,7 +2038,13 @@ async function initApp(preload) {
     // 初回だけ番兵＋mainを積む。再読込・プレビュー切替では現在位置をmainへ
     // 置き換え、同じmainエントリを何段も増やさない。
     if (_mainHistorySetup) {
-      history.replaceState({ screen: 'main', tab: 'home', depth: 0 }, '');
+      if (history.state && history.state.screen === '__bottom__') {
+        // 起動中に戻るボタンで番兵まで移動し、閉じる確認を表示している場合は
+        // 現在位置を書き換えずにその上へ main を積み直す（番兵を残すため）
+        history.pushState({ screen: 'main', tab: 'home', depth: 0 }, '');
+      } else {
+        history.replaceState({ screen: 'main', tab: 'home', depth: 0 }, '');
+      }
       showScreen('main', true, 0);
     } else {
       showScreen('main');
@@ -5671,6 +5694,17 @@ function esc(s) {
     picture: shared.picture || (appCache && appCache.email === shared.email ? appCache.picture : '') || ''
   } : null;
   if (saved) {
+    // 起動データの取得中に戻るボタンでアプリ外へ出ないよう、番兵と起動中の
+    // 仮エントリを先に積んでおく。initApp は _mainHistorySetup 済みだと
+    // 現在エントリを main に置き換えるだけなので、ここで積んでも二重にならない
+    if (!_mainHistorySetup) {
+      _mainHistorySetup = true;
+      if (!(history.state && history.state.screen === '__bottom__')) {
+        history.pushState({ screen: '__bottom__' }, '');
+      }
+      // 番兵エントリ上でのリロード時は番兵を積み直さず、仮エントリだけを積む
+      history.pushState({ screen: '__boot__' }, '');
+    }
     try {
       // 権限確認と初期データ取得を1回のAPI呼び出し（formBootstrap）にまとめて、
       // 起動時の往復を1回減らす
